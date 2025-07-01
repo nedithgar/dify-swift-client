@@ -8,22 +8,66 @@ on:
 
 jobs:
   test:
-    name: Run Tests
-    runs-on: macos-latest
+    name: Test ${{ matrix.os }} (${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            arch: amd64
+            setup: native
+          - os: ubuntu-latest
+            arch: amd64
+            setup: native
+          - os: ubuntu-latest
+            arch: arm64
+            setup: qemu
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - uses: swift-actions/setup-swift@v2
+    - name: Set up QEMU (for ARM64 emulation)
+      if: matrix.setup == 'qemu'
+      uses: docker/setup-qemu-action@v3
+      with:
+        platforms: arm64
+
+    - name: Set up Docker Buildx (for ARM64 emulation)
+      if: matrix.setup == 'qemu'
+      uses: docker/setup-buildx-action@v3
+
+    - name: Set up Swift (native)
+      if: matrix.setup == 'native'
+      uses: swift-actions/setup-swift@v2
       with:
         swift-version: "6.1.0"
+
+    - name: Test on ARM64 (via Docker)
+      if: matrix.setup == 'qemu'
+      run: |
+        docker run --rm --platform linux/arm64 \
+          -v ${{ github.workspace }}:/workspace \
+          -w /workspace \
+          swift:6.1-jammy \
+          /bin/bash -c "
+            echo 'Swift version:' && swift --version &&
+            echo 'Resolving dependencies...' &&
+            swift package resolve &&
+            echo 'Building project...' &&
+            swift build -v &&
+            echo 'Running tests...' &&
+            swift test -v
+          "
       
-    - name: Resolve dependencies
+    - name: Resolve dependencies (native)
+      if: matrix.setup == 'native'
       run: swift package resolve
       
-    - name: Build project
+    - name: Build project (native)
+      if: matrix.setup == 'native'
       run: swift build -v
       
-    - name: Run tests
+    - name: Run tests (native)
+      if: matrix.setup == 'native'
       run: swift test -v
