@@ -3,19 +3,19 @@ import Foundation
 // MARK: - Response Models
 
 /// Response mode for API requests
-public enum ResponseMode: String, Codable {
+public enum ResponseMode: String, Codable, Sendable {
     case blocking
     case streaming
 }
 
 /// File transfer method
-public enum FileTransferMethod: String, Codable {
+public enum FileTransferMethod: String, Codable, Sendable {
     case remoteUrl = "remote_url"
     case localFile = "local_file"
 }
 
 /// File type
-public enum FileType: String, Codable {
+public enum FileType: String, Codable, Sendable {
     case document
     case image
     case audio
@@ -24,7 +24,7 @@ public enum FileType: String, Codable {
 }
 
 /// API file representation
-public struct APIFile: Codable {
+public struct APIFile: Codable, Sendable {
     public let type: FileType
     public let transferMethod: FileTransferMethod
     public let url: String?
@@ -162,7 +162,7 @@ public struct MetaTool: Codable {
 }
 
 /// Completion message response
-public struct CompletionMessageResponse: Codable {
+public struct CompletionMessageResponse: Codable, Sendable {
     public let answer: String
     public let messageId: String
     public let conversationId: String
@@ -177,7 +177,7 @@ public struct CompletionMessageResponse: Codable {
 }
 
 /// Chat message response
-public struct ChatMessageResponse: Codable {
+public struct ChatMessageResponse: Codable, Sendable {
     public let answer: String
     public let messageId: String
     public let conversationId: String

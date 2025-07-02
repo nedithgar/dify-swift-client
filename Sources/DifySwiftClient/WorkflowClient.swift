@@ -5,7 +5,7 @@ import FoundationNetworking
 
 /// Client for workflow-based interactions with Dify
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
-public final class WorkflowClient: DifyClient {
+public final class WorkflowClient: DifyClient, @unchecked Sendable {
     
     // MARK: - Workflow Methods
     

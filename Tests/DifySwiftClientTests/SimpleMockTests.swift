@@ -7,19 +7,6 @@ import FoundationNetworking
 
 // MARK: - Mock Test Configuration
 
-/// Mock test configuration that doesn't require environment variables
-public struct MockTestConfig {
-    public static let apiKey = "test-api-key-123"
-    public static let baseURL = "https://mock-api.dify.ai/v1"
-    public static let userId = "test-user-456"
-    public static let datasetId = "test-dataset-789"
-    public static let conversationId = "test-conversation-101"
-    public static let messageId = "test-message-112"
-    public static let workflowId = "test-workflow-131"
-    public static let documentId = "test-document-415"
-    public static let fileId = "test-file-161"
-}
-
 // MARK: - Simple Mock Tests
 
 @Suite("Simple Mock Tests")

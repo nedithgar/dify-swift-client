@@ -5,7 +5,7 @@ import FoundationNetworking
 
 /// Client for knowledge base management with Dify
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
-public final class KnowledgeBaseClient: DifyClient {
+public final class KnowledgeBaseClient: DifyClient, @unchecked Sendable {
     
     // MARK: - Properties
     
