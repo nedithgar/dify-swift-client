@@ -232,4 +232,202 @@ open class DifyClient {
         
         return try decode(data, to: MetaResponse.self)
     }
+    
+    // MARK: - Application Info Methods
+    
+    /// Get application basic information
+    /// - Returns: Application info response
+    public func getApplicationInfo() async throws -> ApplicationInfoResponse {
+        let data = try await sendRequest(
+            method: .GET,
+            endpoint: "/info"
+        )
+        
+        return try decode(data, to: ApplicationInfoResponse.self)
+    }
+    
+    /// Get enhanced application parameters information
+    /// - Parameter user: User identifier (optional for some apps)
+    /// - Returns: Enhanced application parameters response
+    public func getEnhancedApplicationParameters(user: String? = nil) async throws -> EnhancedApplicationParametersResponse {
+        var queryItems: [URLQueryItem] = []
+        if let user = user {
+            queryItems.append(URLQueryItem(name: "user", value: user))
+        }
+        
+        let data = try await sendRequest(
+            method: .GET,
+            endpoint: "/parameters",
+            queryItems: queryItems
+        )
+        
+        return try decode(data, to: EnhancedApplicationParametersResponse.self)
+    }
+    
+    /// Get application meta information (tool icons)
+    /// - Returns: Application meta response
+    public func getApplicationMeta() async throws -> ApplicationMetaResponse {
+        let data = try await sendRequest(
+            method: .GET,
+            endpoint: "/meta"
+        )
+        
+        return try decode(data, to: ApplicationMetaResponse.self)
+    }
+    
+    /// Get application site/webapp settings
+    /// - Returns: Application site response
+    public func getApplicationSite() async throws -> ApplicationSiteResponse {
+        let data = try await sendRequest(
+            method: .GET,
+            endpoint: "/site"
+        )
+        
+        return try decode(data, to: ApplicationSiteResponse.self)
+    }
+    
+    // MARK: - Enhanced Feedback Methods
+    
+    /// Send enhanced message feedback with content support
+    /// - Parameters:
+    ///   - messageId: ID of the message to provide feedback for
+    ///   - rating: Rating (like/dislike/null)
+    ///   - user: User identifier
+    ///   - content: Optional feedback content
+    /// - Returns: Message feedback response
+    public func sendEnhancedMessageFeedback(
+        messageId: String,
+        rating: String?,
+        user: String,
+        content: String? = nil
+    ) async throws -> MessageFeedbackResponse {
+        let request = EnhancedMessageFeedbackRequest(rating: rating, user: user, content: content)
+        let data = try await sendRequest(
+            method: .POST,
+            endpoint: "/messages/\(messageId)/feedbacks",
+            body: request
+        )
+        
+        return try decode(data, to: MessageFeedbackResponse.self)
+    }
+    
+    /// Get application feedbacks list
+    /// - Parameters:
+    ///   - page: Page number (default 1)
+    ///   - limit: Records per page (default 20)
+    /// - Returns: Application feedbacks response
+    public func getApplicationFeedbacks(page: Int = 1, limit: Int = 20) async throws -> ApplicationFeedbacksResponse {
+        let queryItems = [
+            URLQueryItem(name: "page", value: String(page)),
+            URLQueryItem(name: "limit", value: String(limit))
+        ]
+        
+        let data = try await sendRequest(
+            method: .GET,
+            endpoint: "/app/feedbacks",
+            queryItems: queryItems
+        )
+        
+        return try decode(data, to: ApplicationFeedbacksResponse.self)
+    }
+    
+    // MARK: - Annotation Methods
+    
+    /// Get annotation list
+    /// - Parameters:
+    ///   - page: Page number (default 1)
+    ///   - limit: Records per page (default 20, max 100)
+    /// - Returns: Annotation list response
+    public func getAnnotations(page: Int = 1, limit: Int = 20) async throws -> AnnotationListResponse {
+        let queryItems = [
+            URLQueryItem(name: "page", value: String(page)),
+            URLQueryItem(name: "limit", value: String(limit))
+        ]
+        
+        let data = try await sendRequest(
+            method: .GET,
+            endpoint: "/apps/annotations",
+            queryItems: queryItems
+        )
+        
+        return try decode(data, to: AnnotationListResponse.self)
+    }
+    
+    /// Create annotation
+    /// - Parameter request: Annotation request with question and answer
+    /// - Returns: Created annotation
+    public func createAnnotation(request: AnnotationRequest) async throws -> AnnotationListResponse.Annotation {
+        let data = try await sendRequest(
+            method: .POST,
+            endpoint: "/apps/annotations",
+            body: request
+        )
+        
+        return try decode(data, to: AnnotationListResponse.Annotation.self)
+    }
+    
+    /// Update annotation
+    /// - Parameters:
+    ///   - annotationId: Annotation ID
+    ///   - request: Annotation request with updated question and answer
+    /// - Returns: Updated annotation
+    public func updateAnnotation(
+        annotationId: String,
+        request: AnnotationRequest
+    ) async throws -> AnnotationListResponse.Annotation {
+        let data = try await sendRequest(
+            method: .PUT,
+            endpoint: "/apps/annotations/\(annotationId)",
+            body: request
+        )
+        
+        return try decode(data, to: AnnotationListResponse.Annotation.self)
+    }
+    
+    /// Delete annotation
+    /// - Parameter annotationId: Annotation ID
+    /// - Returns: Base response
+    public func deleteAnnotation(annotationId: String) async throws -> BaseResponse {
+        let data = try await sendRequest(
+            method: .DELETE,
+            endpoint: "/apps/annotations/\(annotationId)"
+        )
+        
+        return try decode(data, to: BaseResponse.self)
+    }
+    
+    /// Configure annotation reply settings
+    /// - Parameters:
+    ///   - action: Action to perform (enable/disable)
+    ///   - request: Optional settings for embedding configuration
+    /// - Returns: Annotation reply settings response with job info
+    public func configureAnnotationReplySettings(
+        action: String,
+        request: AnnotationReplySettingsRequest? = nil
+    ) async throws -> AnnotationReplySettingsResponse {
+        let data = try await sendRequest(
+            method: .POST,
+            endpoint: "/apps/annotation-reply/\(action)",
+            body: request
+        )
+        
+        return try decode(data, to: AnnotationReplySettingsResponse.self)
+    }
+    
+    /// Get annotation reply settings job status
+    /// - Parameters:
+    ///   - action: Action (enable/disable)
+    ///   - jobId: Job ID returned from configure settings
+    /// - Returns: Job status response
+    public func getAnnotationReplyJobStatus(
+        action: String,
+        jobId: String
+    ) async throws -> AnnotationJobStatusResponse {
+        let data = try await sendRequest(
+            method: .GET,
+            endpoint: "/apps/annotation-reply/\(action)/status/\(jobId)"
+        )
+        
+        return try decode(data, to: AnnotationJobStatusResponse.self)
+    }
 }

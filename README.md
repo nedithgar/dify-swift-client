@@ -4,13 +4,17 @@ A Swift SDK for Dify AI that provides a complete interface to the Dify Service A
 
 ## Features
 
-- **Complete API Coverage**: Supports all Dify API endpoints including chat, completion, workflows, and knowledge base management
-- **Modern Swift**: Built with Swift 6.1+ using modern concurrency (async/await)
+- **Complete API Coverage**: Supports all Dify API endpoints including chat, completion, workflows, knowledge base management, application info, feedbacks, and annotations
+- **Enhanced File Support**: Full support for documents, images, audio, video, and custom file types with both remote URL and local file upload
+- **Modern Swift**: Built with Swift 6.1+ using modern concurrency (async/await) and follows Swift best practices  
 - **Cross-Platform**: Works on macOS, iOS, tvOS, and watchOS
-- **Streaming Support**: Built-in streaming response handling for real-time interactions
-- **Type Safety**: Comprehensive Swift types for all API request/response models
+- **Advanced Streaming**: Built-in streaming response handling for real-time interactions including workflow events
+- **Type Safety**: Comprehensive Swift types for all API request/response models with proper snake_case to camelCase conversion
 - **Error Handling**: Detailed error types with localized descriptions
-- **Testing**: Full test coverage using the latest Swift Testing framework
+- **Testing**: Full test coverage using the latest Swift Testing framework (WWDC2024)
+- **Application Management**: Complete application info, parameters, metadata, and configuration support
+- **Feedback & Annotations**: Full support for message feedback with content and annotation management
+- **Conversation Variables**: Extract and manage structured data from conversations
 
 ## Requirements
 
@@ -90,41 +94,71 @@ let response = try await completionClient.createCompletionMessage(
 print("Completion: \(response.answer)")
 ```
 
-### Working with Files (Vision Models)
+### Working with Files (Enhanced Multi-Format Support)
+
+The SDK now supports comprehensive file handling for all Dify-supported formats:
 
 ```swift
+// Document files: TXT, MD, PDF, DOCX, XLSX, etc.
+let documentFile = APIFile(
+    type: .document,
+    transferMethod: .localFile,
+    uploadFileId: uploadResponse.id
+)
+
+// Audio files: MP3, WAV, M4A, etc.
+let audioFile = APIFile(
+    type: .audio,
+    transferMethod: .remoteUrl,
+    url: "https://example.com/audio.mp3"
+)
+
+// Video files: MP4, MOV, etc.
+let videoFile = APIFile(
+    type: .video,
+    transferMethod: .localFile,
+    uploadFileId: videoUploadResponse.id
+)
+
+// Custom file types
+let customFile = APIFile(
+    type: .custom,
+    transferMethod: .localFile,
+    uploadFileId: customUploadResponse.id
+)
+
 // Using remote image URL
-let files = [APIFile(
+let imageFile = APIFile(
     type: .image,
     transferMethod: .remoteUrl,
     url: "https://example.com/image.jpg"
-)]
+)
 
 let response = try await chatClient.createChatMessage(
     inputs: [:],
-    query: "Describe this image",
+    query: "Analyze these files and provide insights",
     user: "user_123",
-    files: files
+    files: [documentFile, audioFile, imageFile]
 )
 
 // Upload and use local file
-let fileData = Data() // Your image data
+let fileData = Data() // Your file data
 let uploadResponse = try await client.uploadFile(
     user: "user_123",
     fileData: fileData,
-    filename: "image.jpg",
-    mimeType: "image/jpeg"
+    filename: "document.pdf",
+    mimeType: "application/pdf"
 )
 
 let localFiles = [APIFile(
-    type: .image,
+    type: .document,
     transferMethod: .localFile,
     uploadFileId: uploadResponse.id
 )]
 
 let responseWithLocalFile = try await chatClient.createChatMessage(
     inputs: [:],
-    query: "What do you see in this image?",
+    query: "Summarize this document",
     user: "user_123",
     files: localFiles
 )
@@ -278,6 +312,143 @@ let textResponse = try await chatClient.audioToText(
 )
 ```
 
+## Enhanced Features
+
+### Application Information & Configuration
+
+Get comprehensive application details and configuration:
+
+```swift
+// Get basic application information
+let appInfo = try await client.getApplicationInfo()
+print("App: \(appInfo.name) - \(appInfo.description)")
+print("Mode: \(appInfo.mode), Author: \(appInfo.authorName)")
+
+// Get detailed application parameters and settings
+let params = try await client.getEnhancedApplicationParameters(user: "user_123")
+print("Opening statement: \(params.openingStatement ?? "None")")
+print("Speech-to-text enabled: \(params.speechToText?.enabled ?? false)")
+print("File upload supported: \(params.fileUpload?.image?.enabled ?? false)")
+
+// Get application meta information (tool icons)
+let meta = try await client.getApplicationMeta()
+for (toolName, icon) in meta.toolIcons {
+    switch icon {
+    case .url(let urlString):
+        print("\(toolName): \(urlString)")
+    case .icon(let iconObj):
+        print("\(toolName): \(iconObj.content) (\(iconObj.background))")
+    }
+}
+
+// Get site/webapp settings
+let site = try await client.getApplicationSite()
+print("Title: \(site.title ?? "N/A")")
+print("Theme: \(site.chatColorTheme ?? "Default")")
+```
+
+### Enhanced Feedback & Annotations
+
+Manage feedback and annotations with rich content support:
+
+```swift
+// Send detailed feedback with content
+try await client.sendEnhancedMessageFeedback(
+    messageId: "msg_123",
+    rating: "like",
+    user: "user_123",
+    content: "This response was very helpful and accurate!"
+)
+
+// Get application feedbacks
+let feedbacks = try await client.getApplicationFeedbacks(page: 1, limit: 20)
+for feedback in feedbacks.data {
+    print("Feedback: \(feedback.rating) - \(feedback.content ?? "No content")")
+}
+
+// Manage annotations
+let annotations = try await client.getAnnotations(page: 1, limit: 20)
+print("Total annotations: \(annotations.total)")
+
+// Create new annotation
+let newAnnotation = try await client.createAnnotation(
+    request: AnnotationRequest(
+        question: "What is artificial intelligence?",
+        answer: "AI is a branch of computer science focused on creating systems that can perform tasks typically requiring human intelligence."
+    )
+)
+
+// Configure annotation reply settings
+let settingsResponse = try await client.configureAnnotationReplySettings(
+    action: "enable",
+    request: AnnotationReplySettingsRequest(
+        scoreThreshold: 0.8,
+        embeddingProviderName: "openai",
+        embeddingModelName: "text-embedding-ada-002"
+    )
+)
+
+// Check job status
+let jobStatus = try await client.getAnnotationReplyJobStatus(
+    action: "enable",
+    jobId: settingsResponse.jobId
+)
+print("Job status: \(jobStatus.jobStatus)")
+```
+
+### Conversation Variables
+
+Extract and manage structured data from conversations:
+
+```swift
+// Get conversation variables
+let variables = try await chatClient.getConversationVariables(
+    conversationId: "conv_123",
+    user: "user_123",
+    limit: 50
+)
+
+for variable in variables.data {
+    print("Variable: \(variable.name) (\(variable.valueType))")
+    print("Value: \(variable.value)")
+    print("Description: \(variable.description ?? "No description")")
+}
+```
+
+### Enhanced Chat Features
+
+Utilize advanced chat capabilities:
+
+```swift
+// Create chat message with auto-generation control
+let response = try await chatClient.createChatMessage(
+    inputs: ["context": "customer support"],
+    query: "I need help with my order",
+    user: "user_123",
+    responseMode: .blocking,
+    conversationId: nil,
+    files: nil,
+    autoGenerateName: false // Disable automatic title generation
+)
+
+// Get workflow logs (for workflow-enabled apps)
+let workflowLogs = try await workflowClient.getWorkflowLogs(
+    keyword: "error",
+    status: "failed",
+    page: 1,
+    limit: 10
+)
+
+for log in workflowLogs.data {
+    print("Workflow: \(log.workflowRun.id)")
+    print("Status: \(log.workflowRun.status)")
+    print("Duration: \(log.workflowRun.elapsedTime)s")
+    if let error = log.workflowRun.error {
+        print("Error: \(error)")
+    }
+}
+```
+
 ## API Reference
 
 ### Core Classes
@@ -290,15 +461,36 @@ let textResponse = try await chatClient.audioToText(
 
 ### Response Models
 
-All API responses are strongly typed with Swift structs:
+All API responses are strongly typed with Swift structs and include comprehensive support for the latest Dify API features:
 
+#### Core Response Models
 - `ChatMessageResponse`
-- `CompletionMessageResponse`
+- `CompletionMessageResponse` 
 - `WorkflowResponse`
 - `FileUploadResponse`
 - `DatasetResponse`
 - `DocumentResponse`
-- And many more...
+
+#### Application Information Models
+- `ApplicationInfoResponse` - Basic app information
+- `EnhancedApplicationParametersResponse` - Detailed app parameters and configuration
+- `ApplicationMetaResponse` - Application metadata and tool icons
+- `ApplicationSiteResponse` - Site/webapp settings
+
+#### Enhanced Feedback & Annotation Models
+- `EnhancedMessageFeedbackRequest` - Feedback with content support
+- `ApplicationFeedbacksResponse` - Application feedback listings
+- `AnnotationListResponse` - Annotation management
+- `AnnotationReplySettingsResponse` - Annotation configuration
+- `AnnotationJobStatusResponse` - Annotation job tracking
+
+#### Conversation & Workflow Models
+- `ConversationVariablesResponse` - Structured conversation data
+- `WorkflowLogsResponse` - Workflow execution logs and history
+
+#### Enhanced File Support
+- `FileType` enum supporting: `.document`, `.image`, `.audio`, `.video`, `.custom`
+- `APIFile` with comprehensive file handling for all supported formats
 
 ### Error Types
 
