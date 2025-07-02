@@ -26,4 +26,8 @@ jobs:
       run: swift build -v
       
     - name: Run tests
+      env:
+        DIFY_API_KEY: ${{ secrets.DIFY_API_KEY }}
+        DIFY_BASE_URL: ${{ secrets.DIFY_BASE_URL }}
+        DIFY_USER_ID: ${{ secrets.DIFY_USER_ID }}
       run: swift test -v

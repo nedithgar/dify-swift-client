@@ -8,9 +8,9 @@ import FoundationNetworking
 // MARK: - Test Configuration
 
 struct TestConfig {
-    static let apiKey = "test_api_key"
-    static let baseURL = "https://api.dify.ai/v1"
-    static let userId = "test_user"
+    static let apiKey = ProcessInfo.processInfo.environment["DIFY_API_KEY"]
+    static let baseURL = ProcessInfo.processInfo.environment["DIFY_BASE_URL"]
+    static let userId = ProcessInfo.processInfo.environment["DIFY_USER_ID"]
 }
 
 // MARK: - DifyClient Tests
