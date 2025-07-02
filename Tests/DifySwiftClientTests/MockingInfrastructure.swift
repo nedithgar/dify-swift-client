@@ -4,6 +4,8 @@ import FoundationNetworking
 #endif
 @testable import DifySwiftClient
 
+@preconcurrency import Foundation
+
 // MARK: - Mock URL Protocol
 
 /// URLProtocol subclass for intercepting and mocking HTTP requests in tests
@@ -11,58 +13,25 @@ public class MockURLProtocol: URLProtocol {
     
     // MARK: - Static Properties
     
-    private static let lock = NSLock()
-    private static var _mockResponses: [String: MockResponse] = [:]
-    private static var _requestHandler: ((URLRequest) -> (HTTPURLResponse, Data))?
-    
-    private static var mockResponses: [String: MockResponse] {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _mockResponses
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _mockResponses = newValue
-        }
-    }
-    
-    private static var requestHandler: ((URLRequest) -> (HTTPURLResponse, Data))? {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _requestHandler
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _requestHandler = newValue
-        }
-    }
+    nonisolated(unsafe) private static var mockResponses: [String: MockResponse] = [:]
+    nonisolated(unsafe) private static var requestHandler: ((URLRequest) -> (HTTPURLResponse, Data))?
     
     // MARK: - Mock Response Configuration
     
     /// Register a mock response for a specific endpoint
     public static func registerMock(endpoint: String, response: MockResponse) {
-        lock.lock()
-        defer { lock.unlock() }
-        _mockResponses[endpoint] = response
+        mockResponses[endpoint] = response
     }
     
     /// Set a custom request handler for more complex mocking scenarios
     public static func setRequestHandler(_ handler: @escaping (URLRequest) -> (HTTPURLResponse, Data)) {
-        lock.lock()
-        defer { lock.unlock() }
-        _requestHandler = handler
+        requestHandler = handler
     }
     
     /// Clear all registered mocks
     public static func clearMocks() {
-        lock.lock()
-        defer { lock.unlock() }
-        _mockResponses.removeAll()
-        _requestHandler = nil
+        mockResponses.removeAll()
+        requestHandler = nil
     }
     
     // MARK: - URLProtocol Implementation
@@ -70,8 +39,6 @@ public class MockURLProtocol: URLProtocol {
     public override class func canInit(with request: URLRequest) -> Bool {
         // Only handle requests that match our mock endpoints or have a custom handler
         guard let url = request.url?.absoluteString else { return false }
-        let mockResponses = MockURLProtocol.mockResponses
-        let requestHandler = MockURLProtocol.requestHandler
         return mockResponses.keys.contains { url.contains($0) } || requestHandler != nil
     }
     
@@ -96,11 +63,10 @@ public class MockURLProtocol: URLProtocol {
         
         // Find matching mock response
         let urlString = url.absoluteString
-        let mockResponses = MockURLProtocol.mockResponses
-        let matchingEndpoint = mockResponses.keys.first { urlString.contains($0) }
+        let matchingEndpoint = MockURLProtocol.mockResponses.keys.first { urlString.contains($0) }
         
         guard let endpoint = matchingEndpoint,
-              let mockResponse = mockResponses[endpoint] else {
+              let mockResponse = MockURLProtocol.mockResponses[endpoint] else {
             client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
             return
         }
@@ -187,7 +153,7 @@ public struct MockResponse {
 
 /// Helper class for managing mock URLSession configurations
 public class MockSessionManager {
-    private static var mockSession: URLSession?
+    nonisolated(unsafe) private static var mockSession: URLSession?
     
     /// Create a URLSession configured to use MockURLProtocol
     public static func createMockSession() -> URLSession {
@@ -209,6 +175,7 @@ public class MockSessionManager {
 // MARK: - Mock Data Provider
 
 /// Provides predefined mock responses for common Dify API endpoints
+@MainActor
 public struct MockDataProvider {
     
     // MARK: - Chat Responses

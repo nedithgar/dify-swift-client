@@ -280,32 +280,14 @@ public struct TestAssertions {
 
 /// Utility to capture and verify requests made during tests
 public class MockRequestCapture {
-    private static let lock = NSLock()
-    private static var _capturedRequests: [URLRequest] = []
-    
-    private static var capturedRequests: [URLRequest] {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _capturedRequests
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _capturedRequests = newValue
-        }
-    }
+    nonisolated(unsafe) private static var capturedRequests: [URLRequest] = []
     
     /// Start capturing requests
     public static func startCapturing() {
-        lock.lock()
-        defer { lock.unlock() }
-        _capturedRequests.removeAll()
+        capturedRequests.removeAll()
         
         MockURLProtocol.setRequestHandler { request in
-            lock.lock()
-            _capturedRequests.append(request)
-            lock.unlock()
+            capturedRequests.append(request)
             
             // Return a default success response
             let url = request.url!
@@ -329,30 +311,22 @@ public class MockRequestCapture {
     
     /// Get all captured requests
     public static func getCapturedRequests() -> [URLRequest] {
-        lock.lock()
-        defer { lock.unlock() }
-        return _capturedRequests
+        return capturedRequests
     }
     
     /// Get the last captured request
     public static func getLastRequest() -> URLRequest? {
-        lock.lock()
-        defer { lock.unlock() }
-        return _capturedRequests.last
+        return capturedRequests.last
     }
     
     /// Clear captured requests
     public static func clearCapturedRequests() {
-        lock.lock()
-        defer { lock.unlock() }
-        _capturedRequests.removeAll()
+        capturedRequests.removeAll()
     }
     
     /// Stop capturing and clean up
     public static func stopCapturing() {
-        lock.lock()
-        defer { lock.unlock() }
-        _capturedRequests.removeAll()
+        capturedRequests.removeAll()
         MockURLProtocol.clearMocks()
     }
 }

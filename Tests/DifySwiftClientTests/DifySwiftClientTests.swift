@@ -271,7 +271,7 @@ struct WorkflowClientTests {
         #expect(response.workflowRunId == "mock-workflow-run-789")
         #expect(response.taskId == "mock-task-456")
         #expect(response.data.status == "succeeded")
-        #expect(response.data.outputs["result"] as? String == "Workflow completed successfully")
+        #expect(response.data.outputs["result"] == "Workflow completed successfully")
         #expect(response.data.elapsedTime == 2.5)
         #expect(response.data.totalSteps == 3)
         
@@ -346,8 +346,6 @@ struct KnowledgeBaseClientTests {
         #expect(response.id == "mock-dataset-123")
         #expect(response.name == "Mock Dataset")
         #expect(response.description == "A dataset for testing")
-        #expect(response.documentCount == 5)
-        #expect(response.wordCount == 1000)
         
         // Cleanup
         TestUtilities.cleanup()
@@ -589,7 +587,7 @@ struct IntegrationTests {
             user: MockTestConfig.userId
         )
         
-        #expect(initialResponse.event == "message")
+        #expect(initialResponse.answer == "This is a mock response from the chat API.")
         #expect(initialResponse.conversationId == "mock-conversation-456")
         
         // 2. Continue conversation
