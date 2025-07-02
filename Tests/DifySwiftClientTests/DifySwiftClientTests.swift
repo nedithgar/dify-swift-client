@@ -11,6 +11,31 @@ struct TestConfig {
     static let apiKey = ProcessInfo.processInfo.environment["DIFY_API_KEY"]
     static let baseURL = ProcessInfo.processInfo.environment["DIFY_BASE_URL"]
     static let userId = ProcessInfo.processInfo.environment["DIFY_USER_ID"]
+    
+    // Helper methods to get required values - these will cause test failures if values are missing
+    static var requiredAPIKey: String {
+        guard let key = apiKey, !key.isEmpty else {
+            Issue.record("DIFY_API_KEY environment variable is required but not set")
+            return "" // This will likely cause the test to fail meaningfully
+        }
+        return key
+    }
+    
+    static var requiredBaseURL: String {
+        guard let url = baseURL, !url.isEmpty else {
+            Issue.record("DIFY_BASE_URL environment variable is required but not set")
+            return "" // This will likely cause the test to fail meaningfully
+        }
+        return url
+    }
+    
+    static var requiredUserID: String {
+        guard let id = userId, !id.isEmpty else {
+            Issue.record("DIFY_USER_ID environment variable is required but not set")
+            return "" // This will likely cause the test to fail meaningfully
+        }
+        return id
+    }
 }
 
 // MARK: - DifyClient Tests
@@ -20,9 +45,9 @@ struct DifyClientTests {
     
     @Test("Initialize with valid API key")
     func testInitialization() async throws {
-        let client = try DifyClient(apiKey: TestConfig.apiKey)
-        #expect(client.apiKey == TestConfig.apiKey)
-        #expect(client.baseURL.absoluteString == TestConfig.baseURL)
+        let client = try DifyClient(apiKey: TestConfig.requiredAPIKey)
+        #expect(client.apiKey == TestConfig.requiredAPIKey)
+        #expect(client.baseURL.absoluteString == TestConfig.requiredBaseURL)
     }
     
     @Test("Initialize with empty API key throws error")
@@ -35,7 +60,7 @@ struct DifyClientTests {
     @Test("Initialize with invalid base URL throws error")
     func testInitializationWithInvalidBaseURL() async throws {
         #expect(throws: (any Error).self) {
-            try DifyClient(apiKey: TestConfig.apiKey, baseURL: "invalid-url")
+            try DifyClient(apiKey: TestConfig.requiredAPIKey, baseURL: "invalid-url")
         }
     }
 }
@@ -47,15 +72,17 @@ struct CompletionClientTests {
     
     @Test("Create completion client")
     func testCreateCompletionClient() async throws {
-        let client = try CompletionClient(apiKey: TestConfig.apiKey)
-        #expect(client.apiKey == TestConfig.apiKey)
-        #expect(client.baseURL.absoluteString == TestConfig.baseURL)
+        let client = try CompletionClient(apiKey: TestConfig.requiredAPIKey)
+        #expect(client.apiKey == TestConfig.requiredAPIKey)
+        #expect(client.baseURL.absoluteString == TestConfig.requiredBaseURL)
     }
     
     @Test("Completion client inherits from DifyClient")
     func testCompletionClientInheritance() async throws {
-        let client = try CompletionClient(apiKey: TestConfig.apiKey)
-        #expect(client is DifyClient)
+        let client = try CompletionClient(apiKey: TestConfig.requiredAPIKey)
+        // Test that CompletionClient has DifyClient functionality
+        #expect(client.apiKey == TestConfig.requiredAPIKey)
+        #expect(client.baseURL.absoluteString.contains("dify.ai"))
     }
 }
 
@@ -66,15 +93,17 @@ struct ChatClientTests {
     
     @Test("Create chat client")
     func testCreateChatClient() async throws {
-        let client = try ChatClient(apiKey: TestConfig.apiKey)
-        #expect(client.apiKey == TestConfig.apiKey)
-        #expect(client.baseURL.absoluteString == TestConfig.baseURL)
+        let client = try ChatClient(apiKey: TestConfig.requiredAPIKey)
+        #expect(client.apiKey == TestConfig.requiredAPIKey)
+        #expect(client.baseURL.absoluteString == TestConfig.requiredBaseURL)
     }
     
     @Test("Chat client inherits from DifyClient")
     func testChatClientInheritance() async throws {
-        let client = try ChatClient(apiKey: TestConfig.apiKey)
-        #expect(client is DifyClient)
+        let client = try ChatClient(apiKey: TestConfig.requiredAPIKey)
+        // Test that ChatClient has DifyClient functionality
+        #expect(client.apiKey == TestConfig.requiredAPIKey)
+        #expect(client.baseURL.absoluteString.contains("dify.ai"))
     }
 }
 
@@ -85,15 +114,17 @@ struct WorkflowClientTests {
     
     @Test("Create workflow client")
     func testCreateWorkflowClient() async throws {
-        let client = try WorkflowClient(apiKey: TestConfig.apiKey)
-        #expect(client.apiKey == TestConfig.apiKey)
-        #expect(client.baseURL.absoluteString == TestConfig.baseURL)
+        let client = try WorkflowClient(apiKey: TestConfig.requiredAPIKey)
+        #expect(client.apiKey == TestConfig.requiredAPIKey)
+        #expect(client.baseURL.absoluteString == TestConfig.requiredBaseURL)
     }
     
     @Test("Workflow client inherits from DifyClient")
     func testWorkflowClientInheritance() async throws {
-        let client = try WorkflowClient(apiKey: TestConfig.apiKey)
-        #expect(client is DifyClient)
+        let client = try WorkflowClient(apiKey: TestConfig.requiredAPIKey)
+        // Test that WorkflowClient has DifyClient functionality
+        #expect(client.apiKey == TestConfig.requiredAPIKey)
+        #expect(client.baseURL.absoluteString.contains("dify.ai"))
     }
 }
 
@@ -105,23 +136,25 @@ struct KnowledgeBaseClientTests {
     @Test("Initialize with dataset ID")
     func testInitializeWithDatasetId() async throws {
         let client = try KnowledgeBaseClient(
-            apiKey: TestConfig.apiKey,
+            apiKey: TestConfig.requiredAPIKey,
             datasetId: "dataset_123"
         )
         #expect(client.datasetId == "dataset_123")
-        #expect(client.apiKey == TestConfig.apiKey)
+        #expect(client.apiKey == TestConfig.requiredAPIKey)
     }
     
     @Test("Initialize without dataset ID")
     func testInitializeWithoutDatasetId() async throws {
-        let client = try KnowledgeBaseClient(apiKey: TestConfig.apiKey)
+        let client = try KnowledgeBaseClient(apiKey: TestConfig.requiredAPIKey)
         #expect(client.datasetId == nil)
     }
     
     @Test("Knowledge base client inherits from DifyClient")
     func testKnowledgeBaseClientInheritance() async throws {
-        let client = try KnowledgeBaseClient(apiKey: TestConfig.apiKey)
-        #expect(client is DifyClient)
+        let client = try KnowledgeBaseClient(apiKey: TestConfig.requiredAPIKey)
+        // Test that KnowledgeBaseClient has DifyClient functionality
+        #expect(client.apiKey == TestConfig.requiredAPIKey)
+        #expect(client.baseURL.absoluteString.contains("dify.ai"))
     }
 }
 
@@ -292,8 +325,10 @@ struct StreamingResponseTests {
         let request = URLRequest(url: url)
         let streamingResponse = StreamingResponse(urlRequest: request, session: .shared)
         
-        // Basic test to ensure the type can be created
-        #expect(streamingResponse.makeAsyncIterator() != nil)
+        // Basic test to ensure the type can be created and has expected functionality
+        let iterator = streamingResponse.makeAsyncIterator()
+        // Just verify the iterator was created - no need to check for nil since it's not optional
+        #expect(type(of: iterator) == StreamingResponse.AsyncIterator.self)
     }
 }
 
@@ -304,7 +339,7 @@ struct IntegrationTests {
     
     @Test("Can create all client types")
     func testCreateAllClientTypes() async throws {
-        let apiKey = TestConfig.apiKey
+        let apiKey = TestConfig.requiredAPIKey
         
         // Test that all client types can be created without throwing
         let difyClient = try DifyClient(apiKey: apiKey)
