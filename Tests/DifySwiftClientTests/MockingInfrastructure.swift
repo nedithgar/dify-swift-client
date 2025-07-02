@@ -65,10 +65,10 @@ public final class MockURLProtocol: URLProtocol {
     
     // MARK: - Storage
     
-    nonisolated(unsafe) private static var mocks: [String: MockResponse] = [:]
-    nonisolated(unsafe) private static var requestHandler: ((URLRequest) -> (HTTPURLResponse, Data)?)?
-    nonisolated(unsafe) private static var capturedRequests: [URLRequest] = []
-    nonisolated(unsafe) private static var isCapturing = false
+    nonisolated(unsafe) static var mocks: [String: MockResponse] = [:]
+    nonisolated(unsafe) static var requestHandler: ((URLRequest) -> (HTTPURLResponse, Data)?)?
+    nonisolated(unsafe) static var capturedRequests: [URLRequest] = []
+    nonisolated(unsafe) static var isCapturing = false
     
     // MARK: - URLProtocol Overrides
     

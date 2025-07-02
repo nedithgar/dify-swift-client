@@ -12,13 +12,13 @@ struct AdvancedCompletionClientMockTests {
     
     @Test("Completion message creation with blocking mode")
     func testCreateCompletionMessageBlocking() async throws {
-        await TestUtilities.setupStandardMocks()
-        defer { await TestUtilities.cleanup() }
+        TestUtilities.setupStandardMocks()
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
-        await MockRequestCapture.startCapturing()
-        defer { await MockRequestCapture.stopCapturing() }
+        MockRequestCapture.startCapturing()
+        defer { MockRequestCapture.stopCapturing() }
         
         let response = try await client.createCompletionMessage(
             inputs: ["prompt": "Write a story about", "topic": "artificial intelligence"],
@@ -32,7 +32,7 @@ struct AdvancedCompletionClientMockTests {
         #expect(response.createdAt == 1726139644)
         
         // Validate request
-        let requests = await MockRequestCapture.getCapturedRequests()
+        let requests = MockRequestCapture.getCapturedRequests()
         let request = try TestUtilities.validateRequest(
             requests: requests,
             expectedEndpoint: "completion-messages",
@@ -68,13 +68,13 @@ struct AdvancedCompletionClientMockTests {
     
     @Test("Completion message creation with streaming mode")
     func testCreateCompletionMessageStreaming() async throws {
-        await TestUtilities.setupStandardMocks()
-        defer { await TestUtilities.cleanup() }
+        TestUtilities.setupStandardMocks()
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
-        await MockRequestCapture.startCapturing()
-        defer { await MockRequestCapture.stopCapturing() }
+        MockRequestCapture.startCapturing()
+        defer { MockRequestCapture.stopCapturing() }
         
         let response = try await client.createCompletionMessage(
             inputs: ["query": "Generate a poem"],
@@ -85,7 +85,7 @@ struct AdvancedCompletionClientMockTests {
         #expect(response.messageId == MockDataProvider.testMessageId)
         
         // Validate that streaming mode was requested
-        let requests = await MockRequestCapture.getCapturedRequests()
+        let requests = MockRequestCapture.getCapturedRequests()
         let request = try TestUtilities.validateRequest(
             requests: requests,
             expectedEndpoint: "completion-messages",
@@ -110,10 +110,10 @@ struct AdvancedCompletionClientMockTests {
     
     @Test("Completion message with files")
     func testCreateCompletionMessageWithFiles() async throws {
-        await TestUtilities.setupStandardMocks()
-        defer { await TestUtilities.cleanup() }
+        TestUtilities.setupStandardMocks()
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         let files = [
             TestUtilities.createTestAPIFileRemote(),
@@ -130,8 +130,8 @@ struct AdvancedCompletionClientMockTests {
         #expect(response.messageId == MockDataProvider.testMessageId)
         
         // Verify files were included in request
-        await MockRequestCapture.startCapturing()
-        defer { await MockRequestCapture.stopCapturing() }
+        MockRequestCapture.startCapturing()
+        defer { MockRequestCapture.stopCapturing() }
         
         _ = try await client.createCompletionMessage(
             inputs: ["context": "Test"],
@@ -140,7 +140,7 @@ struct AdvancedCompletionClientMockTests {
             files: files
         )
         
-        let requests = await MockRequestCapture.getCapturedRequests()
+        let requests = MockRequestCapture.getCapturedRequests()
         let request = try TestUtilities.validateRequest(
             requests: requests,
             expectedEndpoint: "completion-messages",
@@ -161,7 +161,7 @@ struct AdvancedCompletionClientMockTests {
     
     @Test("Streaming completion message creation")
     func testCreateStreamingCompletionMessage() async throws {
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
         // Setup streaming mock for completion
         let streamingEvents = [
@@ -193,7 +193,7 @@ struct AdvancedCompletionClientMockTests {
         
         await TestUtilities.setupStreamingMock(endpoint: "completion-messages", events: streamingEvents)
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         let streamingResponse = try await client.createStreamingCompletionMessage(
             inputs: ["story_prompt": "fairy tale"],
@@ -216,7 +216,7 @@ struct AdvancedCompletionClientMockTests {
     
     @Test("Streaming completion with files")
     func testStreamingCompletionWithFiles() async throws {
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
         let streamingEvents = [
             [
@@ -229,7 +229,7 @@ struct AdvancedCompletionClientMockTests {
         
         await TestUtilities.setupStreamingMock(endpoint: "completion-messages", events: streamingEvents)
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         let files = [TestUtilities.createTestAPIFileRemote()]
         
@@ -255,16 +255,16 @@ struct CompletionClientErrorHandlingTests {
     
     @Test("Handle invalid inputs error")
     func testInvalidInputsError() async throws {
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "completion-messages",
             response: MockURLProtocol.MockResponse.httpError(
                 statusCode: 400,
                 message: "Invalid input parameters"
             )
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         await TestUtilities.expectError(DifyError.self) {
             try await client.createCompletionMessage(
@@ -277,16 +277,16 @@ struct CompletionClientErrorHandlingTests {
     
     @Test("Handle quota exceeded error")
     func testQuotaExceededError() async throws {
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "completion-messages",
             response: MockURLProtocol.MockResponse.httpError(
                 statusCode: 403,
                 message: "Quota exceeded"
             )
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         await TestUtilities.expectError(DifyError.self) {
             try await client.createCompletionMessage(
@@ -299,16 +299,16 @@ struct CompletionClientErrorHandlingTests {
     
     @Test("Handle model not available error")
     func testModelNotAvailableError() async throws {
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "completion-messages",
             response: MockURLProtocol.MockResponse.httpError(
                 statusCode: 503,
                 message: "Model temporarily unavailable"
             )
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         await TestUtilities.expectError(DifyError.self) {
             try await client.createCompletionMessage(
@@ -330,9 +330,9 @@ struct CompletionClientErrorHandlingTests {
             }
             return nil
         }
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         // This test depends on the implementation handling timeouts appropriately
         let streamingResponse = try await client.createStreamingCompletionMessage(
@@ -362,10 +362,10 @@ struct CompletionClientPerformanceTests {
     
     @Test("Measure completion response time")
     func testCompletionResponseTime() async throws {
-        await TestUtilities.setupStandardMocks()
-        defer { await TestUtilities.cleanup() }
+        TestUtilities.setupStandardMocks()
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         let (result, duration) = try await TestUtilities.measureTime {
             return try await client.createCompletionMessage(
@@ -381,10 +381,10 @@ struct CompletionClientPerformanceTests {
     
     @Test("Handle multiple concurrent completion requests")
     func testConcurrentCompletionRequests() async throws {
-        await TestUtilities.setupStandardMocks()
-        defer { await TestUtilities.cleanup() }
+        TestUtilities.setupStandardMocks()
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         let results = try await TestUtilities.runConcurrentOperations(count: 10) { index in
             try await client.createCompletionMessage(
@@ -403,10 +403,10 @@ struct CompletionClientPerformanceTests {
     
     @Test("Handle large completion inputs")
     func testLargeCompletionInputs() async throws {
-        await TestUtilities.setupStandardMocks()
-        defer { await TestUtilities.cleanup() }
+        TestUtilities.setupStandardMocks()
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         // Create large input content
         let largeContent = String(repeating: "This is a very long text input. ", count: 1000)
@@ -434,10 +434,10 @@ struct CompletionClientEdgeCasesTests {
     
     @Test("Handle empty inputs")
     func testEmptyInputs() async throws {
-        await TestUtilities.setupStandardMocks()
-        defer { await TestUtilities.cleanup() }
+        TestUtilities.setupStandardMocks()
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         let response = try await client.createCompletionMessage(
             inputs: [:], // Empty inputs
@@ -450,10 +450,10 @@ struct CompletionClientEdgeCasesTests {
     
     @Test("Handle inputs with nil/null values")
     func testInputsWithSpecialValues() async throws {
-        await TestUtilities.setupStandardMocks()
-        defer { await TestUtilities.cleanup() }
+        TestUtilities.setupStandardMocks()
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         let response = try await client.createCompletionMessage(
             inputs: [
@@ -470,10 +470,10 @@ struct CompletionClientEdgeCasesTests {
     
     @Test("Handle mixed file types")
     func testMixedFileTypes() async throws {
-        await TestUtilities.setupStandardMocks()
-        defer { await TestUtilities.cleanup() }
+        TestUtilities.setupStandardMocks()
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         let files = [
             APIFile(type: .image, transferMethod: .remoteUrl, url: "https://example.com/image.jpg"),
@@ -495,10 +495,10 @@ struct CompletionClientEdgeCasesTests {
     
     @Test("Handle unicode and special characters in inputs")
     func testUnicodeInputs() async throws {
-        await TestUtilities.setupStandardMocks()
-        defer { await TestUtilities.cleanup() }
+        TestUtilities.setupStandardMocks()
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         let unicodeInputs = [
             "chinese": "你好世界",
@@ -519,10 +519,10 @@ struct CompletionClientEdgeCasesTests {
     
     @Test("Handle response mode validation")
     func testResponseModeValidation() async throws {
-        await TestUtilities.setupStandardMocks()
-        defer { await TestUtilities.cleanup() }
+        TestUtilities.setupStandardMocks()
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockCompletionClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         // Test blocking mode
         let blockingResponse = try await client.createCompletionMessage(

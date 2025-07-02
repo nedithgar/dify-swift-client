@@ -80,10 +80,10 @@ struct AdvancedChatClientMockTests {
     
     @Test("Chat message creation with minimal parameters")
     func testCreateChatMessageMinimal() async throws {
-        await TestUtilities.setupStandardMocks()
-        defer { await TestUtilities.cleanup() }
+        TestUtilities.setupStandardMocks()
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
         let response = try await client.createChatMessage(
             inputs: [:],
@@ -97,13 +97,13 @@ struct AdvancedChatClientMockTests {
     
     @Test("Streaming chat message creation")
     func testCreateStreamingChatMessage() async throws {
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
         // Setup streaming mock
         let streamingEvents = MockDataProvider.generateChatStreamingEvents()
         await TestUtilities.setupStreamingMock(endpoint: "chat-messages", events: streamingEvents)
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
         let streamingResponse = try await client.createStreamingChatMessage(
             inputs: ["context": "test"],
@@ -127,16 +127,16 @@ struct AdvancedChatClientMockTests {
     
     @Test("Get suggested messages")
     func testGetSuggestedMessages() async throws {
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "messages/\(MockDataProvider.testMessageId)/suggested",
             response: MockURLProtocol.MockResponse.json(MockDataProvider.suggestedMessagesResponse)
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
-        await MockRequestCapture.startCapturing()
-        defer { await MockRequestCapture.stopCapturing() }
+        MockRequestCapture.startCapturing()
+        defer { MockRequestCapture.stopCapturing() }
         
         let response = try await client.getSuggestedMessages(
             messageId: MockDataProvider.testMessageId,
@@ -149,7 +149,7 @@ struct AdvancedChatClientMockTests {
         #expect(response.data[2] == "How can I improve my productivity?")
         
         // Validate request
-        let requests = await MockRequestCapture.getCapturedRequests()
+        let requests = MockRequestCapture.getCapturedRequests()
         let request = try TestUtilities.validateRequest(
             requests: requests,
             expectedEndpoint: "messages/\(MockDataProvider.testMessageId)/suggested",
@@ -181,7 +181,7 @@ struct AdvancedChatClientMockTests {
         #expect(response.result == "success")
         
         // Validate request
-        let requests = await MockRequestCapture.getCapturedRequests()
+        let requests = MockRequestCapture.getCapturedRequests()
         let request = try TestUtilities.validateRequest(
             requests: requests,
             expectedEndpoint: "chat-messages/task-123/stop",
@@ -202,16 +202,16 @@ struct AdvancedChatClientMockTests {
     
     @Test("Get conversations list")
     func testGetConversations() async throws {
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "conversations",
             response: MockURLProtocol.MockResponse.json(MockDataProvider.conversationsResponse)
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
-        await MockRequestCapture.startCapturing()
-        defer { await MockRequestCapture.stopCapturing() }
+        MockRequestCapture.startCapturing()
+        defer { MockRequestCapture.stopCapturing() }
         
         let response = try await client.getConversations(
             user: MockTestConfig.user,
@@ -227,7 +227,7 @@ struct AdvancedChatClientMockTests {
         #expect(response.limit == 20)
         
         // Validate request
-        let requests = await MockRequestCapture.getCapturedRequests()
+        let requests = MockRequestCapture.getCapturedRequests()
         let request = try TestUtilities.validateRequest(
             requests: requests,
             expectedEndpoint: "conversations",
@@ -244,13 +244,13 @@ struct AdvancedChatClientMockTests {
     
     @Test("Get conversation messages")
     func testGetConversationMessages() async throws {
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "messages",
             response: MockURLProtocol.MockResponse.json(MockDataProvider.conversationMessagesResponse)
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
         let response = try await client.getConversationMessages(
             user: MockTestConfig.user,
@@ -268,16 +268,16 @@ struct AdvancedChatClientMockTests {
     
     @Test("Rename conversation")
     func testRenameConversation() async throws {
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "conversations/\(MockDataProvider.testConversationId)/name",
             response: MockURLProtocol.MockResponse.json(MockDataProvider.baseSuccessResponse)
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
-        await MockRequestCapture.startCapturing()
-        defer { await MockRequestCapture.stopCapturing() }
+        MockRequestCapture.startCapturing()
+        defer { MockRequestCapture.stopCapturing() }
         
         let response = try await client.renameConversation(
             conversationId: MockDataProvider.testConversationId,
@@ -289,7 +289,7 @@ struct AdvancedChatClientMockTests {
         #expect(response.result == "success")
         
         // Validate request
-        let requests = await MockRequestCapture.getCapturedRequests()
+        let requests = MockRequestCapture.getCapturedRequests()
         let request = try TestUtilities.validateRequest(
             requests: requests,
             expectedEndpoint: "conversations/\(MockDataProvider.testConversationId)/name",
@@ -320,13 +320,13 @@ struct AdvancedChatClientMockTests {
     
     @Test("Delete conversation")
     func testDeleteConversation() async throws {
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "conversations/\(MockDataProvider.testConversationId)",
             response: MockURLProtocol.MockResponse.json(MockDataProvider.baseSuccessResponse)
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
         let response = try await client.deleteConversation(
             conversationId: MockDataProvider.testConversationId,
@@ -338,13 +338,13 @@ struct AdvancedChatClientMockTests {
     
     @Test("Audio to text conversion")
     func testAudioToText() async throws {
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "audio-to-text",
             response: MockURLProtocol.MockResponse.json(MockDataProvider.chatMessageResponse)
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
         let audioData = TestUtilities.createTestAudioData()
         
@@ -376,13 +376,13 @@ struct AdvancedChatClientMockTests {
             ]
         ]
         
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "conversations/\(MockDataProvider.testConversationId)/variables",
             response: MockURLProtocol.MockResponse.json(conversationVariablesResponse)
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
         let response = try await client.getConversationVariables(
             conversationId: MockDataProvider.testConversationId,
@@ -407,13 +407,13 @@ struct ChatClientErrorHandlingTests {
     
     @Test("Handle 401 Unauthorized error")
     func testUnauthorizedError() async throws {
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "chat-messages",
             response: MockURLProtocol.MockResponse.httpError(statusCode: 401, message: "Invalid API key")
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
         await TestUtilities.expectError(DifyError.self) {
             try await client.createChatMessage(
@@ -426,13 +426,13 @@ struct ChatClientErrorHandlingTests {
     
     @Test("Handle 429 Rate Limit error")
     func testRateLimitError() async throws {
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "chat-messages",
             response: MockURLProtocol.MockResponse.httpError(statusCode: 429, message: "Rate limit exceeded")
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
         await TestUtilities.expectError(DifyError.self) {
             try await client.createChatMessage(
@@ -445,13 +445,13 @@ struct ChatClientErrorHandlingTests {
     
     @Test("Handle 500 Server error")
     func testServerError() async throws {
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "chat-messages",
             response: MockURLProtocol.MockResponse.httpError(statusCode: 500, message: "Internal server error")
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
         await TestUtilities.expectError(DifyError.self) {
             try await client.createChatMessage(
@@ -465,13 +465,13 @@ struct ChatClientErrorHandlingTests {
     @Test("Handle network error")
     func testNetworkError() async throws {
         let networkError = URLError(.notConnectedToInternet)
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "chat-messages",
             response: MockURLProtocol.MockResponse.networkError(networkError)
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
         await TestUtilities.expectError(URLError.self) {
             try await client.createChatMessage(
@@ -485,7 +485,7 @@ struct ChatClientErrorHandlingTests {
     @Test("Handle malformed JSON response")
     func testMalformedResponse() async throws {
         let malformedData = "Invalid JSON".data(using: .utf8)!
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "chat-messages",
             response: MockURLProtocol.MockResponse(
                 statusCode: 200,
@@ -493,9 +493,9 @@ struct ChatClientErrorHandlingTests {
                 headers: ["Content-Type": "application/json"]
             )
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
         await TestUtilities.expectError(DifyError.self) {
             try await client.createChatMessage(
@@ -514,7 +514,7 @@ struct ChatClientEdgeCasesTests {
     
     @Test("Handle empty response data")
     func testEmptyResponseData() async throws {
-        await MockURLProtocol.registerMock(
+        MockURLProtocol.registerMock(
             endpoint: "chat-messages",
             response: MockURLProtocol.MockResponse(
                 statusCode: 200,
@@ -522,9 +522,9 @@ struct ChatClientEdgeCasesTests {
                 headers: ["Content-Type": "application/json"]
             )
         )
-        defer { await TestUtilities.cleanup() }
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
         await TestUtilities.expectError(DifyError.self) {
             try await client.createChatMessage(
@@ -537,10 +537,10 @@ struct ChatClientEdgeCasesTests {
     
     @Test("Handle large input parameters")
     func testLargeInputParameters() async throws {
-        await TestUtilities.setupStandardMocks()
-        defer { await TestUtilities.cleanup() }
+        TestUtilities.setupStandardMocks()
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
         // Create large input data
         let largeText = String(repeating: "A", count: 10000)
@@ -557,10 +557,10 @@ struct ChatClientEdgeCasesTests {
     
     @Test("Handle concurrent chat requests")
     func testConcurrentChatRequests() async throws {
-        await TestUtilities.setupStandardMocks()
-        defer { await TestUtilities.cleanup() }
+        TestUtilities.setupStandardMocks()
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
         let results = try await TestUtilities.runConcurrentOperations(count: 5) { index in
             try await client.createChatMessage(
@@ -578,10 +578,10 @@ struct ChatClientEdgeCasesTests {
     
     @Test("Handle special characters in inputs")
     func testSpecialCharactersInInputs() async throws {
-        await TestUtilities.setupStandardMocks()
-        defer { await TestUtilities.cleanup() }
+        TestUtilities.setupStandardMocks()
+        defer { TestUtilities.cleanup() }
         
-        let client = try await TestUtilities.createMockChatClient()
+        let client = try TestUtilities.createMockChatClient()
         
         let specialCharInputs = [
             "emoji": "🎉🚀💻",

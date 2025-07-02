@@ -9,17 +9,17 @@ public final class MockDataProvider {
     
     // MARK: - Test Configuration
     
-    public static let testApiKey = "app-test-api-key-12345"
-    public static let testUser = "test-user-123"
-    public static let testConversationId = "test-conversation-456"
-    public static let testMessageId = "test-message-789"
-    public static let testWorkflowRunId = "test-workflow-run-abc"
-    public static let testDatasetId = "test-dataset-def"
-    public static let testDocumentId = "test-document-ghi"
+    public nonisolated(unsafe) static let testApiKey = "app-test-api-key-12345"
+    public nonisolated(unsafe) static let testUser = "test-user-123"
+    public nonisolated(unsafe) static let testConversationId = "test-conversation-456"
+    public nonisolated(unsafe) static let testMessageId = "test-message-789"
+    public nonisolated(unsafe) static let testWorkflowRunId = "test-workflow-run-abc"
+    public nonisolated(unsafe) static let testDatasetId = "test-dataset-def"
+    public nonisolated(unsafe) static let testDocumentId = "test-document-ghi"
     
     // MARK: - Chat API Responses
     
-    public static let chatMessageResponse: [String: Any] = [
+    public nonisolated(unsafe) static let chatMessageResponse: [String: Any] = [
         "message_id": testMessageId,
         "conversation_id": testConversationId,
         "mode": "chat",
@@ -43,7 +43,7 @@ public final class MockDataProvider {
         "created_at": 1726139644
     ]
     
-    public static let chatStreamingChunk: [String: Any] = [
+    public nonisolated(unsafe) static let chatStreamingChunk: [String: Any] = [
         "event": "message",
         "message_id": testMessageId,
         "conversation_id": testConversationId,
@@ -51,7 +51,7 @@ public final class MockDataProvider {
         "created_at": 1726139644
     ]
     
-    public static let suggestedMessagesResponse: [String: Any] = [
+    public nonisolated(unsafe) static let suggestedMessagesResponse: [String: Any] = [
         "data": [
             "What is the weather like today?",
             "Tell me a joke",
@@ -59,7 +59,7 @@ public final class MockDataProvider {
         ]
     ]
     
-    public static let conversationsResponse: [String: Any] = [
+    public nonisolated(unsafe) static let conversationsResponse: [String: Any] = [
         "data": [
             [
                 "id": testConversationId,
@@ -75,7 +75,7 @@ public final class MockDataProvider {
         "limit": 20
     ]
     
-    public static let conversationMessagesResponse: [String: Any] = [
+    public nonisolated(unsafe) static let conversationMessagesResponse: [String: Any] = [
         "data": [
             [
                 "id": testMessageId,
@@ -96,7 +96,7 @@ public final class MockDataProvider {
     
     // MARK: - Completion API Responses
     
-    public static let completionMessageResponse: [String: Any] = [
+    public nonisolated(unsafe) static let completionMessageResponse: [String: Any] = [
         "message_id": testMessageId,
         "mode": "completion",
         "answer": "Based on your input, here's my response...",
@@ -115,7 +115,7 @@ public final class MockDataProvider {
     
     // MARK: - Workflow API Responses
     
-    public static let workflowResponse: [String: Any] = [
+    public nonisolated(unsafe) static let workflowResponse: [String: Any] = [
         "workflow_run_id": testWorkflowRunId,
         "task_id": "test-task-123",
         "data": [
@@ -134,7 +134,7 @@ public final class MockDataProvider {
         ]
     ]
     
-    public static let workflowLogsResponse: [String: Any] = [
+    public nonisolated(unsafe) static let workflowLogsResponse: [String: Any] = [
         "page": 1,
         "limit": 20,
         "total": 1,
@@ -169,7 +169,7 @@ public final class MockDataProvider {
     
     // MARK: - File Upload Responses
     
-    public static let fileUploadResponse: [String: Any] = [
+    public nonisolated(unsafe) static let fileUploadResponse: [String: Any] = [
         "id": "file-upload-123",
         "name": "test-file.pdf",
         "size": 1024,
@@ -181,7 +181,7 @@ public final class MockDataProvider {
     
     // MARK: - Application Info Responses
     
-    public static let applicationInfoResponse: [String: Any] = [
+    public nonisolated(unsafe) static let applicationInfoResponse: [String: Any] = [
         "name": "Test Application",
         "description": "A test application for mock testing",
         "tags": ["test", "mock"],
@@ -189,7 +189,7 @@ public final class MockDataProvider {
         "author_name": "Test Author"
     ]
     
-    public static let applicationParametersResponse: [String: Any] = [
+    public nonisolated(unsafe) static let applicationParametersResponse: [String: Any] = [
         "opening_statement": "Welcome to our test application!",
         "suggested_questions": [
             "How does this work?",
@@ -229,7 +229,7 @@ public final class MockDataProvider {
         ]
     ]
     
-    public static let applicationMetaResponse: [String: Any] = [
+    public nonisolated(unsafe) static let applicationMetaResponse: [String: Any] = [
         "tool_icons": [
             "dalle2": [
                 "background": "#252530",
@@ -239,7 +239,7 @@ public final class MockDataProvider {
         ]
     ]
     
-    public static let applicationSiteResponse: [String: Any] = [
+    public nonisolated(unsafe) static let applicationSiteResponse: [String: Any] = [
         "title": "Test Chat App",
         "chat_color_theme": "indigo",
         "chat_color_theme_inverted": false,
@@ -257,11 +257,11 @@ public final class MockDataProvider {
     
     // MARK: - Feedback Responses
     
-    public static let messageFeedbackResponse: [String: Any] = [
+    public nonisolated(unsafe) static let messageFeedbackResponse: [String: Any] = [
         "result": "success"
     ]
     
-    public static let applicationFeedbacksResponse: [String: Any] = [
+    public nonisolated(unsafe) static let applicationFeedbacksResponse: [String: Any] = [
         "data": [
             [
                 "id": "feedback-123",
@@ -281,7 +281,7 @@ public final class MockDataProvider {
     
     // MARK: - Knowledge Base Responses
     
-    public static let datasetResponse: [String: Any] = [
+    public nonisolated(unsafe) static let datasetResponse: [String: Any] = [
         "id": testDatasetId,
         "name": "Test Dataset",
         "description": "A test dataset for mock testing",
@@ -294,7 +294,7 @@ public final class MockDataProvider {
         "updated_at": 1726139644
     ]
     
-    public static let datasetsResponse: [String: Any] = [
+    public nonisolated(unsafe) static let datasetsResponse: [String: Any] = [
         "data": [datasetResponse],
         "has_more": false,
         "limit": 20,
@@ -302,7 +302,7 @@ public final class MockDataProvider {
         "page": 1
     ]
     
-    public static let documentResponse: [String: Any] = [
+    public nonisolated(unsafe) static let documentResponse: [String: Any] = [
         "id": testDocumentId,
         "position": 1,
         "data_source": [
@@ -329,7 +329,7 @@ public final class MockDataProvider {
         "doc_form": "text_model"
     ]
     
-    public static let documentsResponse: [String: Any] = [
+    public nonisolated(unsafe) static let documentsResponse: [String: Any] = [
         "data": [documentResponse],
         "has_more": false,
         "limit": 20,
@@ -337,14 +337,14 @@ public final class MockDataProvider {
         "page": 1
     ]
     
-    public static let createDocumentResponse: [String: Any] = [
+    public nonisolated(unsafe) static let createDocumentResponse: [String: Any] = [
         "document": documentResponse,
         "batch": "batch-789"
     ]
     
     // MARK: - Annotation Responses
     
-    public static let annotationListResponse: [String: Any] = [
+    public nonisolated(unsafe) static let annotationListResponse: [String: Any] = [
         "data": [
             [
                 "id": "annotation-123",
@@ -360,32 +360,32 @@ public final class MockDataProvider {
         "page": 1
     ]
     
-    public static let annotationReplySettingsResponse: [String: Any] = [
+    public nonisolated(unsafe) static let annotationReplySettingsResponse: [String: Any] = [
         "job_id": "job-123",
         "job_status": "pending"
     ]
     
     // MARK: - Error Responses
     
-    public static let unauthorizedError: [String: Any] = [
+    public nonisolated(unsafe) static let unauthorizedError: [String: Any] = [
         "code": "unauthorized",
         "message": "Invalid API key provided",
         "status": 401
     ]
     
-    public static let rateLimitError: [String: Any] = [
+    public nonisolated(unsafe) static let rateLimitError: [String: Any] = [
         "code": "rate_limit_exceeded",
         "message": "Rate limit exceeded. Please try again later.",
         "status": 429
     ]
     
-    public static let serverError: [String: Any] = [
+    public nonisolated(unsafe) static let serverError: [String: Any] = [
         "code": "internal_server_error",
         "message": "An internal server error occurred",
         "status": 500
     ]
     
-    public static let validationError: [String: Any] = [
+    public nonisolated(unsafe) static let validationError: [String: Any] = [
         "code": "invalid_param",
         "message": "The 'user' parameter is required",
         "status": 400
@@ -393,18 +393,18 @@ public final class MockDataProvider {
     
     // MARK: - Audio Processing Responses
     
-    public static let textToAudioResponse: [String: Any] = [
+    public nonisolated(unsafe) static let textToAudioResponse: [String: Any] = [
         "task_id": "audio-task-123",
         "audio": "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj..."
     ]
     
     // MARK: - Base Responses
     
-    public static let baseSuccessResponse: [String: Any] = [
+    public nonisolated(unsafe) static let baseSuccessResponse: [String: Any] = [
         "result": "success"
     ]
     
-    public static let baseDeleteResponse: [String: Any] = [:]
+    public nonisolated(unsafe) static let baseDeleteResponse: [String: Any] = [:]
     
     // MARK: - Complex Streaming Responses
     
