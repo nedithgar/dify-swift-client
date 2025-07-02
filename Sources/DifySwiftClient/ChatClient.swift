@@ -17,6 +17,7 @@ public final class ChatClient: DifyClient {
     ///   - responseMode: Response mode (blocking or streaming)
     ///   - conversationId: Optional conversation ID to continue existing conversation
     ///   - files: Optional files to include with the request
+    ///   - autoGenerateName: Auto-generate title, default is true
     /// - Returns: Chat message response
     public func createChatMessage(
         inputs: [String: String],
@@ -24,7 +25,8 @@ public final class ChatClient: DifyClient {
         user: String,
         responseMode: ResponseMode = .blocking,
         conversationId: String? = nil,
-        files: [APIFile]? = nil
+        files: [APIFile]? = nil,
+        autoGenerateName: Bool = true
     ) async throws -> ChatMessageResponse {
         struct ChatRequest: Codable {
             let inputs: [String: String]
@@ -33,6 +35,7 @@ public final class ChatClient: DifyClient {
             let responseMode: ResponseMode
             let conversationId: String?
             let files: [APIFile]?
+            let autoGenerateName: Bool
             
             private enum CodingKeys: String, CodingKey {
                 case inputs
@@ -41,6 +44,7 @@ public final class ChatClient: DifyClient {
                 case responseMode = "response_mode"
                 case conversationId = "conversation_id"
                 case files
+                case autoGenerateName = "auto_generate_name"
             }
         }
         
@@ -50,7 +54,8 @@ public final class ChatClient: DifyClient {
             user: user,
             responseMode: responseMode,
             conversationId: conversationId,
-            files: files
+            files: files,
+            autoGenerateName: autoGenerateName
         )
         
         let data = try await sendRequest(
@@ -70,13 +75,15 @@ public final class ChatClient: DifyClient {
     ///   - user: User identifier
     ///   - conversationId: Optional conversation ID to continue existing conversation
     ///   - files: Optional files to include with the request
+    ///   - autoGenerateName: Auto-generate title, default is true
     /// - Returns: Async sequence of data chunks
     public func createStreamingChatMessage(
         inputs: [String: String],
         query: String,
         user: String,
         conversationId: String? = nil,
-        files: [APIFile]? = nil
+        files: [APIFile]? = nil,
+        autoGenerateName: Bool = true
     ) async throws -> StreamingResponse {
         struct ChatRequest: Codable {
             let inputs: [String: String]
@@ -85,6 +92,7 @@ public final class ChatClient: DifyClient {
             let responseMode: ResponseMode
             let conversationId: String?
             let files: [APIFile]?
+            let autoGenerateName: Bool
             
             private enum CodingKeys: String, CodingKey {
                 case inputs
@@ -93,6 +101,7 @@ public final class ChatClient: DifyClient {
                 case responseMode = "response_mode"
                 case conversationId = "conversation_id"
                 case files
+                case autoGenerateName = "auto_generate_name"
             }
         }
         
@@ -102,7 +111,8 @@ public final class ChatClient: DifyClient {
             user: user,
             responseMode: .streaming,
             conversationId: conversationId,
-            files: files
+            files: files,
+            autoGenerateName: autoGenerateName
         )
         
         let url = baseURL.appendingPathComponent("/chat-messages")
@@ -287,5 +297,33 @@ public final class ChatClient: DifyClient {
         )
         
         return try decode(data, to: ChatMessageResponse.self)
+    }
+    
+    /// Get conversation variables
+    /// - Parameters:
+    ///   - conversationId: Conversation ID
+    ///   - user: User identifier
+    ///   - lastId: Optional last ID for pagination
+    ///   - limit: Number of records to return
+    /// - Returns: Conversation variables response
+    public func getConversationVariables(
+        conversationId: String,
+        user: String,
+        lastId: String? = nil,
+        limit: Int = 20
+    ) async throws -> ConversationVariablesResponse {
+        var queryItems = [URLQueryItem(name: "user", value: user)]
+        if let lastId = lastId {
+            queryItems.append(URLQueryItem(name: "last_id", value: lastId))
+        }
+        queryItems.append(URLQueryItem(name: "limit", value: String(limit)))
+        
+        let data = try await sendRequest(
+            method: .GET,
+            endpoint: "/conversations/\(conversationId)/variables",
+            queryItems: queryItems
+        )
+        
+        return try decode(data, to: ConversationVariablesResponse.self)
     }
 }

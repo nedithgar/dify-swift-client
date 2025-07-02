@@ -113,4 +113,48 @@ public final class WorkflowClient: DifyClient {
         
         return try decode(data, to: WorkflowResponse.self)
     }
+    
+    /// Get workflow logs
+    /// - Parameters:
+    ///   - keyword: Optional keyword to search
+    ///   - status: Optional status filter (succeeded/failed/stopped)
+    ///   - page: Page number (default 1)
+    ///   - limit: Records per page (default 20)
+    ///   - createdByEndUserSessionId: Optional filter by end user session ID
+    ///   - createdByAccount: Optional filter by account email
+    /// - Returns: Workflow logs response
+    public func getWorkflowLogs(
+        keyword: String? = nil,
+        status: String? = nil,
+        page: Int = 1,
+        limit: Int = 20,
+        createdByEndUserSessionId: String? = nil,
+        createdByAccount: String? = nil
+    ) async throws -> WorkflowLogsResponse {
+        var queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "page", value: String(page)),
+            URLQueryItem(name: "limit", value: String(limit))
+        ]
+        
+        if let keyword = keyword {
+            queryItems.append(URLQueryItem(name: "keyword", value: keyword))
+        }
+        if let status = status {
+            queryItems.append(URLQueryItem(name: "status", value: status))
+        }
+        if let sessionId = createdByEndUserSessionId {
+            queryItems.append(URLQueryItem(name: "created_by_end_user_session_id", value: sessionId))
+        }
+        if let account = createdByAccount {
+            queryItems.append(URLQueryItem(name: "created_by_account", value: account))
+        }
+        
+        let data = try await sendRequest(
+            method: .GET,
+            endpoint: "/workflows/logs",
+            queryItems: queryItems
+        )
+        
+        return try decode(data, to: WorkflowLogsResponse.self)
+    }
 }
