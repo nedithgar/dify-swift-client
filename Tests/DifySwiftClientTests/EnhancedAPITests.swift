@@ -535,6 +535,212 @@ struct EnhancedChatMessageTests {
     func testChatMessageRequestWithAutoGenerateName() throws {
         // This would test the internal request structure if we could access it
         // For now, we'll test that the method exists and accepts the parameter
-        #expect(true) // Placeholder for method signature test
+        #expect(Bool(true)) // Placeholder for method signature test
+    }
+}
+
+@Suite("Streaming Event Models Tests")
+struct StreamingEventModelsTests {
+    
+    @Test("StreamingEventType encoding and decoding")
+    func testStreamingEventTypeValues() {
+        #expect(StreamingEventType.message.rawValue == "message")
+        #expect(StreamingEventType.messageEnd.rawValue == "message_end")
+        #expect(StreamingEventType.messageReplace.rawValue == "message_replace")
+        #expect(StreamingEventType.messageFile.rawValue == "message_file")
+        #expect(StreamingEventType.agentMessage.rawValue == "agent_message")
+        #expect(StreamingEventType.agentThought.rawValue == "agent_thought")
+        #expect(StreamingEventType.ttsMessage.rawValue == "tts_message")
+        #expect(StreamingEventType.ttsMessageEnd.rawValue == "tts_message_end")
+        #expect(StreamingEventType.workflowStarted.rawValue == "workflow_started")
+        #expect(StreamingEventType.nodeStarted.rawValue == "node_started")
+        #expect(StreamingEventType.nodeFinished.rawValue == "node_finished")
+        #expect(StreamingEventType.workflowFinished.rawValue == "workflow_finished")
+        #expect(StreamingEventType.textChunk.rawValue == "text_chunk")
+        #expect(StreamingEventType.error.rawValue == "error")
+        #expect(StreamingEventType.ping.rawValue == "ping")
+    }
+    
+    @Test("GenericStreamingEvent decoding for message event")
+    func testGenericStreamingEventMessageDecoding() throws {
+        let json = """
+        {
+            "event": "message",
+            "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227",
+            "message_id": "663c5084-a254-4040-8ad3-51f2a3c1a77c",
+            "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2",
+            "answer": "Hello, world!",
+            "created_at": 1705398420
+        }
+        """.data(using: .utf8)!
+        
+        let decoder = JSONDecoder()
+        let event = try decoder.decode(GenericStreamingEvent.self, from: json)
+        
+        #expect(event.event == .message)
+        #expect(event.taskId == "900bbd43-dc0b-4383-a372-aa6e6c414227")
+        #expect(event.messageId == "663c5084-a254-4040-8ad3-51f2a3c1a77c")
+        #expect(event.conversationId == "45701982-8118-4bc5-8e9b-64562b4555f2")
+        #expect(event.createdAt == 1705398420)
+    }
+    
+    @Test("GenericStreamingEvent decoding for workflow_started event")
+    func testGenericStreamingEventWorkflowStartedDecoding() throws {
+        let json = """
+        {
+            "event": "workflow_started",
+            "task_id": "5ad4cb98-f0c7-4085-b384-88c403be6290",
+            "workflow_run_id": "5ad498-f0c7-4085-b384-88cbe6290",
+            "data": {
+                "id": "5ad498-f0c7-4085-b384-88cbe6290",
+                "workflow_id": "dfjasklfjdslag",
+                "created_at": 1679586595
+            }
+        }
+        """.data(using: .utf8)!
+        
+        let decoder = JSONDecoder()
+        let event = try decoder.decode(GenericStreamingEvent.self, from: json)
+        
+        #expect(event.event == .workflowStarted)
+        #expect(event.taskId == "5ad4cb98-f0c7-4085-b384-88c403be6290")
+        #expect(event.workflowRunId == "5ad498-f0c7-4085-b384-88cbe6290")
+        #expect(event.data != nil)
+        
+        if let data = event.data {
+            #expect(data["id"] as? String == "5ad498-f0c7-4085-b384-88cbe6290")
+            #expect(data["workflow_id"] as? String == "dfjasklfjdslag")
+            #expect(data["created_at"] as? Int == 1679586595)
+        }
+    }
+    
+    @Test("GenericStreamingEvent decoding for node_finished event")
+    func testGenericStreamingEventNodeFinishedDecoding() throws {
+        let json = """
+        {
+            "event": "node_finished",
+            "task_id": "5ad4cb98-f0c7-4085-b384-88c403be6290",
+            "workflow_run_id": "5ad498-f0c7-4085-b384-88cbe6290",
+            "data": {
+                "id": "5ad498-f0c7-4085-b384-88cbe6290",
+                "node_id": "dfjasklfjdslag",
+                "node_type": "start",
+                "title": "Start",
+                "index": 0,
+                "status": "succeeded",
+                "elapsed_time": 0.324,
+                "execution_metadata": {
+                    "total_tokens": 63127864,
+                    "total_price": "2.378",
+                    "currency": "USD"
+                },
+                "created_at": 1679586595
+            }
+        }
+        """.data(using: .utf8)!
+        
+        let decoder = JSONDecoder()
+        let event = try decoder.decode(GenericStreamingEvent.self, from: json)
+        
+        #expect(event.event == .nodeFinished)
+        #expect(event.taskId == "5ad4cb98-f0c7-4085-b384-88c403be6290")
+        #expect(event.workflowRunId == "5ad498-f0c7-4085-b384-88cbe6290")
+        #expect(event.data != nil)
+        
+        if let data = event.data {
+            #expect(data["node_type"] as? String == "start")
+            #expect(data["title"] as? String == "Start")
+            #expect(data["index"] as? Int == 0)
+            #expect(data["status"] as? String == "succeeded")
+            #expect(data["elapsed_time"] as? Double == 0.324)
+            
+            if let metadata = data["execution_metadata"] as? [String: Any] {
+                #expect(metadata["total_tokens"] as? Int == 63127864)
+                #expect(metadata["total_price"] as? String == "2.378")
+                #expect(metadata["currency"] as? String == "USD")
+            }
+        }
+    }
+    
+    @Test("GenericStreamingEvent decoding for text_chunk event")
+    func testGenericStreamingEventTextChunkDecoding() throws {
+        let json = """
+        {
+            "event": "text_chunk",
+            "workflow_run_id": "b85e5fc5-751b-454d-b14e-dc5f240b0a31",
+            "task_id": "bd029338-b068-4d34-a331-fc85478922c2",
+            "data": {
+                "text": "为了",
+                "from_variable_selector": ["1745912968134", "text"]
+            }
+        }
+        """.data(using: .utf8)!
+        
+        let decoder = JSONDecoder()
+        let event = try decoder.decode(GenericStreamingEvent.self, from: json)
+        
+        #expect(event.event == .textChunk)
+        #expect(event.taskId == "bd029338-b068-4d34-a331-fc85478922c2")
+        #expect(event.workflowRunId == "b85e5fc5-751b-454d-b14e-dc5f240b0a31")
+        #expect(event.data != nil)
+        
+        if let data = event.data {
+            #expect(data["text"] as? String == "为了")
+            if let selector = data["from_variable_selector"] as? [String] {
+                #expect(selector == ["1745912968134", "text"])
+            }
+        }
+    }
+    
+    @Test("GenericStreamingEvent decoding for error event")
+    func testGenericStreamingEventErrorDecoding() throws {
+        let json = """
+        {
+            "event": "error",
+            "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227",
+            "message_id": "663c5084-a254-4040-8ad3-51f2a3c1a77c",
+            "status": 400,
+            "code": "invalid_param",
+            "message": "abnormal parameter input"
+        }
+        """.data(using: .utf8)!
+        
+        let decoder = JSONDecoder()
+        let event = try decoder.decode(GenericStreamingEvent.self, from: json)
+        
+        #expect(event.event == .error)
+        #expect(event.taskId == "900bbd43-dc0b-4383-a372-aa6e6c414227")
+        #expect(event.messageId == "663c5084-a254-4040-8ad3-51f2a3c1a77c")
+    }
+    
+    @Test("AnyCodable with various types")
+    func testAnyCodableWithVariousTypes() throws {
+        // Test with different data types
+        let stringValue = AnyCodable("test")
+        let intValue = AnyCodable(42)
+        let doubleValue = AnyCodable(3.14)
+        let boolValue = AnyCodable(true)
+        let arrayValue = AnyCodable(["a", "b", "c"])
+        let dictValue = AnyCodable(["key": "value", "number": 123])
+        
+        // Test encoding/decoding
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+        
+        let stringData = try encoder.encode(stringValue)
+        let decodedString = try decoder.decode(AnyCodable.self, from: stringData)
+        #expect(decodedString.value as? String == "test")
+        
+        let intData = try encoder.encode(intValue)
+        let decodedInt = try decoder.decode(AnyCodable.self, from: intData)
+        #expect(decodedInt.value as? Int == 42)
+        
+        let doubleData = try encoder.encode(doubleValue)
+        let decodedDouble = try decoder.decode(AnyCodable.self, from: doubleData)
+        #expect(decodedDouble.value as? Double == 3.14)
+        
+        let boolData = try encoder.encode(boolValue)
+        let decodedBool = try decoder.decode(AnyCodable.self, from: boolData)
+        #expect(decodedBool.value as? Bool == true)
     }
 }

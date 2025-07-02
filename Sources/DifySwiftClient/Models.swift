@@ -1086,3 +1086,167 @@ public struct WorkflowLogsResponse: Codable {
         }
     }
 }
+
+// MARK: - Streaming Event Models
+
+/// Streaming event types for advanced features
+public enum StreamingEventType: String, Codable {
+    case message
+    case messageEnd = "message_end"
+    case messageReplace = "message_replace"
+    case messageFile = "message_file"
+    case agentMessage = "agent_message"
+    case agentThought = "agent_thought"
+    case ttsMessage = "tts_message"
+    case ttsMessageEnd = "tts_message_end"
+    case workflowStarted = "workflow_started"
+    case nodeStarted = "node_started"
+    case nodeFinished = "node_finished"
+    case workflowFinished = "workflow_finished"
+    case textChunk = "text_chunk"
+    case error
+    case ping
+}
+
+/// Base streaming event protocol
+public protocol StreamingEvent: Codable {
+    var event: StreamingEventType { get }
+    var taskId: String? { get }
+    var messageId: String? { get }
+    var conversationId: String? { get }
+    var createdAt: Int? { get }
+}
+
+/// Generic streaming event container
+public struct GenericStreamingEvent: Codable {
+    public let event: StreamingEventType
+    public let taskId: String?
+    public let messageId: String?
+    public let conversationId: String?
+    public let workflowRunId: String?
+    public let createdAt: Int?
+    public let data: [String: Any]?
+    
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case taskId = "task_id"
+        case messageId = "message_id"
+        case conversationId = "conversation_id"
+        case workflowRunId = "workflow_run_id"
+        case createdAt = "created_at"
+        case data
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        event = try container.decode(StreamingEventType.self, forKey: .event)
+        taskId = try container.decodeIfPresent(String.self, forKey: .taskId)
+        messageId = try container.decodeIfPresent(String.self, forKey: .messageId)
+        conversationId = try container.decodeIfPresent(String.self, forKey: .conversationId)
+        workflowRunId = try container.decodeIfPresent(String.self, forKey: .workflowRunId)
+        createdAt = try container.decodeIfPresent(Int.self, forKey: .createdAt)
+        
+        // Try to decode additional data as a generic dictionary
+        if let dataContainer = try? container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: .data) {
+            var dataDict: [String: Any] = [:]
+            for key in dataContainer.allKeys {
+                if let value = try? dataContainer.decode(AnyCodable.self, forKey: key) {
+                    dataDict[key.stringValue] = value.value
+                }
+            }
+            data = dataDict.isEmpty ? nil : dataDict
+        } else {
+            data = nil
+        }
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(event, forKey: .event)
+        try container.encodeIfPresent(taskId, forKey: .taskId)
+        try container.encodeIfPresent(messageId, forKey: .messageId)
+        try container.encodeIfPresent(conversationId, forKey: .conversationId)
+        try container.encodeIfPresent(workflowRunId, forKey: .workflowRunId)
+        try container.encodeIfPresent(createdAt, forKey: .createdAt)
+        
+        if let data = data {
+            var dataContainer = container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: .data)
+            for (key, value) in data {
+                let codingKey = AnyCodingKey(stringValue: key)!
+                try dataContainer.encode(AnyCodable(value), forKey: codingKey)
+            }
+        }
+    }
+}
+
+// MARK: - Utility Types for Generic Decoding
+
+/// Helper for encoding/decoding Any values
+public struct AnyCodable: Codable {
+    public let value: Any
+    
+    public init(_ value: Any) {
+        self.value = value
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        
+        if container.decodeNil() {
+            value = NSNull()
+        } else if let boolValue = try? container.decode(Bool.self) {
+            value = boolValue
+        } else if let intValue = try? container.decode(Int.self) {
+            value = intValue
+        } else if let doubleValue = try? container.decode(Double.self) {
+            value = doubleValue
+        } else if let stringValue = try? container.decode(String.self) {
+            value = stringValue
+        } else if let arrayValue = try? container.decode([AnyCodable].self) {
+            value = arrayValue.map { $0.value }
+        } else if let dictValue = try? container.decode([String: AnyCodable].self) {
+            value = dictValue.mapValues { $0.value }
+        } else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unsupported type")
+        }
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        
+        switch value {
+        case is NSNull:
+            try container.encodeNil()
+        case let boolValue as Bool:
+            try container.encode(boolValue)
+        case let intValue as Int:
+            try container.encode(intValue)
+        case let doubleValue as Double:
+            try container.encode(doubleValue)
+        case let stringValue as String:
+            try container.encode(stringValue)
+        case let arrayValue as [Any]:
+            try container.encode(arrayValue.map { AnyCodable($0) })
+        case let dictValue as [String: Any]:
+            try container.encode(dictValue.mapValues { AnyCodable($0) })
+        default:
+            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: encoder.codingPath, debugDescription: "Unsupported type"))
+        }
+    }
+}
+
+/// Dynamic coding key for generic dictionaries
+public struct AnyCodingKey: CodingKey {
+    public let stringValue: String
+    public let intValue: Int?
+    
+    public init?(stringValue: String) {
+        self.stringValue = stringValue
+        self.intValue = nil
+    }
+    
+    public init?(intValue: Int) {
+        self.stringValue = String(intValue)
+        self.intValue = intValue
+    }
+}
