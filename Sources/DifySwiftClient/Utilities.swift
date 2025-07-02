@@ -105,7 +105,7 @@ public struct StreamingResponse: AsyncSequence {
             self.stream = stream
             
             task = session.dataTask(with: urlRequest) { data, response, error in
-                if let error = error {
+                if let _ = error {
                     continuation.finish()
                     return
                 }
