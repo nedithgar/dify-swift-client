@@ -5,39 +5,6 @@ import FoundationNetworking
 #endif
 @testable import DifySwiftClient
 
-// MARK: - Test Configuration
-
-struct TestConfig {
-    static let apiKey = ProcessInfo.processInfo.environment["DIFY_API_KEY"]
-    static let baseURL = ProcessInfo.processInfo.environment["DIFY_BASE_URL"]
-    static let userId = ProcessInfo.processInfo.environment["DIFY_USER_ID"]
-    
-    // Helper methods to get required values - these will cause test failures if values are missing
-    static var requiredAPIKey: String {
-        guard let key = apiKey, !key.isEmpty else {
-            Issue.record("DIFY_API_KEY environment variable is required but not set")
-            return "" // This will likely cause the test to fail meaningfully
-        }
-        return key
-    }
-    
-    static var requiredBaseURL: String {
-        guard let url = baseURL, !url.isEmpty else {
-            Issue.record("DIFY_BASE_URL environment variable is required but not set")
-            return "" // This will likely cause the test to fail meaningfully
-        }
-        return url
-    }
-    
-    static var requiredUserID: String {
-        guard let id = userId, !id.isEmpty else {
-            Issue.record("DIFY_USER_ID environment variable is required but not set")
-            return "" // This will likely cause the test to fail meaningfully
-        }
-        return id
-    }
-}
-
 // MARK: - DifyClient Tests
 
 @Suite("DifyClient Tests")
@@ -45,9 +12,17 @@ struct DifyClientTests {
     
     @Test("Initialize with valid API key")
     func testInitialization() async throws {
-        let client = try DifyClient(apiKey: TestConfig.requiredAPIKey)
-        #expect(client.apiKey == TestConfig.requiredAPIKey)
-        #expect(client.baseURL.absoluteString == TestConfig.requiredBaseURL)
+        let client = try DifyClient(apiKey: MockTestConfig.apiKey)
+        #expect(client.apiKey == MockTestConfig.apiKey)
+        #expect(client.baseURL.absoluteString == "https://api.dify.ai/v1")
+    }
+    
+    @Test("Initialize with custom base URL")
+    func testInitializationWithCustomBaseURL() async throws {
+        let customURL = "https://custom-api.example.com/v1"
+        let client = try DifyClient(apiKey: MockTestConfig.apiKey, baseURL: customURL)
+        #expect(client.apiKey == MockTestConfig.apiKey)
+        #expect(client.baseURL.absoluteString == customURL)
     }
     
     @Test("Initialize with empty API key throws error")
@@ -60,8 +35,18 @@ struct DifyClientTests {
     @Test("Initialize with invalid base URL throws error")
     func testInitializationWithInvalidBaseURL() async throws {
         #expect(throws: (any Error).self) {
-            try DifyClient(apiKey: TestConfig.requiredAPIKey, baseURL: "invalid-url")
+            try DifyClient(apiKey: MockTestConfig.apiKey, baseURL: "invalid-url")
         }
+    }
+    
+    @Test("Initialize with custom URLSession")
+    func testInitializationWithCustomSession() async throws {
+        let customSession = URLSession(configuration: .ephemeral)
+        let client = try DifyClient(
+            apiKey: MockTestConfig.apiKey,
+            session: customSession
+        )
+        #expect(client.apiKey == MockTestConfig.apiKey)
     }
 }
 
@@ -72,17 +57,62 @@ struct CompletionClientTests {
     
     @Test("Create completion client")
     func testCreateCompletionClient() async throws {
-        let client = try CompletionClient(apiKey: TestConfig.requiredAPIKey)
-        #expect(client.apiKey == TestConfig.requiredAPIKey)
-        #expect(client.baseURL.absoluteString == TestConfig.requiredBaseURL)
+        let client = try CompletionClient(apiKey: MockTestConfig.apiKey)
+        #expect(client.apiKey == MockTestConfig.apiKey)
+        #expect(client.baseURL.absoluteString == "https://api.dify.ai/v1")
     }
     
     @Test("Completion client inherits from DifyClient")
     func testCompletionClientInheritance() async throws {
-        let client = try CompletionClient(apiKey: TestConfig.requiredAPIKey)
-        // Test that CompletionClient has DifyClient functionality
-        #expect(client.apiKey == TestConfig.requiredAPIKey)
+        let client = try CompletionClient(apiKey: MockTestConfig.apiKey)
+        #expect(client.apiKey == MockTestConfig.apiKey)
         #expect(client.baseURL.absoluteString.contains("dify.ai"))
+    }
+    
+    @Test("Create completion message with mock response")
+    func testCreateCompletionMessage() async throws {
+        // Setup mock
+        TestUtilities.setupStandardMocks()
+        let client = try TestUtilities.createMockCompletionClient()
+        
+        // Test completion message creation
+        let response = try await client.createCompletionMessage(
+            inputs: ["query": "Test completion"],
+            responseMode: .blocking,
+            user: MockTestConfig.userId
+        )
+        
+        #expect(response.answer == "This is a mock completion response.")
+        #expect(response.messageId == "mock-completion-789")
+        
+        // Cleanup
+        TestUtilities.cleanup()
+    }
+    
+    @Test("Create streaming completion message")
+    func testCreateStreamingCompletionMessage() async throws {
+        // Setup streaming mock
+        TestUtilities.setupStreamingMock()
+        let client = try TestUtilities.createMockCompletionClient()
+        
+        // Test streaming completion
+        let streamingResponse = try await client.createStreamingCompletionMessage(
+            inputs: ["query": "Stream test"],
+            user: MockTestConfig.userId
+        )
+        
+        // Verify we can iterate over the streaming response
+        var chunkCount = 0
+        for try await chunk in streamingResponse {
+            chunkCount += 1
+            #expect(chunk.count > 0)
+            if chunkCount >= 2 { break } // Don't iterate too long in test
+        }
+        
+        #expect(chunkCount > 0)
+        
+        // Cleanup
+        TestUtilities.cleanup()
     }
 }
 
@@ -93,17 +123,116 @@ struct ChatClientTests {
     
     @Test("Create chat client")
     func testCreateChatClient() async throws {
-        let client = try ChatClient(apiKey: TestConfig.requiredAPIKey)
-        #expect(client.apiKey == TestConfig.requiredAPIKey)
-        #expect(client.baseURL.absoluteString == TestConfig.requiredBaseURL)
+        let client = try ChatClient(apiKey: MockTestConfig.apiKey)
+        #expect(client.apiKey == MockTestConfig.apiKey)
+        #expect(client.baseURL.absoluteString == "https://api.dify.ai/v1")
     }
     
     @Test("Chat client inherits from DifyClient")
     func testChatClientInheritance() async throws {
-        let client = try ChatClient(apiKey: TestConfig.requiredAPIKey)
-        // Test that ChatClient has DifyClient functionality
-        #expect(client.apiKey == TestConfig.requiredAPIKey)
+        let client = try ChatClient(apiKey: MockTestConfig.apiKey)
+        #expect(client.apiKey == MockTestConfig.apiKey)
         #expect(client.baseURL.absoluteString.contains("dify.ai"))
+    }
+    
+    @Test("Create chat message with mock response")
+    func testCreateChatMessage() async throws {
+        // Setup mock
+        TestUtilities.setupStandardMocks()
+        let client = try TestUtilities.createMockChatClient()
+        
+        // Test chat message creation
+        let response = try await client.createChatMessage(
+            inputs: ["context": "test"],
+            query: "Hello, how are you?",
+            user: MockTestConfig.userId
+        )
+        
+        #expect(response.answer == "This is a mock response from the chat API.")
+        #expect(response.messageId == "mock-message-123")
+        #expect(response.conversationId == "mock-conversation-456")
+        
+        // Cleanup
+        TestUtilities.cleanup()
+    }
+    
+    @Test("Create chat message with files")
+    func testCreateChatMessageWithFiles() async throws {
+        // Setup mock
+        TestUtilities.setupStandardMocks()
+        let client = try TestUtilities.createMockChatClient()
+        
+        // Create test files
+        let imageFile = APIFile(
+            type: .image,
+            transferMethod: .remoteUrl,
+            url: "https://example.com/test.jpg"
+        )
+        
+        let documentFile = APIFile(
+            type: .document,
+            transferMethod: .localFile,
+            uploadFileId: "file-123"
+        )
+        
+        // Test chat message with files
+        let response = try await client.createChatMessage(
+            inputs: [:],
+            query: "Analyze these files",
+            user: MockTestConfig.userId,
+            files: [imageFile, documentFile]
+        )
+        
+        #expect(response.messageId == "mock-message-123")
+        #expect(response.answer.contains("mock response"))
+        
+        // Cleanup
+        TestUtilities.cleanup()
+    }
+    
+    @Test("Create streaming chat message")
+    func testCreateStreamingChatMessage() async throws {
+        // Setup streaming mock
+        TestUtilities.setupStreamingMock()
+        let client = try TestUtilities.createMockChatClient()
+        
+        // Test streaming chat
+        let streamingResponse = try await client.createStreamingChatMessage(
+            inputs: [:],
+            query: "Tell me a story",
+            user: MockTestConfig.userId
+        )
+        
+        // Verify we can iterate over the streaming response
+        var chunkCount = 0
+        for try await chunk in streamingResponse {
+            chunkCount += 1
+            #expect(chunk.count > 0)
+            if chunkCount >= 2 { break } // Don't iterate too long in test
+        }
+        
+        #expect(chunkCount > 0)
+        
+        // Cleanup
+        TestUtilities.cleanup()
+    }
+    
+    @Test("Get conversations")
+    func testGetConversations() async throws {
+        // Setup mock
+        TestUtilities.setupStandardMocks()
+        let client = try TestUtilities.createMockChatClient()
+        
+        // Test getting conversations
+        let response = try await client.getConversations(user: MockTestConfig.userId)
+        
+        #expect(response.data.count == 2)
+        #expect(response.data[0].name == "Test Conversation 1")
+        #expect(response.data[1].name == "Test Conversation 2")
+        #expect(response.hasMore == false)
+        
+        // Cleanup
+        TestUtilities.cleanup()
     }
 }
 
@@ -114,17 +243,62 @@ struct WorkflowClientTests {
     
     @Test("Create workflow client")
     func testCreateWorkflowClient() async throws {
-        let client = try WorkflowClient(apiKey: TestConfig.requiredAPIKey)
-        #expect(client.apiKey == TestConfig.requiredAPIKey)
-        #expect(client.baseURL.absoluteString == TestConfig.requiredBaseURL)
+        let client = try WorkflowClient(apiKey: MockTestConfig.apiKey)
+        #expect(client.apiKey == MockTestConfig.apiKey)
+        #expect(client.baseURL.absoluteString == "https://api.dify.ai/v1")
     }
     
     @Test("Workflow client inherits from DifyClient")
     func testWorkflowClientInheritance() async throws {
-        let client = try WorkflowClient(apiKey: TestConfig.requiredAPIKey)
-        // Test that WorkflowClient has DifyClient functionality
-        #expect(client.apiKey == TestConfig.requiredAPIKey)
+        let client = try WorkflowClient(apiKey: MockTestConfig.apiKey)
+        #expect(client.apiKey == MockTestConfig.apiKey)
         #expect(client.baseURL.absoluteString.contains("dify.ai"))
+    }
+    
+    @Test("Run workflow with mock response")
+    func testRunWorkflow() async throws {
+        // Setup mock
+        TestUtilities.setupStandardMocks()
+        let client = try TestUtilities.createMockWorkflowClient()
+        
+        // Test workflow execution
+        let response = try await client.run(
+            inputs: ["input_key": "input_value"],
+            responseMode: .blocking,
+            user: MockTestConfig.userId
+        )
+        
+        #expect(response.workflowRunId == "mock-workflow-run-789")
+        #expect(response.taskId == "mock-task-456")
+        #expect(response.data.status == "succeeded")
+        #expect(response.data.outputs["result"] as? String == "Workflow completed successfully")
+        #expect(response.data.elapsedTime == 2.5)
+        #expect(response.data.totalSteps == 3)
+        
+        // Cleanup
+        TestUtilities.cleanup()
+    }
+    
+    @Test("Get workflow result")
+    func testGetWorkflowResult() async throws {
+        // Setup mock for workflow result
+        MockURLProtocol.registerMock(
+            endpoint: "workflows/run",
+            response: MockResponse.json(MockDataProvider.workflowResponse)
+        )
+        
+        let client = try TestUtilities.createMockWorkflowClient()
+        
+        // Test getting workflow result
+        let result = try await client.getResult(
+            workflowRunId: MockTestConfig.workflowId
+        )
+        
+        #expect(result.workflowRunId == "mock-workflow-run-789")
+        #expect(result.data.status == "succeeded")
+        
+        // Cleanup
+        TestUtilities.cleanup()
     }
 }
 
@@ -136,25 +310,69 @@ struct KnowledgeBaseClientTests {
     @Test("Initialize with dataset ID")
     func testInitializeWithDatasetId() async throws {
         let client = try KnowledgeBaseClient(
-            apiKey: TestConfig.requiredAPIKey,
-            datasetId: "dataset_123"
+            apiKey: MockTestConfig.apiKey,
+            datasetId: MockTestConfig.datasetId
         )
-        #expect(client.datasetId == "dataset_123")
-        #expect(client.apiKey == TestConfig.requiredAPIKey)
+        #expect(client.apiKey == MockTestConfig.apiKey)
+        #expect(client.datasetId == MockTestConfig.datasetId)
     }
     
     @Test("Initialize without dataset ID")
     func testInitializeWithoutDatasetId() async throws {
-        let client = try KnowledgeBaseClient(apiKey: TestConfig.requiredAPIKey)
+        let client = try KnowledgeBaseClient(apiKey: MockTestConfig.apiKey)
+        #expect(client.apiKey == MockTestConfig.apiKey)
         #expect(client.datasetId == nil)
     }
     
     @Test("Knowledge base client inherits from DifyClient")
     func testKnowledgeBaseClientInheritance() async throws {
-        let client = try KnowledgeBaseClient(apiKey: TestConfig.requiredAPIKey)
-        // Test that KnowledgeBaseClient has DifyClient functionality
-        #expect(client.apiKey == TestConfig.requiredAPIKey)
+        let client = try KnowledgeBaseClient(
+            apiKey: MockTestConfig.apiKey,
+            datasetId: MockTestConfig.datasetId
+        )
+        #expect(client.apiKey == MockTestConfig.apiKey)
         #expect(client.baseURL.absoluteString.contains("dify.ai"))
+    }
+    
+    @Test("Create dataset")
+    func testCreateDataset() async throws {
+        // Setup mock
+        TestUtilities.setupStandardMocks()
+        let client = try TestUtilities.createMockKnowledgeBaseClient()
+        
+        // Test dataset creation
+        let response = try await client.createDataset(name: "Test Dataset")
+        
+        #expect(response.id == "mock-dataset-123")
+        #expect(response.name == "Mock Dataset")
+        #expect(response.description == "A dataset for testing")
+        #expect(response.documentCount == 5)
+        #expect(response.wordCount == 1000)
+        
+        // Cleanup
+        TestUtilities.cleanup()
+    }
+    
+    @Test("Create document by text")
+    func testCreateDocumentByText() async throws {
+        // Setup mock
+        TestUtilities.setupStandardMocks()
+        let client = try TestUtilities.createMockKnowledgeBaseClient()
+        
+        // Test document creation by text
+        let response = try await client.createDocumentByText(
+            name: "Test Document",
+            text: "This is test content for the document."
+        )
+        
+        #expect(response.document.id == "mock-document-123")
+        #expect(response.document.name == "Test Document")
+        #expect(response.document.tokens == 500)
+        #expect(response.document.indexingStatus == "completed")
+        #expect(response.batch == "mock-batch-789")
+        
+        // Cleanup
+        TestUtilities.cleanup()
     }
 }
 
@@ -339,7 +557,7 @@ struct IntegrationTests {
     
     @Test("Can create all client types")
     func testCreateAllClientTypes() async throws {
-        let apiKey = TestConfig.requiredAPIKey
+        let apiKey = MockTestConfig.apiKey
         
         // Test that all client types can be created without throwing
         let difyClient = try DifyClient(apiKey: apiKey)
@@ -354,6 +572,70 @@ struct IntegrationTests {
         #expect(completionClient.apiKey == apiKey)
         #expect(workflowClient.apiKey == apiKey)
         #expect(knowledgeBaseClient.apiKey == apiKey)
+    }
+    
+    @Test("End-to-end chat workflow with mocking")
+    func testEndToEndChatWorkflow() async throws {
+        // Setup comprehensive mocks
+        TestUtilities.setupStandardMocks()
+        
+        // Test complete chat workflow
+        let client = try TestUtilities.createMockChatClient()
+        
+        // 1. Create initial chat message
+        let initialResponse = try await client.createChatMessage(
+            inputs: [:],
+            query: "Hello, I need help",
+            user: MockTestConfig.userId
+        )
+        
+        #expect(initialResponse.event == "message")
+        #expect(initialResponse.conversationId == "mock-conversation-456")
+        
+        // 2. Continue conversation
+        let followUpResponse = try await client.createChatMessage(
+            inputs: [:],
+            query: "Can you explain more?",
+            user: MockTestConfig.userId,
+            conversationId: initialResponse.conversationId
+        )
+        
+        #expect(followUpResponse.conversationId == initialResponse.conversationId)
+        
+        // 3. Get conversations list
+        let conversations = try await client.getConversations(user: MockTestConfig.userId)
+        #expect(conversations.data.count >= 1)
+        
+        // Cleanup
+        TestUtilities.cleanup()
+    }
+    
+    @Test("End-to-end workflow execution with mocking")
+    func testEndToEndWorkflowExecution() async throws {
+        // Setup mocks
+        TestUtilities.setupStandardMocks()
+        
+        let client = try TestUtilities.createMockWorkflowClient()
+        
+        // Run workflow
+        let response = try await client.run(
+            inputs: ["data": "test input"],
+            responseMode: .blocking,
+            user: MockTestConfig.userId
+        )
+        
+        #expect(response.data.status == "succeeded")
+        #expect(response.data.outputs.count > 0)
+        
+        // Get result
+        let result = try await client.getResult(
+            workflowRunId: response.workflowRunId
+        )
+        
+        #expect(result.data.status == "succeeded")
+        
+        // Cleanup
+        TestUtilities.cleanup()
     }
     
     @Test("APIFile with local file transfer method")
