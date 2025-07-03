@@ -371,9 +371,24 @@ public final class MockDataProvider: @unchecked Sendable {
     ]
     
     nonisolated(unsafe)
+    public static let annotationResponse: [String: Any] = [
+        "id": "annotation-123",
+        "question": "What is artificial intelligence?",
+        "answer": "Artificial intelligence is a branch of computer science...",
+        "hit_count": 5,
+        "created_at": 1726139644
+    ]
+    
+    nonisolated(unsafe)
     public static let annotationReplySettingsResponse: [String: Any] = [
         "job_id": "job-123",
         "job_status": "pending"
+    ]
+    
+    nonisolated(unsafe)
+    public static let annotationJobStatusResponse: [String: Any] = [
+        "job_id": "job-123",
+        "job_status": "completed"
     ]
     
     // MARK: - Error Responses
@@ -632,6 +647,26 @@ public final class MockConfiguration {
             response: MockURLProtocol.MockResponse.json(MockDataProvider.annotationListResponse)
         )
         
+        MockURLProtocol.registerMock(
+            endpoint: "apps/annotations/annotation-123",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.annotationResponse)
+        )
+        
+        MockURLProtocol.registerMock(
+            endpoint: "apps/annotation-reply/enable",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.annotationReplySettingsResponse)
+        )
+        
+        MockURLProtocol.registerMock(
+            endpoint: "apps/annotation-reply/disable",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.annotationReplySettingsResponse)
+        )
+        
+        MockURLProtocol.registerMock(
+            endpoint: "apps/annotation-reply/enable/status/job-123",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.annotationJobStatusResponse)
+        )
+        
         // Text to audio endpoint
         MockURLProtocol.registerMock(
             endpoint: "text-to-audio",
@@ -667,7 +702,7 @@ public final class MockConfiguration {
         
         // Application feedbacks endpoint
         MockURLProtocol.registerMock(
-            endpoint: "apps/feedbacks",
+            endpoint: "app/feedbacks",
             response: MockURLProtocol.MockResponse.json(MockDataProvider.applicationFeedbacksResponse)
         )
         
