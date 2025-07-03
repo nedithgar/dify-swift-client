@@ -5,7 +5,7 @@ import FoundationNetworking
 
 /// Client for chat-based interactions with Dify
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
-public final class ChatClient: DifyClient {
+public final class ChatClient: DifyClient, @unchecked Sendable {
     
     // MARK: - Chat Methods
     
