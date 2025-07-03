@@ -103,18 +103,8 @@ public final class MockDataProvider: @unchecked Sendable {
     nonisolated(unsafe)
     public static let completionMessageResponse: [String: Any] = [
         "message_id": testMessageId,
-        "mode": "completion",
+        "conversation_id": testConversationId,
         "answer": "Based on your input, here's my response...",
-        "metadata": [
-            "usage": [
-                "prompt_tokens": 30,
-                "completion_tokens": 25,
-                "total_tokens": 55,
-                "total_price": "0.0055",
-                "currency": "USD",
-                "latency": 1.2
-            ]
-        ],
         "created_at": 1726139644
     ]
     
@@ -640,6 +630,62 @@ public final class MockConfiguration {
         MockURLProtocol.registerMock(
             endpoint: "apps/annotations",
             response: MockURLProtocol.MockResponse.json(MockDataProvider.annotationListResponse)
+        )
+        
+        // Text to audio endpoint
+        MockURLProtocol.registerMock(
+            endpoint: "text-to-audio",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.textToAudioResponse)
+        )
+        
+        // Audio to text endpoint
+        MockURLProtocol.registerMock(
+            endpoint: "audio-to-text",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.baseSuccessResponse)
+        )
+        
+        // Conversation management endpoints
+        MockURLProtocol.registerMock(
+            endpoint: "conversations",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.conversationsResponse)
+        )
+        
+        MockURLProtocol.registerMock(
+            endpoint: "conversations/\(MockDataProvider.testConversationId)",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.baseDeleteResponse)
+        )
+        
+        MockURLProtocol.registerMock(
+            endpoint: "conversations/\(MockDataProvider.testConversationId)/name",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.baseSuccessResponse)
+        )
+        
+        MockURLProtocol.registerMock(
+            endpoint: "conversations/\(MockDataProvider.testConversationId)/variables",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.baseSuccessResponse)
+        )
+        
+        // Application feedbacks endpoint
+        MockURLProtocol.registerMock(
+            endpoint: "apps/feedbacks",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.applicationFeedbacksResponse)
+        )
+        
+        // Knowledge base document endpoints
+        MockURLProtocol.registerMock(
+            endpoint: "datasets/\(MockDataProvider.testDatasetId)/documents",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.documentsResponse)
+        )
+        
+        MockURLProtocol.registerMock(
+            endpoint: "datasets/\(MockDataProvider.testDatasetId)/documents/\(MockDataProvider.testDocumentId)",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.documentResponse)
+        )
+        
+        // Individual dataset endpoint
+        MockURLProtocol.registerMock(
+            endpoint: "datasets/\(MockDataProvider.testDatasetId)",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.datasetResponse)
         )
     }
     
