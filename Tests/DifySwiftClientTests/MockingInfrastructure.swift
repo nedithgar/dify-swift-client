@@ -65,10 +65,11 @@ public final class MockURLProtocol: URLProtocol {
     
     // MARK: - Storage
     
-    nonisolated(unsafe) static var mocks: [String: MockResponse] = [:]
-    nonisolated(unsafe) static var requestHandler: ((URLRequest) -> (HTTPURLResponse, Data)?)?
-    nonisolated(unsafe) static var capturedRequests: [URLRequest] = []
-    nonisolated(unsafe) static var isCapturing = false
+    private static let lockQueue = DispatchQueue(label: "com.dify.mockurlprotocol.lock")
+    nonisolated(unsafe) private static var _mocks: [String: MockResponse] = [:]
+    nonisolated(unsafe) private static var _requestHandler: ((URLRequest) -> (HTTPURLResponse, Data)?)?
+    nonisolated(unsafe) private static var _capturedRequests: [URLRequest] = []
+    nonisolated(unsafe) private static var _isCapturing = false
     
     // MARK: - URLProtocol Overrides
     
@@ -82,12 +83,15 @@ public final class MockURLProtocol: URLProtocol {
     
     public override func startLoading() {
         // Capture request if enabled
-        if MockURLProtocol.isCapturing {
-            MockURLProtocol.capturedRequests.append(request)
+        MockURLProtocol.lockQueue.sync {
+            if MockURLProtocol._isCapturing {
+                MockURLProtocol._capturedRequests.append(request)
+            }
         }
         
         // Try custom request handler first
-        if let handler = MockURLProtocol.requestHandler,
+        let handler = MockURLProtocol.lockQueue.sync { MockURLProtocol._requestHandler }
+        if let handler = handler,
            let (response, data) = handler(request) {
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             client?.urlProtocol(self, didLoad: data)
@@ -99,7 +103,8 @@ public final class MockURLProtocol: URLProtocol {
         let endpoint = extractEndpoint(from: request.url)
         
         // Look for registered mock
-        if let mockResponse = MockURLProtocol.mocks[endpoint] {
+        let mockResponse = MockURLProtocol.lockQueue.sync { MockURLProtocol._mocks[endpoint] }
+        if let mockResponse = mockResponse {
             if let error = mockResponse.error {
                 client?.urlProtocol(self, didFailWithError: error)
                 return
@@ -142,39 +147,43 @@ public final class MockURLProtocol: URLProtocol {
     
     /// Register a mock response for a specific endpoint
     public static func registerMock(endpoint: String, response: MockResponse) {
-        mocks[endpoint] = response
+        Self.lockQueue.sync { Self._mocks[endpoint] = response }
     }
     
     /// Set a custom request handler for complex scenarios
     public static func setRequestHandler(_ handler: @escaping (URLRequest) -> (HTTPURLResponse, Data)?) {
-        requestHandler = handler
+        Self.lockQueue.sync { Self._requestHandler = handler }
     }
     
     /// Clear all registered mocks
     public static func clearAllMocks() {
-        mocks.removeAll()
-        requestHandler = nil
+        Self.lockQueue.sync {
+            Self._mocks.removeAll()
+            Self._requestHandler = nil
+        }
     }
     
     /// Start capturing requests for validation
     public static func startCapturing() {
-        isCapturing = true
-        capturedRequests.removeAll()
+        Self.lockQueue.sync {
+            Self._isCapturing = true
+            Self._capturedRequests.removeAll()
+        }
     }
     
     /// Stop capturing requests
     public static func stopCapturing() {
-        isCapturing = false
+        Self.lockQueue.sync { Self._isCapturing = false }
     }
     
     /// Get captured requests
     public static func getCapturedRequests() -> [URLRequest] {
-        return capturedRequests
+        return Self.lockQueue.sync { Self._capturedRequests }
     }
     
     /// Clear captured requests
     public static func clearCapturedRequests() {
-        capturedRequests.removeAll()
+        Self.lockQueue.sync { Self._capturedRequests.removeAll() }
     }
     
     // MARK: - Helper Methods
