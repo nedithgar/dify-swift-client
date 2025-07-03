@@ -46,17 +46,17 @@ public struct APIFile: Codable, Sendable {
 }
 
 /// Base response structure
-public struct BaseResponse: Codable {
+public struct BaseResponse: Codable, Sendable {
     public let result: String?
 }
 
 /// Message feedback response
-public struct MessageFeedbackResponse: Codable {
+public struct MessageFeedbackResponse: Codable, Sendable {
     public let result: String
 }
 
 /// Application parameters response
-public struct ApplicationParametersResponse: Codable {
+public struct ApplicationParametersResponse: Codable, Sendable {
     public let userInputForm: [UserInputFormItem]
     
     private enum CodingKeys: String, CodingKey {
@@ -64,7 +64,7 @@ public struct ApplicationParametersResponse: Codable {
     }
 }
 
-public struct UserInputFormItem: Codable {
+public struct UserInputFormItem: Codable, Sendable {
     public let paragraph: Paragraph?
     public let select: Select?
     public let textInput: TextInput?
@@ -76,7 +76,7 @@ public struct UserInputFormItem: Codable {
     }
 }
 
-public struct Paragraph: Codable {
+public struct Paragraph: Codable, Sendable {
     public let label: String
     public let variable: String
     public let required: Bool
@@ -90,7 +90,7 @@ public struct Paragraph: Codable {
     }
 }
 
-public struct Select: Codable {
+public struct Select: Codable, Sendable {
     public let label: String
     public let variable: String
     public let required: Bool
@@ -106,7 +106,7 @@ public struct Select: Codable {
     }
 }
 
-public struct TextInput: Codable {
+public struct TextInput: Codable, Sendable {
     public let label: String
     public let variable: String
     public let required: Bool
@@ -121,7 +121,7 @@ public struct TextInput: Codable {
 }
 
 /// File upload response
-public struct FileUploadResponse: Codable {
+public struct FileUploadResponse: Codable, Sendable {
     public let id: String
     public let name: String
     public let size: Int
@@ -142,7 +142,7 @@ public struct FileUploadResponse: Codable {
 }
 
 /// Text to audio response
-public struct TextToAudioResponse: Codable {
+public struct TextToAudioResponse: Codable, Sendable {
     public let taskId: String?
     public let audio: String?
     
@@ -153,11 +153,11 @@ public struct TextToAudioResponse: Codable {
 }
 
 /// Meta response
-public struct MetaResponse: Codable {
+public struct MetaResponse: Codable, Sendable {
     public let tool: MetaTool
 }
 
-public struct MetaTool: Codable {
+public struct MetaTool: Codable, Sendable {
     public let labels: [String: String]
 }
 
@@ -192,12 +192,12 @@ public struct ChatMessageResponse: Codable, Sendable {
 }
 
 /// Suggested messages response
-public struct SuggestedMessagesResponse: Codable {
+public struct SuggestedMessagesResponse: Codable, Sendable {
     public let data: [String]
 }
 
 /// Conversations response
-public struct ConversationsResponse: Codable {
+public struct ConversationsResponse: Codable, Sendable {
     public let data: [Conversation]
     public let hasMore: Bool
     public let limit: Int
@@ -209,7 +209,7 @@ public struct ConversationsResponse: Codable {
     }
 }
 
-public struct Conversation: Codable {
+public struct Conversation: Codable, Sendable {
     public let id: String
     public let name: String
     public let inputs: [String: String]
@@ -230,7 +230,7 @@ public struct Conversation: Codable {
 }
 
 /// Conversation messages response
-public struct ConversationMessagesResponse: Codable {
+public struct ConversationMessagesResponse: Codable, Sendable {
     public let data: [ConversationMessage]
     public let hasMore: Bool
     public let limit: Int
@@ -242,7 +242,7 @@ public struct ConversationMessagesResponse: Codable {
     }
 }
 
-public struct ConversationMessage: Codable {
+public struct ConversationMessage: Codable, Sendable {
     public let id: String
     public let conversationId: String
     public let inputs: [String: String]
@@ -268,7 +268,7 @@ public struct ConversationMessage: Codable {
     }
 }
 
-public struct MessageFile: Codable {
+public struct MessageFile: Codable, Sendable {
     public let id: String
     public let type: String
     public let url: String
@@ -282,11 +282,11 @@ public struct MessageFile: Codable {
     }
 }
 
-public struct MessageFeedback: Codable {
+public struct MessageFeedback: Codable, Sendable {
     public let rating: String
 }
 
-public struct RetrieverResource: Codable {
+public struct RetrieverResource: Codable, Sendable {
     public let position: Int
     public let datasetId: String
     public let datasetName: String
@@ -308,7 +308,7 @@ public struct RetrieverResource: Codable {
     }
 }
 
-public struct AgentThought: Codable {
+public struct AgentThought: Codable, Sendable {
     public let id: String
     public let messageId: String
     public let position: Int
@@ -329,7 +329,7 @@ public struct AgentThought: Codable {
 }
 
 /// Workflow response
-public struct WorkflowResponse: Codable {
+public struct WorkflowResponse: Codable, Sendable {
     public let workflowRunId: String
     public let taskId: String
     public let data: WorkflowData
@@ -341,7 +341,7 @@ public struct WorkflowResponse: Codable {
     }
 }
 
-public struct WorkflowData: Codable {
+public struct WorkflowData: Codable, Sendable {
     public let id: String
     public let workflowId: String
     public let status: String
@@ -368,7 +368,7 @@ public struct WorkflowData: Codable {
 }
 
 /// Dataset response
-public struct DatasetResponse: Codable {
+public struct DatasetResponse: Codable, Sendable {
     public let id: String
     public let name: String
     public let description: String?
@@ -395,7 +395,7 @@ public struct DatasetResponse: Codable {
 }
 
 /// Datasets list response
-public struct DatasetsResponse: Codable {
+public struct DatasetsResponse: Codable, Sendable {
     public let data: [DatasetResponse]
     public let hasMore: Bool
     public let limit: Int
@@ -412,7 +412,7 @@ public struct DatasetsResponse: Codable {
 }
 
 /// Document response
-public struct DocumentResponse: Codable {
+public struct DocumentResponse: Codable, Sendable {
     public let id: String
     public let position: Int
     public let dataSource: DataSource
@@ -456,19 +456,19 @@ public struct DocumentResponse: Codable {
     }
 }
 
-public struct DataSource: Codable {
+public struct DataSource: Codable, Sendable {
     public let type: String
     public let info: [String: String]
 }
 
 /// Create document response
-public struct CreateDocumentResponse: Codable {
+public struct CreateDocumentResponse: Codable, Sendable {
     public let document: DocumentResponse
     public let batch: String
 }
 
 /// Documents list response
-public struct DocumentsResponse: Codable {
+public struct DocumentsResponse: Codable, Sendable {
     public let data: [DocumentResponse]
     public let hasMore: Bool
     public let limit: Int
@@ -485,7 +485,7 @@ public struct DocumentsResponse: Codable {
 }
 
 /// Segment response
-public struct SegmentResponse: Codable {
+public struct SegmentResponse: Codable, Sendable {
     public let id: String
     public let position: Int
     public let documentId: String
@@ -534,7 +534,7 @@ public struct SegmentResponse: Codable {
 }
 
 /// Segments response
-public struct SegmentsResponse: Codable {
+public struct SegmentsResponse: Codable, Sendable {
     public let data: [SegmentResponse]
     public let hasMore: Bool
     public let limit: Int
@@ -547,17 +547,17 @@ public struct SegmentsResponse: Codable {
 }
 
 /// Add segments response
-public struct AddSegmentsResponse: Codable {
+public struct AddSegmentsResponse: Codable, Sendable {
     public let data: [SegmentResponse]
 }
 
 /// Update segment response
-public struct UpdateSegmentResponse: Codable {
+public struct UpdateSegmentResponse: Codable, Sendable {
     public let data: SegmentResponse
 }
 
 /// Batch indexing status response
-public struct BatchIndexingStatusResponse: Codable {
+public struct BatchIndexingStatusResponse: Codable, Sendable {
     public let id: String
     public let indexingStatus: String
     public let processingStartedAt: Int
@@ -590,7 +590,7 @@ public struct BatchIndexingStatusResponse: Codable {
 // MARK: - Request Models
 
 /// Process rule for documents
-public struct ProcessRule: Codable {
+public struct ProcessRule: Codable, Sendable {
     public let mode: String
     public let rules: ProcessRuleRules?
     
@@ -600,7 +600,7 @@ public struct ProcessRule: Codable {
     }
 }
 
-public struct ProcessRuleRules: Codable {
+public struct ProcessRuleRules: Codable, Sendable {
     public let preProcessingRules: [PreProcessingRule]
     public let segmentation: Segmentation
     
@@ -615,7 +615,7 @@ public struct ProcessRuleRules: Codable {
     }
 }
 
-public struct PreProcessingRule: Codable {
+public struct PreProcessingRule: Codable, Sendable {
     public let id: String
     public let enabled: Bool
     
@@ -625,7 +625,7 @@ public struct PreProcessingRule: Codable {
     }
 }
 
-public struct Segmentation: Codable {
+public struct Segmentation: Codable, Sendable {
     public let separator: String
     public let maxTokens: Int
     
@@ -641,7 +641,7 @@ public struct Segmentation: Codable {
 }
 
 /// Segment data for adding/updating
-public struct SegmentData: Codable {
+public struct SegmentData: Codable, Sendable {
     public let content: String
     public let answer: String?
     public let keywords: [String]?
@@ -658,7 +658,7 @@ public struct SegmentData: Codable {
 // MARK: - Application Info Models
 
 /// Application basic information response
-public struct ApplicationInfoResponse: Codable {
+public struct ApplicationInfoResponse: Codable, Sendable {
     public let name: String
     public let description: String
     public let tags: [String]
@@ -675,7 +675,7 @@ public struct ApplicationInfoResponse: Codable {
 }
 
 /// Enhanced application parameters response with all API features
-public struct EnhancedApplicationParametersResponse: Codable {
+public struct EnhancedApplicationParametersResponse: Codable, Sendable {
     public let openingStatement: String?
     public let suggestedQuestions: [String]?
     public let suggestedQuestionsAfterAnswer: SuggestedQuestionsConfig?
@@ -701,15 +701,15 @@ public struct EnhancedApplicationParametersResponse: Codable {
     }
 }
 
-public struct SuggestedQuestionsConfig: Codable {
+public struct SuggestedQuestionsConfig: Codable, Sendable {
     public let enabled: Bool
 }
 
-public struct SpeechToTextConfig: Codable {
+public struct SpeechToTextConfig: Codable, Sendable {
     public let enabled: Bool
 }
 
-public struct TextToSpeechConfig: Codable {
+public struct TextToSpeechConfig: Codable, Sendable {
     public let enabled: Bool
     public let voice: String?
     public let language: String?
@@ -723,19 +723,19 @@ public struct TextToSpeechConfig: Codable {
     }
 }
 
-public struct RetrieverResourceConfig: Codable {
+public struct RetrieverResourceConfig: Codable, Sendable {
     public let enabled: Bool
 }
 
-public struct AnnotationReplyConfig: Codable {
+public struct AnnotationReplyConfig: Codable, Sendable {
     public let enabled: Bool
 }
 
-public struct FileUploadConfig: Codable {
+public struct FileUploadConfig: Codable, Sendable {
     public let image: ImageUploadConfig?
 }
 
-public struct ImageUploadConfig: Codable {
+public struct ImageUploadConfig: Codable, Sendable {
     public let enabled: Bool
     public let numberLimits: Int
     public let detail: String?
@@ -749,7 +749,7 @@ public struct ImageUploadConfig: Codable {
     }
 }
 
-public struct SystemParameters: Codable {
+public struct SystemParameters: Codable, Sendable {
     public let fileSizeLimit: Int
     public let imageFileSizeLimit: Int
     public let audioFileSizeLimit: Int
@@ -764,7 +764,7 @@ public struct SystemParameters: Codable {
 }
 
 /// Application meta information response
-public struct ApplicationMetaResponse: Codable {
+public struct ApplicationMetaResponse: Codable, Sendable {
     public let toolIcons: [String: ToolIcon]
     
     private enum CodingKeys: String, CodingKey {
@@ -772,7 +772,7 @@ public struct ApplicationMetaResponse: Codable {
     }
 }
 
-public enum ToolIcon: Codable {
+public enum ToolIcon: Codable, Sendable {
     case url(String)
     case icon(ToolIconObject)
     
@@ -798,13 +798,13 @@ public enum ToolIcon: Codable {
     }
 }
 
-public struct ToolIconObject: Codable {
+public struct ToolIconObject: Codable, Sendable {
     public let background: String
     public let content: String
 }
 
 /// Application site/webapp settings response
-public struct ApplicationSiteResponse: Codable {
+public struct ApplicationSiteResponse: Codable, Sendable {
     public let title: String?
     public let chatColorTheme: String?
     public let chatColorThemeInverted: Bool?
@@ -841,7 +841,7 @@ public struct ApplicationSiteResponse: Codable {
 // MARK: - Enhanced Feedback Models
 
 /// Enhanced message feedback request with content support
-public struct EnhancedMessageFeedbackRequest: Codable {
+public struct EnhancedMessageFeedbackRequest: Codable, Sendable {
     public let rating: String?
     public let user: String
     public let content: String?
@@ -854,10 +854,10 @@ public struct EnhancedMessageFeedbackRequest: Codable {
 }
 
 /// Application feedbacks list response
-public struct ApplicationFeedbacksResponse: Codable {
+public struct ApplicationFeedbacksResponse: Codable, Sendable {
     public let data: [FeedbackItem]
     
-    public struct FeedbackItem: Codable {
+    public struct FeedbackItem: Codable, Sendable {
         public let id: String
         public let appId: String
         public let conversationId: String?
@@ -889,7 +889,7 @@ public struct ApplicationFeedbacksResponse: Codable {
 // MARK: - Conversation Variables Models
 
 /// Conversation variables response
-public struct ConversationVariablesResponse: Codable {
+public struct ConversationVariablesResponse: Codable, Sendable {
     public let limit: Int
     public let hasMore: Bool
     public let data: [ConversationVariable]
@@ -900,7 +900,7 @@ public struct ConversationVariablesResponse: Codable {
         case data
     }
     
-    public struct ConversationVariable: Codable {
+    public struct ConversationVariable: Codable, Sendable {
         public let id: String
         public let name: String
         public let valueType: String
@@ -924,7 +924,7 @@ public struct ConversationVariablesResponse: Codable {
 // MARK: - Annotation Models
 
 /// Annotation list response
-public struct AnnotationListResponse: Codable {
+public struct AnnotationListResponse: Codable, Sendable {
     public let data: [Annotation]
     public let hasMore: Bool
     public let limit: Int
@@ -939,7 +939,7 @@ public struct AnnotationListResponse: Codable {
         case page
     }
     
-    public struct Annotation: Codable {
+    public struct Annotation: Codable, Sendable {
         public let id: String
         public let question: String
         public let answer: String
@@ -957,7 +957,7 @@ public struct AnnotationListResponse: Codable {
 }
 
 /// Create/Update annotation request
-public struct AnnotationRequest: Codable {
+public struct AnnotationRequest: Codable, Sendable {
     public let question: String
     public let answer: String
     
@@ -968,7 +968,7 @@ public struct AnnotationRequest: Codable {
 }
 
 /// Annotation reply settings request
-public struct AnnotationReplySettingsRequest: Codable {
+public struct AnnotationReplySettingsRequest: Codable, Sendable {
     public let scoreThreshold: Double?
     public let embeddingProviderName: String?
     public let embeddingModelName: String?
@@ -987,7 +987,7 @@ public struct AnnotationReplySettingsRequest: Codable {
 }
 
 /// Annotation reply settings response
-public struct AnnotationReplySettingsResponse: Codable {
+public struct AnnotationReplySettingsResponse: Codable, Sendable {
     public let jobId: String
     public let jobStatus: String
     
@@ -998,7 +998,7 @@ public struct AnnotationReplySettingsResponse: Codable {
 }
 
 /// Annotation job status response
-public struct AnnotationJobStatusResponse: Codable {
+public struct AnnotationJobStatusResponse: Codable, Sendable {
     public let jobId: String
     public let jobStatus: String
     public let errorMsg: String?
@@ -1013,7 +1013,7 @@ public struct AnnotationJobStatusResponse: Codable {
 // MARK: - Workflow Logs Models
 
 /// Workflow logs response
-public struct WorkflowLogsResponse: Codable {
+public struct WorkflowLogsResponse: Codable, Sendable {
     public let page: Int
     public let limit: Int
     public let total: Int
@@ -1028,7 +1028,7 @@ public struct WorkflowLogsResponse: Codable {
         case data
     }
     
-    public struct WorkflowLog: Codable {
+    public struct WorkflowLog: Codable, Sendable {
         public let id: String
         public let workflowRun: WorkflowRun
         public let createdFrom: String
@@ -1047,7 +1047,7 @@ public struct WorkflowLogsResponse: Codable {
             case createdAt = "created_at"
         }
         
-        public struct WorkflowRun: Codable {
+        public struct WorkflowRun: Codable, Sendable {
             public let id: String
             public let version: String
             public let status: String
@@ -1071,7 +1071,7 @@ public struct WorkflowLogsResponse: Codable {
             }
         }
         
-        public struct EndUser: Codable {
+        public struct EndUser: Codable, Sendable {
             public let id: String
             public let type: String
             public let isAnonymous: Bool
@@ -1090,7 +1090,7 @@ public struct WorkflowLogsResponse: Codable {
 // MARK: - Streaming Event Models
 
 /// Streaming event types for advanced features
-public enum StreamingEventType: String, Codable {
+public enum StreamingEventType: String, Codable, Sendable {
     case message
     case messageEnd = "message_end"
     case messageReplace = "message_replace"
@@ -1109,7 +1109,7 @@ public enum StreamingEventType: String, Codable {
 }
 
 /// Base streaming event protocol
-public protocol StreamingEvent: Codable {
+public protocol StreamingEvent: Codable, Sendable {
     var event: StreamingEventType { get }
     var taskId: String? { get }
     var messageId: String? { get }
@@ -1118,7 +1118,7 @@ public protocol StreamingEvent: Codable {
 }
 
 /// Generic streaming event container
-public struct GenericStreamingEvent: Codable {
+public struct GenericStreamingEvent: Codable, @unchecked Sendable {
     public let event: StreamingEventType
     public let taskId: String?
     public let messageId: String?
@@ -1182,7 +1182,7 @@ public struct GenericStreamingEvent: Codable {
 // MARK: - Utility Types for Generic Decoding
 
 /// Helper for encoding/decoding Any values
-public struct AnyCodable: Codable {
+public struct AnyCodable: Codable, @unchecked Sendable {
     public let value: Any
     
     public init(_ value: Any) {

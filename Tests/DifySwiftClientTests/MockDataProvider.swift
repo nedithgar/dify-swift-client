@@ -5,7 +5,7 @@ import Testing
 // MARK: - Mock Data Provider
 
 /// Provides predefined mock responses for all Dify API endpoints
-public final class MockDataProvider {
+public final class MockDataProvider: @unchecked Sendable {
     
     // MARK: - Test Configuration
     
@@ -19,7 +19,7 @@ public final class MockDataProvider {
     
     // MARK: - Chat API Responses
     
-    public static let chatMessageResponse: [String: Any] = [
+    nonisolated(unsafe) public static let chatMessageResponse: [String: Any] = [
         "message_id": testMessageId,
         "conversation_id": testConversationId,
         "mode": "chat",
@@ -43,6 +43,7 @@ public final class MockDataProvider {
         "created_at": 1726139644
     ]
     
+    nonisolated(unsafe)
     public static let chatStreamingChunk: [String: Any] = [
         "event": "message",
         "message_id": testMessageId,
@@ -51,6 +52,7 @@ public final class MockDataProvider {
         "created_at": 1726139644
     ]
     
+    nonisolated(unsafe)
     public static let suggestedMessagesResponse: [String: Any] = [
         "data": [
             "What is the weather like today?",
@@ -59,6 +61,7 @@ public final class MockDataProvider {
         ]
     ]
     
+    nonisolated(unsafe)
     public static let conversationsResponse: [String: Any] = [
         "data": [
             [
@@ -75,6 +78,7 @@ public final class MockDataProvider {
         "limit": 20
     ]
     
+    nonisolated(unsafe)
     public static let conversationMessagesResponse: [String: Any] = [
         "data": [
             [
@@ -96,6 +100,7 @@ public final class MockDataProvider {
     
     // MARK: - Completion API Responses
     
+    nonisolated(unsafe)
     public static let completionMessageResponse: [String: Any] = [
         "message_id": testMessageId,
         "mode": "completion",
@@ -115,6 +120,7 @@ public final class MockDataProvider {
     
     // MARK: - Workflow API Responses
     
+    nonisolated(unsafe)
     public static let workflowResponse: [String: Any] = [
         "workflow_run_id": testWorkflowRunId,
         "task_id": "test-task-123",
@@ -134,6 +140,7 @@ public final class MockDataProvider {
         ]
     ]
     
+    nonisolated(unsafe)
     public static let workflowLogsResponse: [String: Any] = [
         "page": 1,
         "limit": 20,
@@ -169,6 +176,7 @@ public final class MockDataProvider {
     
     // MARK: - File Upload Responses
     
+    nonisolated(unsafe)
     public static let fileUploadResponse: [String: Any] = [
         "id": "file-upload-123",
         "name": "test-file.pdf",
@@ -181,6 +189,7 @@ public final class MockDataProvider {
     
     // MARK: - Application Info Responses
     
+    nonisolated(unsafe)
     public static let applicationInfoResponse: [String: Any] = [
         "name": "Test Application",
         "description": "A test application for mock testing",
@@ -189,6 +198,7 @@ public final class MockDataProvider {
         "author_name": "Test Author"
     ]
     
+    nonisolated(unsafe)
     public static let applicationParametersResponse: [String: Any] = [
         "opening_statement": "Welcome to our test application!",
         "suggested_questions": [
@@ -229,6 +239,7 @@ public final class MockDataProvider {
         ]
     ]
     
+    nonisolated(unsafe)
     public static let applicationMetaResponse: [String: Any] = [
         "tool_icons": [
             "dalle2": [
@@ -239,6 +250,7 @@ public final class MockDataProvider {
         ]
     ]
     
+    nonisolated(unsafe)
     public static let applicationSiteResponse: [String: Any] = [
         "title": "Test Chat App",
         "chat_color_theme": "indigo",
@@ -257,10 +269,12 @@ public final class MockDataProvider {
     
     // MARK: - Feedback Responses
     
+    nonisolated(unsafe)
     public static let messageFeedbackResponse: [String: Any] = [
         "result": "success"
     ]
     
+    nonisolated(unsafe)
     public static let applicationFeedbacksResponse: [String: Any] = [
         "data": [
             [
@@ -281,6 +295,7 @@ public final class MockDataProvider {
     
     // MARK: - Knowledge Base Responses
     
+    nonisolated(unsafe)
     public static let datasetResponse: [String: Any] = [
         "id": testDatasetId,
         "name": "Test Dataset",
@@ -294,6 +309,7 @@ public final class MockDataProvider {
         "updated_at": 1726139644
     ]
     
+    nonisolated(unsafe)
     public static let datasetsResponse: [String: Any] = [
         "data": [datasetResponse],
         "has_more": false,
@@ -302,6 +318,7 @@ public final class MockDataProvider {
         "page": 1
     ]
     
+    nonisolated(unsafe)
     public static let documentResponse: [String: Any] = [
         "id": testDocumentId,
         "position": 1,
@@ -329,6 +346,7 @@ public final class MockDataProvider {
         "doc_form": "text_model"
     ]
     
+    nonisolated(unsafe)
     public static let documentsResponse: [String: Any] = [
         "data": [documentResponse],
         "has_more": false,
@@ -337,6 +355,7 @@ public final class MockDataProvider {
         "page": 1
     ]
     
+    nonisolated(unsafe)
     public static let createDocumentResponse: [String: Any] = [
         "document": documentResponse,
         "batch": "batch-789"
@@ -344,6 +363,7 @@ public final class MockDataProvider {
     
     // MARK: - Annotation Responses
     
+    nonisolated(unsafe)
     public static let annotationListResponse: [String: Any] = [
         "data": [
             [
@@ -360,6 +380,7 @@ public final class MockDataProvider {
         "page": 1
     ]
     
+    nonisolated(unsafe)
     public static let annotationReplySettingsResponse: [String: Any] = [
         "job_id": "job-123",
         "job_status": "pending"
@@ -367,24 +388,28 @@ public final class MockDataProvider {
     
     // MARK: - Error Responses
     
+    nonisolated(unsafe)
     public static let unauthorizedError: [String: Any] = [
         "code": "unauthorized",
         "message": "Invalid API key provided",
         "status": 401
     ]
     
+    nonisolated(unsafe)
     public static let rateLimitError: [String: Any] = [
         "code": "rate_limit_exceeded",
         "message": "Rate limit exceeded. Please try again later.",
         "status": 429
     ]
     
+    nonisolated(unsafe)
     public static let serverError: [String: Any] = [
         "code": "internal_server_error",
         "message": "An internal server error occurred",
         "status": 500
     ]
     
+    nonisolated(unsafe)
     public static let validationError: [String: Any] = [
         "code": "invalid_param",
         "message": "The 'user' parameter is required",
@@ -393,6 +418,7 @@ public final class MockDataProvider {
     
     // MARK: - Audio Processing Responses
     
+    nonisolated(unsafe)
     public static let textToAudioResponse: [String: Any] = [
         "task_id": "audio-task-123",
         "audio": "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj..."
@@ -400,15 +426,18 @@ public final class MockDataProvider {
     
     // MARK: - Base Responses
     
+    nonisolated(unsafe)
     public static let baseSuccessResponse: [String: Any] = [
         "result": "success"
     ]
     
+    nonisolated(unsafe)
     public static let baseDeleteResponse: [String: Any] = [:]
     
     // MARK: - Complex Streaming Responses
     
     /// Generate a sequence of streaming events for chat
+    nonisolated
     public static func generateChatStreamingEvents() -> [[String: Any]] {
         return [
             [
@@ -442,6 +471,7 @@ public final class MockDataProvider {
     }
     
     /// Generate a sequence of streaming events for workflow
+    nonisolated
     public static func generateWorkflowStreamingEvents() -> [[String: Any]] {
         return [
             [
@@ -502,6 +532,7 @@ public final class MockDataProvider {
     // MARK: - Convenience Methods
     
     /// Get mock response for a specific endpoint
+    nonisolated
     public static func getMockResponse(for endpoint: String) -> [String: Any]? {
         switch endpoint {
         case "chat-messages":

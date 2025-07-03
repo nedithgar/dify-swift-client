@@ -191,7 +191,7 @@ struct AdvancedCompletionClientMockTests {
             ]
         ]
         
-        await TestUtilities.setupStreamingMock(endpoint: "completion-messages", events: streamingEvents)
+        TestUtilities.setupStreamingMock(endpoint: "completion-messages", events: streamingEvents)
         
         let client = try TestUtilities.createMockCompletionClient()
         
@@ -227,7 +227,7 @@ struct AdvancedCompletionClientMockTests {
             ]
         ]
         
-        await TestUtilities.setupStreamingMock(endpoint: "completion-messages", events: streamingEvents)
+        TestUtilities.setupStreamingMock(endpoint: "completion-messages", events: streamingEvents)
         
         let client = try TestUtilities.createMockCompletionClient()
         
@@ -322,7 +322,7 @@ struct CompletionClientErrorHandlingTests {
     @Test("Handle timeout during streaming")
     func testStreamingTimeout() async throws {
         // Setup a mock that takes too long to respond
-        await MockURLProtocol.setRequestHandler { request in
+        MockURLProtocol.setRequestHandler { request in
             if request.url?.path.contains("completion-messages") == true {
                 // Simulate a slow response
                 Thread.sleep(forTimeInterval: 0.1)

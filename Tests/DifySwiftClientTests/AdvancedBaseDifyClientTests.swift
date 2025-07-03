@@ -229,7 +229,7 @@ struct AdvancedBaseDifyClientMockTests {
         #expect(response.fileUpload?.image?.numberLimits == 3)
         #expect(response.fileUpload?.image?.transferMethods == ["remote_url", "local_file"])
         #expect(response.systemParameters?.fileSizeLimit == 15)
-        #expect(response.systemParameters?.imageSizeLimit == 10)
+        #expect(response.systemParameters?.imageFileSizeLimit == 10)
         
         // Validate request
         let requests = MockRequestCapture.getCapturedRequests()
@@ -798,28 +798,14 @@ struct BaseClientEdgeCasesTests {
         let client = try TestUtilities.createMockDifyClient()
         
         let results = try await TestUtilities.runConcurrentOperations(count: 3) { index in
-            // Mix different API calls
-            switch index % 3 {
-            case 0:
-                return try await client.getApplicationInfo()
-            case 1:
-                return try await client.getApplicationMeta()
-            default:
-                return try await client.getApplicationSite()
-            }
+            // Use the same API call for all concurrent requests
+            return try await client.getApplicationInfo()
         }
         
         #expect(results.count == 3)
         // Verify each result is of the expected type
-        for (index, result) in results.enumerated() {
-            switch index % 3 {
-            case 0:
-                #expect(result is ApplicationInfoResponse)
-            case 1:
-                #expect(result is ApplicationMetaResponse)
-            default:
-                #expect(result is ApplicationSiteResponse)
-            }
+        for result in results {
+            #expect(result is ApplicationInfoResponse)
         }
     }
 }

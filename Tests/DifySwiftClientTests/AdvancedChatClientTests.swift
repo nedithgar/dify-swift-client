@@ -101,7 +101,7 @@ struct AdvancedChatClientMockTests {
         
         // Setup streaming mock
         let streamingEvents = MockDataProvider.generateChatStreamingEvents()
-        await TestUtilities.setupStreamingMock(endpoint: "chat-messages", events: streamingEvents)
+        TestUtilities.setupStreamingMock(endpoint: "chat-messages", events: streamingEvents)
         
         let client = try TestUtilities.createMockChatClient()
         

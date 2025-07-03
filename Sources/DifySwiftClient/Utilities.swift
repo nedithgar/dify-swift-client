@@ -61,7 +61,7 @@ public protocol StreamingDelegate: AnyObject {
 }
 
 /// AsyncSequence for streaming responses
-public struct StreamingResponse: AsyncSequence {
+public struct StreamingResponse: AsyncSequence, Sendable {
     public typealias Element = Data
     
     private let urlRequest: URLRequest
@@ -76,7 +76,7 @@ public struct StreamingResponse: AsyncSequence {
         AsyncIterator(urlRequest: urlRequest, session: session)
     }
     
-    public struct AsyncIterator: AsyncIteratorProtocol {
+    public struct AsyncIterator: AsyncIteratorProtocol, @unchecked Sendable {
         private let urlRequest: URLRequest
         private let session: URLSession
         private var task: URLSessionDataTask?
