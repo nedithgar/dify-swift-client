@@ -506,7 +506,7 @@ struct KnowledgeBaseClientErrorHandlingTests {
     @Test("Handle missing dataset ID error")
     func testMissingDatasetIdError() async throws {
         // Create client without dataset ID
-        let client = try TestUtilities.createMockKnowledgeBaseClient(datasetId: nil)
+        let client = try TestUtilities.createMockKnowledgeBaseClient()
         
         await TestUtilities.expectError(DifyError.self) {
             try await client.listDocuments()

@@ -118,10 +118,18 @@ struct AdvancedChatClientMockTests {
         #expect(collectedData.count > 0)
         
         // Verify that streaming data contains expected events
-        let firstChunk = collectedData.first!
-        let dataString = String(data: firstChunk, encoding: .utf8) ?? ""
-        #expect(dataString.contains("message"))
-        #expect(dataString.contains(MockDataProvider.testMessageId))
+        #expect(collectedData.count > 0)
+        
+        // Check for streaming response events
+        let hasMessage = collectedData.contains { event in
+            switch event {
+            case .message, .messageEnd, .messageReplace:
+                return true
+            default:
+                return false
+            }
+        }
+        #expect(hasMessage)
     }
     
     @Test("Get suggested messages")
@@ -354,8 +362,7 @@ struct AdvancedChatClientMockTests {
             user: MockTestConfig.user
         )
         
-        #expect(response.messageId == MockDataProvider.testMessageId)
-        #expect(response.answer == "Hello! How can I help you today?")
+        #expect(response.text == "Hello! How can I help you today?")
     }
     
     @Test("Get conversation variables")

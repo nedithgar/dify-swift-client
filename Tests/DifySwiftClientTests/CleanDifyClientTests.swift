@@ -76,21 +76,17 @@ struct ClientTypesTests {
         #expect(client.baseURL.absoluteString == "https://api.dify.ai/v1")
     }
     
-    @Test("Create knowledge base client with dataset ID")
-    func testCreateKnowledgeBaseClientWithDatasetId() async throws {
-        let client = try KnowledgeBaseClient(
-            apiKey: "test-api-key",
-            datasetId: "test-dataset-123"
-        )
-        #expect(client.apiKey == "test-api-key")
-        #expect(client.datasetId == "test-dataset-123")
-    }
-    
-    @Test("Create knowledge base client without dataset ID")
-    func testCreateKnowledgeBaseClientWithoutDatasetId() async throws {
+    @Test("Create knowledge base client")
+    func testCreateKnowledgeBaseClient() async throws {
         let client = try KnowledgeBaseClient(apiKey: "test-api-key")
         #expect(client.apiKey == "test-api-key")
-        #expect(client.datasetId == nil)
+    }
+    
+    @Test("Create knowledge base client with custom base URL")
+    func testCreateKnowledgeBaseClientWithCustomURL() async throws {
+        let client = try KnowledgeBaseClient(apiKey: "test-api-key", baseURL: "https://custom.dify.ai/v1")
+        #expect(client.apiKey == "test-api-key")
+        #expect(client.baseURL.absoluteString == "https://custom.dify.ai/v1")
     }
 }
 
@@ -165,19 +161,19 @@ struct ErrorTests {
     
     @Test("DifyError localized descriptions")
     func testDifyErrorLocalizedDescriptions() throws {
-        let invalidURLError = DifyError.invalidURL("test-url")
+        let invalidURLError = DifyError.invalidURL()
         #expect(invalidURLError.localizedDescription.contains("Invalid URL"))
         
-        let invalidAPIKeyError = DifyError.invalidAPIKey
+        let invalidAPIKeyError = DifyError.invalidAPIKey()
         #expect(invalidAPIKeyError.localizedDescription.contains("Invalid API key"))
         
-        let noDataError = DifyError.noData
+        let noDataError = DifyError.noData()
         #expect(noDataError.localizedDescription.contains("No data"))
         
-        let invalidResponseError = DifyError.invalidResponse
+        let invalidResponseError = DifyError.invalidResponse()
         #expect(invalidResponseError.localizedDescription.contains("Invalid response"))
         
-        let missingDatasetError = DifyError.missingDatasetId
+        let missingDatasetError = DifyError.missingDatasetId()
         #expect(missingDatasetError.localizedDescription.contains("Dataset ID"))
         
         let fileNotFoundError = DifyError.fileNotFound("test.txt")

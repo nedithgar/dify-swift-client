@@ -15,12 +15,12 @@ struct AdvancedBaseDifyClientMockTests {
         TestUtilities.setupStandardMocks()
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         MockRequestCapture.startCapturing()
         defer { MockRequestCapture.stopCapturing() }
         
-        let response = try await client.messageFeedback(
+        let response = try await client.sendMessageFeedback(
             messageId: MockDataProvider.testMessageId,
             rating: "like",
             user: MockTestConfig.user
@@ -39,6 +39,7 @@ struct AdvancedBaseDifyClientMockTests {
         struct ExpectedRequest: Codable, Sendable {
             let rating: String
             let user: String
+            let content: String?
         }
         
         let requestBody = try TestUtilities.validateJSONRequestBody(
@@ -55,7 +56,7 @@ struct AdvancedBaseDifyClientMockTests {
         TestUtilities.setupStandardMocks()
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         MockRequestCapture.startCapturing()
         defer { MockRequestCapture.stopCapturing() }
@@ -82,14 +83,14 @@ struct AdvancedBaseDifyClientMockTests {
         TestUtilities.setupStandardMocks()
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         let fileData = TestUtilities.createTestFileData(size: 2048)
         
         let response = try await client.uploadFile(
-            user: MockTestConfig.user,
             fileData: fileData,
-            filename: "test-upload.pdf",
+            fileName: "test-upload.pdf",
+            user: MockTestConfig.user,
             mimeType: "application/pdf"
         )
         
@@ -170,12 +171,12 @@ struct AdvancedBaseDifyClientMockTests {
         )
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         MockRequestCapture.startCapturing()
         defer { MockRequestCapture.stopCapturing() }
         
-        let response = try await client.getMeta(user: MockTestConfig.user)
+        let response = try await client.getApplicationMeta()
         
         #expect(response.tool.labels["dalle2"] == "DALL-E 2")
         #expect(response.tool.labels["web_reader"] == "Web Reader")
@@ -198,7 +199,7 @@ struct AdvancedBaseDifyClientMockTests {
         TestUtilities.setupStandardMocks()
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         let response = try await client.getApplicationInfo()
         
@@ -214,12 +215,12 @@ struct AdvancedBaseDifyClientMockTests {
         TestUtilities.setupStandardMocks()
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         MockRequestCapture.startCapturing()
         defer { MockRequestCapture.stopCapturing() }
         
-        let response = try await client.getEnhancedApplicationParameters(user: MockTestConfig.user)
+        let response = try await client.getApplicationParameters(user: MockTestConfig.user)
         
         #expect(response.openingStatement == "Welcome to our test application!")
         #expect(response.suggestedQuestions?.count == 2)
@@ -255,12 +256,12 @@ struct AdvancedBaseDifyClientMockTests {
         TestUtilities.setupStandardMocks()
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         MockRequestCapture.startCapturing()
         defer { MockRequestCapture.stopCapturing() }
         
-        let response = try await client.getEnhancedApplicationParameters()
+        let response = try await client.getApplicationParameters()
         
         #expect(response.openingStatement == "Welcome to our test application!")
         
@@ -282,7 +283,7 @@ struct AdvancedBaseDifyClientMockTests {
         TestUtilities.setupStandardMocks()
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         let response = try await client.getApplicationMeta()
         
@@ -308,9 +309,9 @@ struct AdvancedBaseDifyClientMockTests {
         TestUtilities.setupStandardMocks()
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
-        let response = try await client.getApplicationSite()
+        let response = try await client.getApplicationWebAppSettings()
         
         #expect(response.title == "Test Chat App")
         #expect(response.chatColorTheme == "indigo")
@@ -332,12 +333,12 @@ struct AdvancedBaseDifyClientMockTests {
         TestUtilities.setupStandardMocks()
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         MockRequestCapture.startCapturing()
         defer { MockRequestCapture.stopCapturing() }
         
-        let response = try await client.sendEnhancedMessageFeedback(
+        let response = try await client.sendMessageFeedback(
             messageId: MockDataProvider.testMessageId,
             rating: "like",
             user: MockTestConfig.user,
@@ -375,9 +376,9 @@ struct AdvancedBaseDifyClientMockTests {
         TestUtilities.setupStandardMocks()
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
-        let response = try await client.sendEnhancedMessageFeedback(
+        let response = try await client.sendMessageFeedback(
             messageId: MockDataProvider.testMessageId,
             rating: nil, // Null rating
             user: MockTestConfig.user,
@@ -395,7 +396,7 @@ struct AdvancedBaseDifyClientMockTests {
         )
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         MockRequestCapture.startCapturing()
         defer { MockRequestCapture.stopCapturing() }
@@ -435,7 +436,7 @@ struct AdvancedBaseDifyClientMockTests {
         )
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         MockRequestCapture.startCapturing()
         defer { MockRequestCapture.stopCapturing() }
@@ -469,7 +470,7 @@ struct AdvancedAnnotationAPIMockTests {
         TestUtilities.setupStandardMocks()
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         MockRequestCapture.startCapturing()
         defer { MockRequestCapture.stopCapturing() }
@@ -519,7 +520,7 @@ struct AdvancedAnnotationAPIMockTests {
         )
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         MockRequestCapture.startCapturing()
         defer { MockRequestCapture.stopCapturing() }
@@ -529,7 +530,10 @@ struct AdvancedAnnotationAPIMockTests {
             answer: "Machine learning is a subset of AI that enables systems to learn..."
         )
         
-        let response = try await client.createAnnotation(request: annotationRequest)
+        let response = try await client.createAnnotation(
+            question: annotationRequest.question,
+            answer: annotationRequest.answer
+        )
         
         #expect(response.id == "new-annotation-456")
         #expect(response.question == "How does machine learning work?")
@@ -569,7 +573,7 @@ struct AdvancedAnnotationAPIMockTests {
         )
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         let annotationRequest = AnnotationRequest(
             question: "What is artificial intelligence?",
@@ -578,7 +582,8 @@ struct AdvancedAnnotationAPIMockTests {
         
         let response = try await client.updateAnnotation(
             annotationId: "annotation-123",
-            request: annotationRequest
+            question: annotationRequest.question,
+            answer: annotationRequest.answer
         )
         
         #expect(response.id == "annotation-123")
@@ -594,7 +599,7 @@ struct AdvancedAnnotationAPIMockTests {
         )
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         let response = try await client.deleteAnnotation(annotationId: "annotation-123")
         #expect(response.result == "success")
@@ -608,7 +613,7 @@ struct AdvancedAnnotationAPIMockTests {
         )
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         MockRequestCapture.startCapturing()
         defer { MockRequestCapture.stopCapturing() }
@@ -619,9 +624,11 @@ struct AdvancedAnnotationAPIMockTests {
             embeddingModelName: "text-embedding-ada-002"
         )
         
-        let response = try await client.configureAnnotationReplySettings(
+        let response = try await client.configureAnnotationReply(
             action: "enable",
-            request: settingsRequest
+            embeddingModelProvider: settingsRequest.embeddingProviderName,
+            embeddingModel: settingsRequest.embeddingModelName,
+            scoreThreshold: settingsRequest.scoreThreshold
         )
         
         #expect(response.jobId == "job-123")
@@ -653,9 +660,9 @@ struct AdvancedAnnotationAPIMockTests {
         )
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
-        let response = try await client.configureAnnotationReplySettings(action: "disable")
+        let response = try await client.configureAnnotationReply(action: "disable")
         
         #expect(response.jobId == "job-123")
         #expect(response.jobStatus == "pending")
@@ -675,7 +682,7 @@ struct AdvancedAnnotationAPIMockTests {
         )
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         let response = try await client.getAnnotationReplyJobStatus(
             action: "enable",
@@ -701,7 +708,7 @@ struct BaseClientErrorHandlingTests {
         )
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         let invalidFileData = Data("not a real file".utf8)
         
@@ -723,7 +730,7 @@ struct BaseClientErrorHandlingTests {
         )
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         await TestUtilities.expectError(DifyError.self) {
             try await client.getApplicationInfo()
@@ -759,7 +766,7 @@ struct BaseClientEdgeCasesTests {
         TestUtilities.setupStandardMocks()
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         // Create a relatively large file (1MB)
         let largeFileData = TestUtilities.createTestFileData(size: 1024 * 1024)
@@ -801,7 +808,7 @@ struct BaseClientEdgeCasesTests {
         TestUtilities.setupStandardMocks()
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockChatClient()
         
         let results = try await TestUtilities.runConcurrentOperations(count: 3) { index in
             // Use the same API call for all concurrent requests

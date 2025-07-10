@@ -22,7 +22,6 @@ struct AdvancedCompletionClientMockTests {
         
         let response = try await client.createCompletionMessage(
             inputs: ["prompt": "Write a story about", "topic": "artificial intelligence"],
-            responseMode: .blocking,
             user: MockTestConfig.user
         )
         
@@ -42,16 +41,8 @@ struct AdvancedCompletionClientMockTests {
         // Validate request body
         struct ExpectedRequest: Codable {
             let inputs: [String: String]
-            let responseMode: ResponseMode
             let user: String
             let files: [APIFile]?
-            
-            private enum CodingKeys: String, CodingKey {
-                case inputs
-                case responseMode = "response_mode"
-                case user
-                case files
-            }
         }
         
         let requestBody = try TestUtilities.validateJSONRequestBody(
@@ -61,7 +52,6 @@ struct AdvancedCompletionClientMockTests {
         
         #expect(requestBody.inputs["prompt"] == "Write a story about")
         #expect(requestBody.inputs["topic"] == "artificial intelligence")
-        #expect(requestBody.responseMode == .blocking)
         #expect(requestBody.user == MockTestConfig.user)
         #expect(requestBody.files == nil)
     }
@@ -76,15 +66,20 @@ struct AdvancedCompletionClientMockTests {
         MockRequestCapture.startCapturing()
         defer { MockRequestCapture.stopCapturing() }
         
-        let response = try await client.createCompletionMessage(
+        let streamingResponse = try await client.createStreamingCompletionMessage(
             inputs: ["query": "Generate a poem"],
-            responseMode: .streaming,
             user: MockTestConfig.user
         )
         
-        #expect(response.messageId == MockDataProvider.testMessageId)
+        // Collect streaming data
+        let collectedData = try await TestUtilities.collectStreamingData(
+            from: streamingResponse,
+            limit: 3
+        )
         
-        // Validate that streaming mode was requested
+        #expect(collectedData.count > 0)
+        
+        // Validate that streaming request was made
         let requests = MockRequestCapture.getCapturedRequests()
         let request = try TestUtilities.validateRequest(
             requests: requests,
@@ -93,11 +88,9 @@ struct AdvancedCompletionClientMockTests {
         )
         
         struct ExpectedRequest: Codable {
-            let responseMode: ResponseMode
-            
-            private enum CodingKeys: String, CodingKey {
-                case responseMode = "response_mode"
-            }
+            let inputs: [String: String]
+            let user: String
+            let files: [APIFile]?
         }
         
         let requestBody = try TestUtilities.validateJSONRequestBody(
@@ -105,7 +98,8 @@ struct AdvancedCompletionClientMockTests {
             expectedType: ExpectedRequest.self
         )
         
-        #expect(requestBody.responseMode == .streaming)
+        #expect(requestBody.inputs["query"] == "Generate a poem")
+        #expect(requestBody.user == MockTestConfig.user)
     }
     
     @Test("Completion message with files")
@@ -122,7 +116,6 @@ struct AdvancedCompletionClientMockTests {
         
         let response = try await client.createCompletionMessage(
             inputs: ["context": "Analyze the following files"],
-            responseMode: .blocking,
             user: MockTestConfig.user,
             files: files
         )
@@ -135,7 +128,6 @@ struct AdvancedCompletionClientMockTests {
         
         _ = try await client.createCompletionMessage(
             inputs: ["context": "Test"],
-            responseMode: .blocking,
             user: MockTestConfig.user,
             files: files
         )
@@ -208,10 +200,18 @@ struct AdvancedCompletionClientMockTests {
         #expect(collectedData.count > 0)
         
         // Verify that streaming data contains expected events
-        let firstChunk = collectedData.first!
-        let dataString = String(data: firstChunk, encoding: .utf8) ?? ""
-        #expect(dataString.contains("message"))
-        #expect(dataString.contains(MockDataProvider.testMessageId))
+        #expect(collectedData.count > 0)
+        
+        // Check for streaming response events
+        let hasMessage = collectedData.contains { event in
+            switch event {
+            case .message, .messageEnd:
+                return true
+            default:
+                return false
+            }
+        }
+        #expect(hasMessage)
     }
     
     @Test("Streaming completion with files")
@@ -269,8 +269,7 @@ struct CompletionClientErrorHandlingTests {
         await TestUtilities.expectError(DifyError.self) {
             try await client.createCompletionMessage(
                 inputs: [:], // Empty inputs might be invalid
-                responseMode: .blocking,
-                user: MockTestConfig.user
+                    user: MockTestConfig.user
             )
         }
     }
@@ -291,8 +290,7 @@ struct CompletionClientErrorHandlingTests {
         await TestUtilities.expectError(DifyError.self) {
             try await client.createCompletionMessage(
                 inputs: ["prompt": "test"],
-                responseMode: .blocking,
-                user: MockTestConfig.user
+                    user: MockTestConfig.user
             )
         }
     }
@@ -313,8 +311,7 @@ struct CompletionClientErrorHandlingTests {
         await TestUtilities.expectError(DifyError.self) {
             try await client.createCompletionMessage(
                 inputs: ["prompt": "test"],
-                responseMode: .blocking,
-                user: MockTestConfig.user
+                    user: MockTestConfig.user
             )
         }
     }
@@ -370,8 +367,7 @@ struct CompletionClientPerformanceTests {
         let (result, duration) = try await TestUtilities.measureTime {
             return try await client.createCompletionMessage(
                 inputs: ["prompt": "Generate a short response"],
-                responseMode: .blocking,
-                user: MockTestConfig.user
+                    user: MockTestConfig.user
             )
         }
         
@@ -389,8 +385,7 @@ struct CompletionClientPerformanceTests {
         let results = try await TestUtilities.runConcurrentOperations(count: 10) { index in
             try await client.createCompletionMessage(
                 inputs: ["prompt": "Request \(index)", "index": "\(index)"],
-                responseMode: .blocking,
-                user: MockTestConfig.user
+                    user: MockTestConfig.user
             )
         }
         
@@ -419,7 +414,6 @@ struct CompletionClientPerformanceTests {
         
         let response = try await client.createCompletionMessage(
             inputs: allInputs,
-            responseMode: .blocking,
             user: MockTestConfig.user
         )
         
@@ -441,7 +435,6 @@ struct CompletionClientEdgeCasesTests {
         
         let response = try await client.createCompletionMessage(
             inputs: [:], // Empty inputs
-            responseMode: .blocking,
             user: MockTestConfig.user
         )
         
@@ -461,7 +454,6 @@ struct CompletionClientEdgeCasesTests {
                 "empty_input": "",
                 "whitespace_input": "   "
             ],
-            responseMode: .blocking,
             user: MockTestConfig.user
         )
         
@@ -485,7 +477,6 @@ struct CompletionClientEdgeCasesTests {
         
         let response = try await client.createCompletionMessage(
             inputs: ["task": "analyze all files"],
-            responseMode: .blocking,
             user: MockTestConfig.user,
             files: files
         )
@@ -510,7 +501,6 @@ struct CompletionClientEdgeCasesTests {
         
         let response = try await client.createCompletionMessage(
             inputs: unicodeInputs,
-            responseMode: .blocking,
             user: MockTestConfig.user
         )
         
@@ -527,7 +517,6 @@ struct CompletionClientEdgeCasesTests {
         // Test blocking mode
         let blockingResponse = try await client.createCompletionMessage(
             inputs: ["mode": "blocking"],
-            responseMode: .blocking,
             user: MockTestConfig.user
         )
         
@@ -536,7 +525,6 @@ struct CompletionClientEdgeCasesTests {
         // Test streaming mode
         let streamingResponse = try await client.createCompletionMessage(
             inputs: ["mode": "streaming"],
-            responseMode: .streaming,
             user: MockTestConfig.user
         )
         

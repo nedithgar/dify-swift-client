@@ -68,22 +68,20 @@
 
 ## 🚧 Current Priority Items
 
-### Test Infrastructure Improvements (HIGH PRIORITY)
+### Test Infrastructure Improvements (HIGH PRIORITY) 
 - [x] **Core Infrastructure Fixed** - Fixed MockDataProvider duplicate declarations and TestUtilities.swift  
-- [x] **AdvancedChatClientTests.swift** - Fixed method name mismatches:
-  - Fixed `getSuggestedMessages` → `getSuggestedQuestions`
-  - Fixed `stopMessage` → `stopChatGeneration`
-  - Fixed parameter order in `getConversationMessages`
-  - Fixed `audioToText` parameter names
-  - Fixed conversation rename response expectations
-  - Removed invalid `responseMode` and `pinned` parameters
-- [ ] **Remaining Test Fixes** - Additional test files still need updates:
-  - [ ] Fix `AdvancedBaseDifyClientTests.swift` - non-existent methods (configureAnnotationReplySettings, getAnnotationReplyJobStatus, uploadFile, getApplicationInfo)
-  - [ ] Fix `AdvancedCompletionClientTests.swift` - responseMode parameter issues  
-  - [ ] Fix `AdvancedWorkflowClientTests.swift` - method name mismatches (run, runStreaming, stop)
-  - [ ] Fix `AdvancedKnowledgeBaseClientTests.swift` - datasetId parameter
-  - [ ] Fix `SimpleMockTests.swift` and `CleanDifyClientTests.swift` - DifyError constructor issues
-- [ ] Focus on completion client tests first, then expand to other clients
+- [x] **AdvancedChatClientTests.swift** - Fixed method name mismatches and streaming response handling
+- [x] **AdvancedBaseDifyClientTests.swift** - Fixed non-existent methods by using correct client types (ChatClient vs DifyClient)
+- [x] **AdvancedCompletionClientTests.swift** - Removed responseMode parameters and fixed streaming method calls
+- [x] **AdvancedWorkflowClientTests.swift** - Fixed method names (run → runWorkflow, runStreaming → runStreamingWorkflow, stop → stopWorkflowTask)
+- [x] **AdvancedKnowledgeBaseClientTests.swift** - Fixed datasetId parameter usage in test utilities
+- [x] **CleanDifyClientTests.swift** - Fixed DifyError constructor issues (static function calls)
+- [ ] **Remaining Test Fixes** - Additional issues found:
+  - [ ] Fix `EnhancedAPITests.swift` - Missing model types (EnhancedApplicationParametersResponse, AnnotationRequest, etc.)
+  - [ ] Fix remaining upload file tests - ChatClient doesn't have uploadFile method, only CompletionClient does
+  - [ ] Fix model type mismatches in various test files
+  - [ ] Address URL utility method issues (appendingQueryItems not available)
+  - [ ] Fix streaming response data conversion issues
 
 ### Documentation Updates (MEDIUM PRIORITY)
 - [ ] Update `DOCUMENTATION.md` to reflect latest API specification changes
@@ -117,11 +115,12 @@ When working on any of these items:
 ## 🎯 Next Steps
 
 The immediate focus should be on:
-1. Fixing test infrastructure to match current implementation
-2. Running comprehensive test suite to ensure all functionality works
-3. Updating documentation to reflect recent API changes
+1. **Fix remaining test compilation issues** - Address missing model types and method mismatches
+2. **Complete test infrastructure updates** - Ensure all tests compile and run successfully
+3. **Run comprehensive test suite** - Verify all functionality works with updated implementation
+4. **Update documentation** - Reflect recent API changes and test fixes
 
 ---
 
-**Last Updated**: 2025-01-10
-**Current Status**: **Advanced Chat API alignment with template_advanced_chat.en.mdx completed** - All chat streaming events including workflow events now supported, comprehensive Chat API implementation finished, test infrastructure needs updates
+**Last Updated**: 2025-01-10  
+**Current Status**: **Major test infrastructure fixes completed** - Fixed method name mismatches, client type issues, parameter problems, and DifyError constructors. Remaining issues: missing model types in EnhancedAPITests, upload file method availability, and streaming response handling. Test compilation significantly improved but not yet complete.
