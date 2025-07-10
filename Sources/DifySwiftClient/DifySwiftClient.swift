@@ -80,6 +80,23 @@ open class DifyClient: @unchecked Sendable {
         return data
     }
 
+    /// Sends a multipart request and returns the raw `Data`.
+    internal func sendMultipartRequest(method: HTTPMethod, endpoint: String, multipart: MultipartFormData) async throws -> Data {
+        let request = try createURLRequest(method: method, endpoint: endpoint, multipart: multipart)
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw DifyError.invalidResponse()
+        }
+        
+        guard 200...299 ~= httpResponse.statusCode else {
+            let error = try? decode(data, to: DifyError.self)
+            throw DifyError.httpError(httpResponse.statusCode, error?.message ?? "Unknown API error")
+        }
+        
+        return data
+    }
+
     /// Creates an `AsyncThrowingStream` for a streaming API endpoint.
     internal func createStreamingResponse<T: Decodable>(for request: URLRequest) async throws -> AsyncThrowingStream<T, Error> {
         let (bytes, response) = try await session.bytes(for: request)

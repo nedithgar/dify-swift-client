@@ -26,6 +26,38 @@
 - [x] Updated mock data provider with comprehensive mock responses for all new endpoints
 - [x] All new API endpoints properly aligned with Dify Service API specification from template
 
+### Chat API Updates (template_chat.en.mdx alignment)
+- [x] **Comprehensive ChatClient API Implementation** - Updated entire ChatClient to align with Dify Chat App API specification
+- [x] **Enhanced Chat Message Models** - Added missing fields to `ChatMessageResponse` (event, taskId, id)
+- [x] **Extended Streaming Events** - Added support for all Chat streaming events:
+  - `message_file` - File upload events during chat
+  - `tts_message` and `tts_message_end` - Text-to-speech audio streaming  
+  - `message_replace` - Content moderation replacements
+- [x] **New Chat API Endpoints** - Added comprehensive Chat API endpoint coverage:
+  - `stopChatGeneration(taskId:user:)` - Stop generation in progress
+  - `getConversationMessages(...)` - Get chat history with pagination
+  - `getSuggestedQuestions(messageId:user:)` - Get next question suggestions
+  - `sendMessageFeedback(...)` - Send message ratings and feedback
+  - `getApplicationFeedbacks(...)` - Get application feedback history
+  - `getConversationVariables(...)` - Extract conversation variables
+  - `audioToText(audioFile:user:)` - Speech-to-text conversion
+  - `textToAudio(...)` - Text-to-speech conversion
+  - Application info endpoints: `getApplicationInfo()`, `getApplicationParameters()`, `getApplicationMeta()`, `getApplicationWebAppSettings()`
+- [x] **Annotation Management API** - Complete annotation system support:
+  - `getAnnotations(...)` - List annotations with pagination
+  - `createAnnotation(question:answer:)` - Create new annotations
+  - `updateAnnotation(...)` - Update existing annotations
+  - `deleteAnnotation(annotationId:)` - Delete annotations
+  - `configureAnnotationReply(...)` - Configure annotation reply settings
+  - `getAnnotationReplyJobStatus(...)` - Monitor configuration job status
+- [x] **Enhanced Request Parameters** - Added missing API parameters:
+  - `autoGenerateName` parameter for chat message requests
+  - `sortBy` parameter for conversations listing
+  - `autoGenerate` parameter for conversation renaming
+- [x] **Improved File Upload Support** - Added `sendMultipartRequest` method to base client for audio file uploads
+- [x] **Comprehensive Mock Data** - Updated MockDataProvider with responses for all new Chat API endpoints
+- [x] **Type Safety Improvements** - Replaced `[String: Any]` request bodies with proper Codable structs
+
 ## 🚧 Current Priority Items
 
 ### Test Infrastructure Improvements (HIGH PRIORITY)
@@ -78,4 +110,4 @@ The immediate focus should be on:
 ---
 
 **Last Updated**: 2025-01-10
-**Current Status**: Workflow API alignment with template_workflow.en.mdx completed, test infrastructure needs updates
+**Current Status**: Chat API alignment with template_chat.en.mdx completed, comprehensive Chat API implementation finished, test infrastructure needs updates

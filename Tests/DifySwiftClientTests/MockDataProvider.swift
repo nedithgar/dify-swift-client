@@ -20,6 +20,9 @@ public final class MockDataProvider: @unchecked Sendable {
     // MARK: - Chat API Responses
     
     nonisolated(unsafe) public static let chatMessageResponse: [String: Any] = [
+        "event": "message",
+        "task_id": "test-task-123",
+        "id": testMessageId,
         "message_id": testMessageId,
         "conversation_id": testConversationId,
         "mode": "chat",
@@ -96,6 +99,198 @@ public final class MockDataProvider: @unchecked Sendable {
         ],
         "has_more": false,
         "limit": 20
+    ]
+    
+    // MARK: - New Chat API Responses (from template_chat.en.mdx)
+    
+    nonisolated(unsafe)
+    public static let suggestedQuestionsResponse: [String: Any] = [
+        "result": "success",
+        "data": [
+            "What can you help me with?",
+            "How does this feature work?",
+            "Can you provide more examples?"
+        ]
+    ]
+    
+    nonisolated(unsafe)
+    public static let conversationVariablesResponse: [String: Any] = [
+        "limit": 100,
+        "has_more": false,
+        "data": [
+            [
+                "id": "variable-uuid-1",
+                "name": "customer_name",
+                "value_type": "string",
+                "value": "John Doe",
+                "description": "Customer name extracted from the conversation",
+                "created_at": 1650000000000,
+                "updated_at": 1650000000000
+            ],
+            [
+                "id": "variable-uuid-2",
+                "name": "order_details",
+                "value_type": "json",
+                "value": "{\"product\":\"Widget\",\"quantity\":5,\"price\":19.99}",
+                "description": "Order details from the customer",
+                "created_at": 1650000000000,
+                "updated_at": 1650000000000
+            ]
+        ]
+    ]
+    
+    nonisolated(unsafe)
+    public static let audioToTextResponse: [String: Any] = [
+        "text": "Hello, this is a test audio transcription."
+    ]
+    
+    nonisolated(unsafe)
+    public static let chatApplicationFeedbacksResponse: [String: Any] = [
+        "data": [
+            [
+                "id": "8c0fbed8-e2f9-49ff-9f0e-15a35bdd0e25",
+                "app_id": "f252d396-fe48-450e-94ec-e184218e7346",
+                "conversation_id": "2397604b-9deb-430e-b285-4726e51fd62d",
+                "message_id": "709c0b0f-0a96-4a4e-91a4-ec0889937b11",
+                "rating": "like",
+                "content": "message feedback information-3",
+                "from_source": "user",
+                "from_end_user_id": "74286412-9a1a-42c1-929c-01edb1d381d5",
+                "from_account_id": NSNull(),
+                "created_at": "2025-04-24T09:24:38",
+                "updated_at": "2025-04-24T09:24:38"
+            ]
+        ]
+    ]
+    
+    nonisolated(unsafe)
+    public static let annotationsListResponse: [String: Any] = [
+        "data": [
+            [
+                "id": "69d48372-ad81-4c75-9c46-2ce197b4d402",
+                "question": "What is your name?",
+                "answer": "I am Dify.",
+                "hit_count": 0,
+                "created_at": 1735625869
+            ]
+        ],
+        "has_more": false,
+        "limit": 20,
+        "total": 1,
+        "page": 1
+    ]
+    
+    nonisolated(unsafe)
+    public static let annotationResponse: [String: Any] = [
+        "id": "69d48372-ad81-4c75-9c46-2ce197b4d402",
+        "question": "What is your name?",
+        "answer": "I am Dify.",
+        "hit_count": 0,
+        "created_at": 1735625869
+    ]
+    
+    nonisolated(unsafe)
+    public static let annotationReplyJobResponse: [String: Any] = [
+        "job_id": "b15c8f68-1cf4-4877-bf21-ed7cf2011802",
+        "job_status": "waiting"
+    ]
+    
+    nonisolated(unsafe)
+    public static let annotationReplyJobStatusResponse: [String: Any] = [
+        "job_id": "b15c8f68-1cf4-4877-bf21-ed7cf2011802",
+        "job_status": "waiting",
+        "error_msg": ""
+    ]
+    
+    nonisolated(unsafe)
+    public static let applicationInfoResponse: [String: Any] = [
+        "name": "My App",
+        "description": "This is my app.",
+        "tags": [
+            "tag1",
+            "tag2"
+        ],
+        "mode": "advanced-chat",
+        "author_name": "Dify"
+    ]
+    
+    nonisolated(unsafe)
+    public static let applicationParametersResponse: [String: Any] = [
+        "opening_statement": "Hello!",
+        "suggested_questions_after_answer": [
+            "enabled": true
+        ],
+        "speech_to_text": [
+            "enabled": true
+        ],
+        "text_to_speech": [
+            "enabled": true,
+            "voice": "sambert-zhinan-v1",
+            "language": "zh-Hans",
+            "autoPlay": "disabled"
+        ],
+        "retriever_resource": [
+            "enabled": true
+        ],
+        "annotation_reply": [
+            "enabled": true
+        ],
+        "user_input_form": [
+            [
+                "paragraph": [
+                    "label": "Query",
+                    "variable": "query",
+                    "required": true,
+                    "default": ""
+                ]
+            ]
+        ],
+        "file_upload": [
+            "image": [
+                "enabled": false,
+                "number_limits": 3,
+                "detail": "high",
+                "transfer_methods": [
+                    "remote_url",
+                    "local_file"
+                ]
+            ]
+        ],
+        "system_parameters": [
+            "file_size_limit": 15,
+            "image_file_size_limit": 10,
+            "audio_file_size_limit": 50,
+            "video_file_size_limit": 100
+        ]
+    ]
+    
+    nonisolated(unsafe)
+    public static let applicationMetaResponse: [String: Any] = [
+        "tool_icons": [
+            "dalle2": "https://cloud.dify.ai/console/api/workspaces/current/tool-provider/builtin/dalle/icon",
+            "api_tool": [
+                "background": "#252525",
+                "content": "😁"
+            ]
+        ]
+    ]
+    
+    nonisolated(unsafe)
+    public static let applicationSiteResponse: [String: Any] = [
+        "title": "My App",
+        "chat_color_theme": "#ff4a4a",
+        "chat_color_theme_inverted": false,
+        "icon_type": "emoji",
+        "icon": "😄",
+        "icon_background": "#FFEAD5",
+        "icon_url": NSNull(),
+        "description": "This is my app.",
+        "copyright": "all rights reserved",
+        "privacy_policy": "",
+        "custom_disclaimer": "All generated by AI",
+        "default_language": "en-US",
+        "show_workflow_steps": false,
+        "use_icon_as_answer_icon": false
     ]
     
     // MARK: - Completion API Responses
@@ -600,6 +795,26 @@ public final class MockDataProvider: @unchecked Sendable {
         switch endpoint {
         case "chat-messages":
             return chatMessageResponse
+        case let endpoint where endpoint.contains("chat-messages") && endpoint.contains("/stop"):
+            return baseResponse
+        case "messages":
+            return conversationMessagesResponse
+        case let endpoint where endpoint.contains("messages") && endpoint.contains("/suggested"):
+            return suggestedQuestionsResponse
+        case let endpoint where endpoint.contains("messages") && endpoint.contains("/feedbacks"):
+            return baseResponse
+        case "app/feedbacks":
+            return chatApplicationFeedbacksResponse
+        case let endpoint where endpoint.contains("conversations") && endpoint.contains("/variables"):
+            return conversationVariablesResponse
+        case let endpoint where endpoint.contains("conversations") && endpoint.contains("/name"):
+            return conversationsResponse["data"]?[0] as? [String: Any] ?? [:]
+        case "conversations":
+            return conversationsResponse
+        case "audio-to-text":
+            return audioToTextResponse
+        case "text-to-audio":
+            return Data() // Return empty data for audio
         case "completion-messages":
             return completionMessageResponse
         case "workflows/run":
@@ -620,14 +835,22 @@ public final class MockDataProvider: @unchecked Sendable {
             return applicationMetaResponse
         case "site":
             return applicationSiteResponse
+        case "apps/annotations":
+            return annotationsListResponse
+        case let endpoint where endpoint.contains("apps/annotations") && !endpoint.contains("apps/annotations/"):
+            return annotationsListResponse
+        case let endpoint where endpoint.contains("apps/annotations/") && !endpoint.contains("/reply"):
+            return annotationResponse
+        case let endpoint where endpoint.contains("annotation-reply") && !endpoint.contains("/status"):
+            return annotationReplyJobResponse
+        case let endpoint where endpoint.contains("annotation-reply") && endpoint.contains("/status"):
+            return annotationReplyJobStatusResponse
         case let endpoint where endpoint.contains("feedbacks"):
             return messageFeedbackResponse
         case "datasets":
             return datasetsResponse
         case let endpoint where endpoint.contains("documents") && !endpoint.contains("segments"):
             return documentsResponse
-        case "apps/annotations":
-            return annotationListResponse
         default:
             return nil
         }

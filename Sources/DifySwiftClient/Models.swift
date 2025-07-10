@@ -444,6 +444,24 @@ public struct MessageReplaceStreamEvent: Codable, Sendable {
     }
 }
 
+public struct MessageFileStreamEvent: Codable, Sendable {
+    public let event: String
+    public let id: String
+    public let type: String
+    public let belongsTo: String
+    public let url: String
+    public let conversationId: String
+
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case id
+        case type
+        case belongsTo = "belongs_to"
+        case url
+        case conversationId = "conversation_id"
+    }
+}
+
 public struct ErrorStreamEvent: Codable, Sendable {
     public let event: String
     public let taskId: String
@@ -465,6 +483,9 @@ public struct ErrorStreamEvent: Codable, Sendable {
 // MARK: - Chat Models
 
 public struct ChatMessageResponse: Codable, Sendable {
+    public let event: String
+    public let taskId: String
+    public let id: String
     public let messageId: String
     public let conversationId: String
     public let mode: String
@@ -473,6 +494,9 @@ public struct ChatMessageResponse: Codable, Sendable {
     public let createdAt: Int
     
     private enum CodingKeys: String, CodingKey {
+        case event
+        case taskId = "task_id"
+        case id
         case messageId = "message_id"
         case conversationId = "conversation_id"
         case mode
@@ -487,6 +511,10 @@ public enum StreamingChatMessageResponse: Decodable, Sendable {
     case messageEnd(MessageEndStreamEvent)
     case agentMessage(AgentMessageStreamEvent)
     case agentThought(AgentThoughtStreamEvent)
+    case ttsMessage(TTSMessageStreamEvent)
+    case ttsMessageEnd(TTSMessageEndStreamEvent)
+    case messageFile(MessageFileStreamEvent)
+    case messageReplace(MessageReplaceStreamEvent)
     case error(ErrorStreamEvent)
     case ping
 
@@ -507,6 +535,14 @@ public enum StreamingChatMessageResponse: Decodable, Sendable {
             self = .agentMessage(try AgentMessageStreamEvent(from: decoder))
         case "agent_thought":
             self = .agentThought(try AgentThoughtStreamEvent(from: decoder))
+        case "tts_message":
+            self = .ttsMessage(try TTSMessageStreamEvent(from: decoder))
+        case "tts_message_end":
+            self = .ttsMessageEnd(try TTSMessageEndStreamEvent(from: decoder))
+        case "message_file":
+            self = .messageFile(try MessageFileStreamEvent(from: decoder))
+        case "message_replace":
+            self = .messageReplace(try MessageReplaceStreamEvent(from: decoder))
         case "error":
             self = .error(try ErrorStreamEvent(from: decoder))
         case "ping":
@@ -1102,4 +1138,272 @@ public struct ApplicationWebAppSettingsResponse: Codable, Sendable {
         case defaultLanguage = "default_language"
         case showWorkflowSteps = "show_workflow_steps"
     }
+}
+
+// MARK: - Chat API Models (from template_chat.en.mdx)
+
+/// Message history response
+public struct MessageHistoryResponse: Codable, Sendable {
+    public let data: [ChatMessage]
+    public let hasMore: Bool
+    public let limit: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case data
+        case hasMore = "has_more"
+        case limit
+    }
+}
+
+/// Chat message model with full details
+public struct ChatMessage: Codable, Sendable {
+    public let id: String
+    public let conversationId: String
+    public let inputs: [String: AnyCodable]
+    public let query: String
+    public let messageFiles: [MessageFile]
+    public let agentThoughts: [AgentThought]
+    public let answer: String
+    public let createdAt: Int
+    public let feedback: MessageFeedback?
+    public let retrieverResources: [RetrieverResource]?
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case conversationId = "conversation_id"
+        case inputs
+        case query
+        case messageFiles = "message_files"
+        case agentThoughts = "agent_thoughts"
+        case answer
+        case createdAt = "created_at"
+        case feedback
+        case retrieverResources = "retriever_resources"
+    }
+}
+
+/// Message file details
+public struct MessageFile: Codable, Sendable {
+    public let id: String
+    public let type: String
+    public let url: String
+    public let belongsTo: String
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case type
+        case url
+        case belongsTo = "belongs_to"
+    }
+}
+
+/// Agent thought details
+public struct AgentThought: Codable, Sendable {
+    public let id: String
+    public let messageId: String
+    public let position: Int
+    public let thought: String
+    public let observation: String
+    public let tool: String
+    public let toolInput: String
+    public let createdAt: Int
+    public let messageFiles: [String]
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case messageId = "message_id"
+        case position
+        case thought
+        case observation
+        case tool
+        case toolInput = "tool_input"
+        case createdAt = "created_at"
+        case messageFiles = "message_files"
+    }
+}
+
+/// Message feedback details
+public struct MessageFeedback: Codable, Sendable {
+    public let rating: String
+}
+
+/// Suggested questions response
+public struct SuggestedQuestionsResponse: Codable, Sendable {
+    public let result: String
+    public let data: [String]
+}
+
+/// Conversation variables response
+public struct ConversationVariablesResponse: Codable, Sendable {
+    public let limit: Int
+    public let hasMore: Bool
+    public let data: [ConversationVariable]
+    
+    private enum CodingKeys: String, CodingKey {
+        case limit
+        case hasMore = "has_more"
+        case data
+    }
+}
+
+/// Conversation variable details
+public struct ConversationVariable: Codable, Sendable {
+    public let id: String
+    public let name: String
+    public let valueType: String
+    public let value: String
+    public let description: String
+    public let createdAt: Int
+    public let updatedAt: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case valueType = "value_type"
+        case value
+        case description
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+/// Audio to text response
+public struct AudioToTextResponse: Codable, Sendable {
+    public let text: String
+}
+
+/// Chat Application feedbacks response
+public struct ChatApplicationFeedbacksResponse: Codable, Sendable {
+    public let data: [ApplicationFeedback]
+    
+    private enum CodingKeys: String, CodingKey {
+        case data
+    }
+}
+
+/// Application feedback details
+public struct ApplicationFeedback: Codable, Sendable {
+    public let id: String
+    public let appId: String
+    public let conversationId: String
+    public let messageId: String
+    public let rating: String
+    public let content: String
+    public let fromSource: String
+    public let fromEndUserId: String
+    public let fromAccountId: String?
+    public let createdAt: String
+    public let updatedAt: String
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case appId = "app_id"
+        case conversationId = "conversation_id"
+        case messageId = "message_id"
+        case rating
+        case content
+        case fromSource = "from_source"
+        case fromEndUserId = "from_end_user_id"
+        case fromAccountId = "from_account_id"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+/// Annotation response
+public struct AnnotationResponse: Codable, Sendable {
+    public let id: String
+    public let question: String
+    public let answer: String
+    public let hitCount: Int
+    public let createdAt: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case question
+        case answer
+        case hitCount = "hit_count"
+        case createdAt = "created_at"
+    }
+}
+
+/// Annotations list response
+public struct AnnotationsListResponse: Codable, Sendable {
+    public let data: [AnnotationResponse]
+    public let hasMore: Bool
+    public let limit: Int
+    public let total: Int
+    public let page: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case data
+        case hasMore = "has_more"
+        case limit
+        case total
+        case page
+    }
+}
+
+/// Annotation reply settings job response
+public struct AnnotationReplyJobResponse: Codable, Sendable {
+    public let jobId: String
+    public let jobStatus: String
+    
+    private enum CodingKeys: String, CodingKey {
+        case jobId = "job_id"
+        case jobStatus = "job_status"
+    }
+}
+
+/// Annotation reply job status response
+public struct AnnotationReplyJobStatusResponse: Codable, Sendable {
+    public let jobId: String
+    public let jobStatus: String
+    public let errorMsg: String
+    
+    private enum CodingKeys: String, CodingKey {
+        case jobId = "job_id"
+        case jobStatus = "job_status"
+        case errorMsg = "error_msg"
+    }
+}
+
+/// Application meta information response
+public struct ApplicationMetaResponse: Codable, Sendable {
+    public let toolIcons: [String: ToolIcon]
+    
+    private enum CodingKeys: String, CodingKey {
+        case toolIcons = "tool_icons"
+    }
+}
+
+/// Tool icon representation
+public enum ToolIcon: Codable, Sendable {
+    case url(String)
+    case emoji(ToolIconEmoji)
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let url = try? container.decode(String.self) {
+            self = .url(url)
+        } else {
+            self = .emoji(try container.decode(ToolIconEmoji.self))
+        }
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .url(let url):
+            try container.encode(url)
+        case .emoji(let emoji):
+            try container.encode(emoji)
+        }
+    }
+}
+
+/// Tool icon emoji details
+public struct ToolIconEmoji: Codable, Sendable {
+    public let background: String
+    public let content: String
 }
