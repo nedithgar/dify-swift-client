@@ -25,7 +25,6 @@ struct AdvancedChatClientMockTests {
             inputs: ["query": "test input"],
             query: "Hello, how are you?",
             user: MockTestConfig.user,
-            responseMode: .blocking,
             conversationId: MockTestConfig.conversationId,
             files: files,
             autoGenerateName: false
@@ -138,7 +137,7 @@ struct AdvancedChatClientMockTests {
         MockRequestCapture.startCapturing()
         defer { MockRequestCapture.stopCapturing() }
         
-        let response = try await client.getSuggestedMessages(
+        let response = try await client.getSuggestedQuestions(
             messageId: MockDataProvider.testMessageId,
             user: MockTestConfig.user
         )
@@ -173,7 +172,7 @@ struct AdvancedChatClientMockTests {
         MockRequestCapture.startCapturing()
         defer { MockRequestCapture.stopCapturing() }
         
-        let response = try await client.stopMessage(
+        let response = try await client.stopChatGeneration(
             taskId: "task-123",
             user: MockTestConfig.user
         )
@@ -217,7 +216,7 @@ struct AdvancedChatClientMockTests {
             user: MockTestConfig.user,
             lastId: "last-123",
             limit: 10,
-            pinned: true
+            sortBy: "-updated_at"
         )
         
         #expect(response.data.count == 1)
@@ -253,8 +252,8 @@ struct AdvancedChatClientMockTests {
         let client = try TestUtilities.createMockChatClient()
         
         let response = try await client.getConversationMessages(
-            user: MockTestConfig.user,
             conversationId: MockTestConfig.conversationId,
+            user: MockTestConfig.user,
             firstId: "first-123",
             limit: 50
         )
@@ -286,7 +285,9 @@ struct AdvancedChatClientMockTests {
             user: MockTestConfig.user
         )
         
-        #expect(response.result == "success")
+        #expect(response.id == MockTestConfig.conversationId)
+        #expect(response.name == "New Conversation Name")
+        #expect(response.status == "normal")
         
         // Validate request
         let requests = MockRequestCapture.getCapturedRequests()
@@ -349,8 +350,7 @@ struct AdvancedChatClientMockTests {
         let audioData = TestUtilities.createTestAudioData()
         
         let response = try await client.audioToText(
-            audioData: audioData,
-            filename: "test-audio.wav",
+            audioFile: audioData,
             user: MockTestConfig.user
         )
         

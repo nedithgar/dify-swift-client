@@ -432,6 +432,7 @@ public struct MessageReplaceStreamEvent: Codable, Sendable {
     public let event: String
     public let taskId: String
     public let messageId: String
+    public let conversationId: String
     public let answer: String
     public let createdAt: Int
 
@@ -439,6 +440,7 @@ public struct MessageReplaceStreamEvent: Codable, Sendable {
         case event
         case taskId = "task_id"
         case messageId = "message_id"
+        case conversationId = "conversation_id"
         case answer
         case createdAt = "created_at"
     }
@@ -515,6 +517,10 @@ public enum StreamingChatMessageResponse: Decodable, Sendable {
     case ttsMessageEnd(TTSMessageEndStreamEvent)
     case messageFile(MessageFileStreamEvent)
     case messageReplace(MessageReplaceStreamEvent)
+    case workflowStarted(WorkflowStartedEvent)
+    case nodeStarted(NodeStartedEvent)
+    case nodeFinished(NodeFinishedEvent)
+    case workflowFinished(WorkflowFinishedEvent)
     case error(ErrorStreamEvent)
     case ping
 
@@ -543,6 +549,14 @@ public enum StreamingChatMessageResponse: Decodable, Sendable {
             self = .messageFile(try MessageFileStreamEvent(from: decoder))
         case "message_replace":
             self = .messageReplace(try MessageReplaceStreamEvent(from: decoder))
+        case "workflow_started":
+            self = .workflowStarted(try WorkflowStartedEvent(from: decoder))
+        case "node_started":
+            self = .nodeStarted(try NodeStartedEvent(from: decoder))
+        case "node_finished":
+            self = .nodeFinished(try NodeFinishedEvent(from: decoder))
+        case "workflow_finished":
+            self = .workflowFinished(try WorkflowFinishedEvent(from: decoder))
         case "error":
             self = .error(try ErrorStreamEvent(from: decoder))
         case "ping":

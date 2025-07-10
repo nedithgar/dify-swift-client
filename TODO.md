@@ -2,6 +2,14 @@
 
 ## ✅ Recently Completed (2025-01-10)
 
+### Advanced Chat API Final Alignment (2025-01-10)
+- [x] **Enhanced StreamingChatMessageResponse** - Added workflow events to chat streaming response
+  - Added `workflow_started`, `node_started`, `node_finished`, `workflow_finished` cases
+  - Integrated existing WorkflowStartedEvent, NodeStartedEvent, NodeFinishedEvent, WorkflowFinishedEvent models
+  - Updated decoder switch statement to handle all workflow events in chat context
+- [x] **Fixed MessageReplaceStreamEvent** - Added missing `conversationId` field to align with API specification
+- [x] **Complete template_advanced_chat.en.mdx Alignment** - All chat API models now fully match specification
+
 ### API Specification Alignment
 - [x] Updated Swift SDK to align with latest Dify Service API specification
 - [x] Added `event` field to `CompletionMessageResponse` model for blocking mode responses
@@ -61,14 +69,20 @@
 ## 🚧 Current Priority Items
 
 ### Test Infrastructure Improvements (HIGH PRIORITY)
-- [ ] Fix outdated test methods that reference non-existent API methods
-  - [ ] Review and fix `AdvancedBaseDifyClientTests.swift` test methods (messageFeedback, sendEnhancedMessageFeedback)
-  - [ ] Review and fix `AdvancedChatClientTests.swift` test methods (createChatMessage signature, stopMessage, getSuggestedMessages, etc.)
-  - [ ] Review and fix `AdvancedCompletionClientTests.swift` test methods (responseMode parameter issues)
-  - [ ] Review and fix `AdvancedKnowledgeBaseClientTests.swift` test methods (datasetId parameter)
-  - [ ] Fix `TestUtilities.swift` - StreamingResponse type not found, KnowledgeBaseClient constructor
-- [ ] Align test expectations with actual API implementation
-- [ ] Add tests for new workflow endpoints (getWorkflowRunDetail, getWorkflowLogs, getApplicationInfo, etc.)
+- [x] **Core Infrastructure Fixed** - Fixed MockDataProvider duplicate declarations and TestUtilities.swift  
+- [x] **AdvancedChatClientTests.swift** - Fixed method name mismatches:
+  - Fixed `getSuggestedMessages` → `getSuggestedQuestions`
+  - Fixed `stopMessage` → `stopChatGeneration`
+  - Fixed parameter order in `getConversationMessages`
+  - Fixed `audioToText` parameter names
+  - Fixed conversation rename response expectations
+  - Removed invalid `responseMode` and `pinned` parameters
+- [ ] **Remaining Test Fixes** - Additional test files still need updates:
+  - [ ] Fix `AdvancedBaseDifyClientTests.swift` - non-existent methods (configureAnnotationReplySettings, getAnnotationReplyJobStatus, uploadFile, getApplicationInfo)
+  - [ ] Fix `AdvancedCompletionClientTests.swift` - responseMode parameter issues  
+  - [ ] Fix `AdvancedWorkflowClientTests.swift` - method name mismatches (run, runStreaming, stop)
+  - [ ] Fix `AdvancedKnowledgeBaseClientTests.swift` - datasetId parameter
+  - [ ] Fix `SimpleMockTests.swift` and `CleanDifyClientTests.swift` - DifyError constructor issues
 - [ ] Focus on completion client tests first, then expand to other clients
 
 ### Documentation Updates (MEDIUM PRIORITY)
@@ -110,4 +124,4 @@ The immediate focus should be on:
 ---
 
 **Last Updated**: 2025-01-10
-**Current Status**: Chat API alignment with template_chat.en.mdx completed, comprehensive Chat API implementation finished, test infrastructure needs updates
+**Current Status**: **Advanced Chat API alignment with template_advanced_chat.en.mdx completed** - All chat streaming events including workflow events now supported, comprehensive Chat API implementation finished, test infrastructure needs updates

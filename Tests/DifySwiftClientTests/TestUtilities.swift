@@ -57,7 +57,7 @@ public final class TestUtilities {
         config.protocolClasses = [MockURLProtocol.self]
         let session = URLSession(configuration: config)
         
-        return try KnowledgeBaseClient(apiKey: apiKey, datasetId: datasetId, session: session)
+        return try KnowledgeBaseClient(apiKey: apiKey, session: session)
     }
     
     // MARK: - Test Setup and Cleanup
@@ -200,9 +200,9 @@ public final class TestUtilities {
         }
     }
     
-    /// Collect streaming response data
-    public static func collectStreamingData(from streamingResponse: StreamingResponse, limit: Int = 10) async throws -> [Data] {
-        var collectedData: [Data] = []
+    /// Collect streaming response data from any streaming response type
+    public static func collectStreamingData<T>(from streamingResponse: AsyncThrowingStream<T, Error>, limit: Int = 10) async throws -> [T] {
+        var collectedData: [T] = []
         var count = 0
         
         for try await data in streamingResponse {

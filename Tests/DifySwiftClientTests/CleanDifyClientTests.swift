@@ -243,15 +243,6 @@ struct IntegrationTests {
         #expect(knowledgeBaseClient.apiKey == apiKey)
     }
     
-    @Test("StreamingResponse can be created")
-    func testStreamingResponseCreation() {
-        let url = URL(string: "https://example.com")!
-        let request = URLRequest(url: url)
-        let streamingResponse = StreamingResponse(urlRequest: request)
-        
-        // Basic test to ensure the type can be created and has expected functionality
-        let iterator = streamingResponse.makeAsyncIterator()
-        // Just verify the iterator was created - no need to check for nil since it's not optional
-        #expect(type(of: iterator) == StreamingResponse.AsyncIterator.self)
-    }
+    // StreamingResponse functionality is tested through actual client streaming methods
+    // which return AsyncThrowingStream<StreamingCompletionResponse, Error> etc.
 }
