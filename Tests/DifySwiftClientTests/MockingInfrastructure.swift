@@ -41,6 +41,15 @@ public final class MockURLProtocol: URLProtocol {
             )
         }
         
+        /// Create a raw data response (e.g., for audio files)
+        public static func data(_ data: Data, contentType: String, statusCode: Int = 200) -> MockResponse {
+            return MockResponse(
+                statusCode: statusCode,
+                data: data,
+                headers: ["Content-Type": contentType]
+            )
+        }
+        
         /// Create an error response
         public static func httpError(statusCode: Int, message: String? = nil) -> MockResponse {
             let errorData: Data

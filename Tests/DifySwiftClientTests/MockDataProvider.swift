@@ -102,10 +102,27 @@ public final class MockDataProvider: @unchecked Sendable {
     
     nonisolated(unsafe)
     public static let completionMessageResponse: [String: Any] = [
+        "event": "message",
         "message_id": testMessageId,
-        "conversation_id": testConversationId,
+        "mode": "completion",
         "answer": "Based on your input, here's my response...",
-        "created_at": 1726139644
+        "metadata": [
+            "usage": [
+                "prompt_tokens": 1033,
+                "prompt_unit_price": "0.001",
+                "prompt_price_unit": "0.001",
+                "prompt_price": "0.0010330",
+                "completion_tokens": 128,
+                "completion_unit_price": "0.002",
+                "completion_price_unit": "0.001",
+                "completion_price": "0.0002560",
+                "total_tokens": 1161,
+                "total_price": "0.0012890",
+                "currency": "USD",
+                "latency": 0.7682376249867957
+            ]
+        ],
+        "created_at": 1705407629
     ]
     
     // MARK: - Workflow API Responses
@@ -424,10 +441,27 @@ public final class MockDataProvider: @unchecked Sendable {
     // MARK: - Audio Processing Responses
     
     nonisolated(unsafe)
-    public static let textToAudioResponse: [String: Any] = [
-        "task_id": "audio-task-123",
-        "audio": "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj..."
-    ]
+    public static let textToAudioResponse: Data = {
+        // Create a simple WAV file header for testing
+        var wavData = Data()
+        // RIFF header
+        wavData.append("RIFF".data(using: .ascii)!)
+        wavData.append(contentsOf: [0x24, 0x00, 0x00, 0x00]) // ChunkSize
+        wavData.append("WAVE".data(using: .ascii)!)
+        // fmt subchunk
+        wavData.append("fmt ".data(using: .ascii)!)
+        wavData.append(contentsOf: [0x10, 0x00, 0x00, 0x00]) // Subchunk1Size
+        wavData.append(contentsOf: [0x01, 0x00]) // AudioFormat
+        wavData.append(contentsOf: [0x01, 0x00]) // NumChannels
+        wavData.append(contentsOf: [0x44, 0xAC, 0x00, 0x00]) // SampleRate
+        wavData.append(contentsOf: [0x88, 0x58, 0x01, 0x00]) // ByteRate
+        wavData.append(contentsOf: [0x02, 0x00]) // BlockAlign
+        wavData.append(contentsOf: [0x10, 0x00]) // BitsPerSample
+        // data subchunk
+        wavData.append("data".data(using: .ascii)!)
+        wavData.append(contentsOf: [0x00, 0x00, 0x00, 0x00]) // Subchunk2Size
+        return wavData
+    }()
     
     // MARK: - Base Responses
     

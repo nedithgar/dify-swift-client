@@ -16,11 +16,7 @@ public enum FileTransferMethod: String, Codable, Sendable {
 
 /// File type
 public enum FileType: String, Codable, Sendable {
-    case document
     case image
-    case audio
-    case video
-    case custom
 }
 
 /// API file representation
@@ -55,604 +51,9 @@ public struct MessageFeedbackResponse: Codable, Sendable {
     public let result: String
 }
 
-/// Application parameters response
-public struct ApplicationParametersResponse: Codable, Sendable {
-    public let userInputForm: [UserInputFormItem]
-    
-    private enum CodingKeys: String, CodingKey {
-        case userInputForm = "user_input_form"
-    }
-}
-
-public struct UserInputFormItem: Codable, Sendable {
-    public let paragraph: Paragraph?
-    public let select: Select?
-    public let textInput: TextInput?
-    
-    private enum CodingKeys: String, CodingKey {
-        case paragraph
-        case select
-        case textInput = "text-input"
-    }
-}
-
-public struct Paragraph: Codable, Sendable {
-    public let label: String
-    public let variable: String
-    public let required: Bool
-    public let defaultValue: String
-    
-    private enum CodingKeys: String, CodingKey {
-        case label
-        case variable
-        case required
-        case defaultValue = "default"
-    }
-}
-
-public struct Select: Codable, Sendable {
-    public let label: String
-    public let variable: String
-    public let required: Bool
-    public let defaultValue: String
-    public let options: [String]
-    
-    private enum CodingKeys: String, CodingKey {
-        case label
-        case variable
-        case required
-        case defaultValue = "default"
-        case options
-    }
-}
-
-public struct TextInput: Codable, Sendable {
-    public let label: String
-    public let variable: String
-    public let required: Bool
-    public let maxLength: Int
-    
-    private enum CodingKeys: String, CodingKey {
-        case label
-        case variable
-        case required
-        case maxLength = "max_length"
-    }
-}
-
-/// File upload response
-public struct FileUploadResponse: Codable, Sendable {
-    public let id: String
-    public let name: String
-    public let size: Int
-    public let fileExtension: String
-    public let mimeType: String
-    public let createdBy: String
-    public let createdAt: Int
-    
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case size
-        case fileExtension = "extension"
-        case mimeType = "mime_type"
-        case createdBy = "created_by"
-        case createdAt = "created_at"
-    }
-}
-
-/// Text to audio response
-public struct TextToAudioResponse: Codable, Sendable {
-    public let taskId: String?
-    public let audio: String?
-    
-    private enum CodingKeys: String, CodingKey {
-        case taskId = "task_id"
-        case audio
-    }
-}
-
-/// Meta response
-public struct MetaResponse: Codable, Sendable {
-    public let tool: MetaTool
-}
-
-public struct MetaTool: Codable, Sendable {
-    public let labels: [String: String]
-}
-
-/// Completion message response
-public struct CompletionMessageResponse: Codable, Sendable {
-    public let answer: String
-    public let messageId: String
-    public let conversationId: String
-    public let createdAt: Int
-    
-    private enum CodingKeys: String, CodingKey {
-        case answer
-        case messageId = "message_id"
-        case conversationId = "conversation_id"
-        case createdAt = "created_at"
-    }
-}
-
-/// Chat message response
-public struct ChatMessageResponse: Codable, Sendable {
-    public let answer: String
-    public let messageId: String
-    public let conversationId: String
-    public let createdAt: Int
-    
-    private enum CodingKeys: String, CodingKey {
-        case answer
-        case messageId = "message_id"
-        case conversationId = "conversation_id"
-        case createdAt = "created_at"
-    }
-}
-
-/// Suggested messages response
-public struct SuggestedMessagesResponse: Codable, Sendable {
-    public let data: [String]
-}
-
-/// Conversations response
-public struct ConversationsResponse: Codable, Sendable {
-    public let data: [Conversation]
-    public let hasMore: Bool
-    public let limit: Int
-    
-    private enum CodingKeys: String, CodingKey {
-        case data
-        case hasMore = "has_more"
-        case limit
-    }
-}
-
-public struct Conversation: Codable, Sendable {
-    public let id: String
-    public let name: String
-    public let inputs: [String: String]
-    public let status: String
-    public let introduction: String
-    public let createdAt: Int
-    public let updatedAt: Int
-    
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case inputs
-        case status
-        case introduction
-        case createdAt = "created_at"
-        case updatedAt = "updated_at"
-    }
-}
-
-/// Conversation messages response
-public struct ConversationMessagesResponse: Codable, Sendable {
-    public let data: [ConversationMessage]
-    public let hasMore: Bool
-    public let limit: Int
-    
-    private enum CodingKeys: String, CodingKey {
-        case data
-        case hasMore = "has_more"
-        case limit
-    }
-}
-
-public struct ConversationMessage: Codable, Sendable {
-    public let id: String
-    public let conversationId: String
-    public let inputs: [String: String]
-    public let query: String
-    public let answer: String
-    public let messageFiles: [MessageFile]
-    public let feedback: MessageFeedback?
-    public let retrieverResources: [RetrieverResource]
-    public let createdAt: Int
-    public let agentThoughts: [AgentThought]
-    
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case conversationId = "conversation_id"
-        case inputs
-        case query
-        case answer
-        case messageFiles = "message_files"
-        case feedback
-        case retrieverResources = "retriever_resources"
-        case createdAt = "created_at"
-        case agentThoughts = "agent_thoughts"
-    }
-}
-
-public struct MessageFile: Codable, Sendable {
-    public let id: String
-    public let type: String
-    public let url: String
-    public let belongsTo: String
-    
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case type
-        case url
-        case belongsTo = "belongs_to"
-    }
-}
-
-public struct MessageFeedback: Codable, Sendable {
-    public let rating: String
-}
-
-public struct RetrieverResource: Codable, Sendable {
-    public let position: Int
-    public let datasetId: String
-    public let datasetName: String
-    public let documentId: String
-    public let documentName: String
-    public let segmentId: String
-    public let score: Double
-    public let content: String
-    
-    private enum CodingKeys: String, CodingKey {
-        case position
-        case datasetId = "dataset_id"
-        case datasetName = "dataset_name"
-        case documentId = "document_id"
-        case documentName = "document_name"
-        case segmentId = "segment_id"
-        case score
-        case content
-    }
-}
-
-public struct AgentThought: Codable, Sendable {
-    public let id: String
-    public let messageId: String
-    public let position: Int
-    public let thought: String
-    public let tool: String
-    public let toolInput: String
-    public let createdAt: Int
-    
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case messageId = "message_id"
-        case position
-        case thought
-        case tool
-        case toolInput = "tool_input"
-        case createdAt = "created_at"
-    }
-}
-
-/// Workflow response
-public struct WorkflowResponse: Codable, Sendable {
-    public let workflowRunId: String
-    public let taskId: String
-    public let data: WorkflowData
-    
-    private enum CodingKeys: String, CodingKey {
-        case workflowRunId = "workflow_run_id"
-        case taskId = "task_id"
-        case data
-    }
-}
-
-public struct WorkflowData: Codable, Sendable {
-    public let id: String
-    public let workflowId: String
-    public let status: String
-    public let outputs: [String: String]
-    public let error: String?
-    public let elapsedTime: Double
-    public let totalTokens: Int
-    public let totalSteps: Int
-    public let createdAt: Int
-    public let finishedAt: Int
-    
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case workflowId = "workflow_id"
-        case status
-        case outputs
-        case error
-        case elapsedTime = "elapsed_time"
-        case totalTokens = "total_tokens"
-        case totalSteps = "total_steps"
-        case createdAt = "created_at"
-        case finishedAt = "finished_at"
-    }
-}
-
-/// Dataset response
-public struct DatasetResponse: Codable, Sendable {
-    public let id: String
-    public let name: String
-    public let description: String?
-    public let permission: String
-    public let dataSourceType: String
-    public let indexingTechnique: String
-    public let createdBy: String
-    public let createdAt: Int
-    public let updatedBy: String
-    public let updatedAt: Int
-    
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case description
-        case permission
-        case dataSourceType = "data_source_type"
-        case indexingTechnique = "indexing_technique"
-        case createdBy = "created_by"
-        case createdAt = "created_at"
-        case updatedBy = "updated_by"
-        case updatedAt = "updated_at"
-    }
-}
-
-/// Datasets list response
-public struct DatasetsResponse: Codable, Sendable {
-    public let data: [DatasetResponse]
-    public let hasMore: Bool
-    public let limit: Int
-    public let total: Int
-    public let page: Int
-    
-    private enum CodingKeys: String, CodingKey {
-        case data
-        case hasMore = "has_more"
-        case limit
-        case total
-        case page
-    }
-}
-
-/// Document response
-public struct DocumentResponse: Codable, Sendable {
-    public let id: String
-    public let position: Int
-    public let dataSource: DataSource
-    public let datasetProcessRuleId: String
-    public let name: String
-    public let createdFrom: String
-    public let createdBy: String
-    public let createdAt: Int
-    public let tokens: Int
-    public let indexingStatus: String
-    public let error: String?
-    public let enabled: Bool
-    public let disabledAt: Int?
-    public let disabledBy: String?
-    public let archived: Bool
-    public let displayStatus: String
-    public let wordCount: Int
-    public let hitCount: Int
-    public let docForm: String
-    
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case position
-        case dataSource = "data_source"
-        case datasetProcessRuleId = "dataset_process_rule_id"
-        case name
-        case createdFrom = "created_from"
-        case createdBy = "created_by"
-        case createdAt = "created_at"
-        case tokens
-        case indexingStatus = "indexing_status"
-        case error
-        case enabled
-        case disabledAt = "disabled_at"
-        case disabledBy = "disabled_by"
-        case archived
-        case displayStatus = "display_status"
-        case wordCount = "word_count"
-        case hitCount = "hit_count"
-        case docForm = "doc_form"
-    }
-}
-
-public struct DataSource: Codable, Sendable {
-    public let type: String
-    public let info: [String: String]
-}
-
-/// Create document response
-public struct CreateDocumentResponse: Codable, Sendable {
-    public let document: DocumentResponse
-    public let batch: String
-}
-
-/// Documents list response
-public struct DocumentsResponse: Codable, Sendable {
-    public let data: [DocumentResponse]
-    public let hasMore: Bool
-    public let limit: Int
-    public let total: Int
-    public let page: Int
-    
-    private enum CodingKeys: String, CodingKey {
-        case data
-        case hasMore = "has_more"
-        case limit
-        case total
-        case page
-    }
-}
-
-/// Segment response
-public struct SegmentResponse: Codable, Sendable {
-    public let id: String
-    public let position: Int
-    public let documentId: String
-    public let content: String
-    public let answer: String?
-    public let wordCount: Int
-    public let tokens: Int
-    public let keywords: [String]
-    public let indexNodeId: String
-    public let indexNodeHash: String
-    public let hitCount: Int
-    public let enabled: Bool
-    public let disabledAt: Int?
-    public let disabledBy: String?
-    public let status: String
-    public let createdBy: String
-    public let createdAt: Int
-    public let indexingAt: Int?
-    public let completedAt: Int?
-    public let error: String?
-    public let stoppedAt: Int?
-    
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case position
-        case documentId = "document_id"
-        case content
-        case answer
-        case wordCount = "word_count"
-        case tokens
-        case keywords
-        case indexNodeId = "index_node_id"
-        case indexNodeHash = "index_node_hash"
-        case hitCount = "hit_count"
-        case enabled
-        case disabledAt = "disabled_at"
-        case disabledBy = "disabled_by"
-        case status
-        case createdBy = "created_by"
-        case createdAt = "created_at"
-        case indexingAt = "indexing_at"
-        case completedAt = "completed_at"
-        case error
-        case stoppedAt = "stopped_at"
-    }
-}
-
-/// Segments response
-public struct SegmentsResponse: Codable, Sendable {
-    public let data: [SegmentResponse]
-    public let hasMore: Bool
-    public let limit: Int
-    
-    private enum CodingKeys: String, CodingKey {
-        case data
-        case hasMore = "has_more"
-        case limit
-    }
-}
-
-/// Add segments response
-public struct AddSegmentsResponse: Codable, Sendable {
-    public let data: [SegmentResponse]
-}
-
-/// Update segment response
-public struct UpdateSegmentResponse: Codable, Sendable {
-    public let data: SegmentResponse
-}
-
-/// Batch indexing status response
-public struct BatchIndexingStatusResponse: Codable, Sendable {
-    public let id: String
-    public let indexingStatus: String
-    public let processingStartedAt: Int
-    public let parsingCompletedAt: Int
-    public let cleaningCompletedAt: Int
-    public let splittingCompletedAt: Int
-    public let completedAt: Int
-    public let pausedBy: String?
-    public let pausedAt: Int?
-    public let canceledBy: String?
-    public let canceledAt: Int?
-    public let error: String?
-    
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case indexingStatus = "indexing_status"
-        case processingStartedAt = "processing_started_at"
-        case parsingCompletedAt = "parsing_completed_at"
-        case cleaningCompletedAt = "cleaning_completed_at"
-        case splittingCompletedAt = "splitting_completed_at"
-        case completedAt = "completed_at"
-        case pausedBy = "paused_by"
-        case pausedAt = "paused_at"
-        case canceledBy = "canceled_by"
-        case canceledAt = "canceled_at"
-        case error
-    }
-}
-
-// MARK: - Request Models
-
-/// Process rule for documents
-public struct ProcessRule: Codable, Sendable {
-    public let mode: String
-    public let rules: ProcessRuleRules?
-    
-    public init(mode: String = "automatic", rules: ProcessRuleRules? = nil) {
-        self.mode = mode
-        self.rules = rules
-    }
-}
-
-public struct ProcessRuleRules: Codable, Sendable {
-    public let preProcessingRules: [PreProcessingRule]
-    public let segmentation: Segmentation
-    
-    private enum CodingKeys: String, CodingKey {
-        case preProcessingRules = "pre_processing_rules"
-        case segmentation
-    }
-    
-    public init(preProcessingRules: [PreProcessingRule], segmentation: Segmentation) {
-        self.preProcessingRules = preProcessingRules
-        self.segmentation = segmentation
-    }
-}
-
-public struct PreProcessingRule: Codable, Sendable {
-    public let id: String
-    public let enabled: Bool
-    
-    public init(id: String, enabled: Bool) {
-        self.id = id
-        self.enabled = enabled
-    }
-}
-
-public struct Segmentation: Codable, Sendable {
-    public let separator: String
-    public let maxTokens: Int
-    
-    private enum CodingKeys: String, CodingKey {
-        case separator
-        case maxTokens = "max_tokens"
-    }
-    
-    public init(separator: String, maxTokens: Int) {
-        self.separator = separator
-        self.maxTokens = maxTokens
-    }
-}
-
-/// Segment data for adding/updating
-public struct SegmentData: Codable, Sendable {
-    public let content: String
-    public let answer: String?
-    public let keywords: [String]?
-    public let enabled: Bool?
-    
-    public init(content: String, answer: String? = nil, keywords: [String]? = nil, enabled: Bool? = nil) {
-        self.content = content
-        self.answer = answer
-        self.keywords = keywords
-        self.enabled = enabled
-    }
+/// Stop completion response
+public struct StopCompletionResponse: Codable, Sendable {
+    public let result: String
 }
 
 // MARK: - Application Info Models
@@ -674,25 +75,23 @@ public struct ApplicationInfoResponse: Codable, Sendable {
     }
 }
 
-/// Enhanced application parameters response with all API features
-public struct EnhancedApplicationParametersResponse: Codable, Sendable {
+/// Application parameters response
+public struct ApplicationParametersResponse: Codable, Sendable {
     public let openingStatement: String?
     public let suggestedQuestions: [String]?
     public let suggestedQuestionsAfterAnswer: SuggestedQuestionsConfig?
     public let speechToText: SpeechToTextConfig?
-    public let textToSpeech: TextToSpeechConfig?
     public let retrieverResource: RetrieverResourceConfig?
     public let annotationReply: AnnotationReplyConfig?
     public let userInputForm: [UserInputFormItem]?
     public let fileUpload: FileUploadConfig?
     public let systemParameters: SystemParameters?
-    
+
     private enum CodingKeys: String, CodingKey {
         case openingStatement = "opening_statement"
         case suggestedQuestions = "suggested_questions"
         case suggestedQuestionsAfterAnswer = "suggested_questions_after_answer"
         case speechToText = "speech_to_text"
-        case textToSpeech = "text_to_speech"
         case retrieverResource = "retriever_resource"
         case annotationReply = "annotation_reply"
         case userInputForm = "user_input_form"
@@ -709,26 +108,49 @@ public struct SpeechToTextConfig: Codable, Sendable {
     public let enabled: Bool
 }
 
-public struct TextToSpeechConfig: Codable, Sendable {
-    public let enabled: Bool
-    public let voice: String?
-    public let language: String?
-    public let autoPlay: String?
-    
-    private enum CodingKeys: String, CodingKey {
-        case enabled
-        case voice
-        case language
-        case autoPlay = "autoPlay"
-    }
-}
-
 public struct RetrieverResourceConfig: Codable, Sendable {
     public let enabled: Bool
 }
 
 public struct AnnotationReplyConfig: Codable, Sendable {
     public let enabled: Bool
+}
+
+public struct UserInputFormItem: Codable, Sendable {
+    public let paragraph: FormInput?
+    public let textInput: FormInput?
+    public let select: Select?
+
+    private enum CodingKeys: String, CodingKey {
+        case paragraph
+        case textInput = "text-input"
+        case select
+    }
+}
+
+public struct FormInput: Codable, Sendable {
+    public let label: String
+    public let variable: String
+    public let required: Bool
+    public let defaultValue: String
+
+    private enum CodingKeys: String, CodingKey {
+        case label, variable, required
+        case defaultValue = "default"
+    }
+}
+
+public struct Select: Codable, Sendable {
+    public let label: String
+    public let variable: String
+    public let required: Bool
+    public let defaultValue: String
+    public let options: [String]
+
+    private enum CodingKeys: String, CodingKey {
+        case label, variable, required, options
+        case defaultValue = "default"
+    }
 }
 
 public struct FileUploadConfig: Codable, Sendable {
@@ -738,69 +160,27 @@ public struct FileUploadConfig: Codable, Sendable {
 public struct ImageUploadConfig: Codable, Sendable {
     public let enabled: Bool
     public let numberLimits: Int
-    public let detail: String?
     public let transferMethods: [String]
-    
+
     private enum CodingKeys: String, CodingKey {
         case enabled
         case numberLimits = "number_limits"
-        case detail
         case transferMethods = "transfer_methods"
     }
 }
 
 public struct SystemParameters: Codable, Sendable {
-    public let fileSizeLimit: Int
-    public let imageFileSizeLimit: Int
-    public let audioFileSizeLimit: Int
-    public let videoFileSizeLimit: Int
-    
+    public let fileSizeLimit: Int?
+    public let imageFileSizeLimit: Int?
+    public let audioFileSizeLimit: Int?
+    public let videoFileSizeLimit: Int?
+
     private enum CodingKeys: String, CodingKey {
         case fileSizeLimit = "file_size_limit"
         case imageFileSizeLimit = "image_file_size_limit"
         case audioFileSizeLimit = "audio_file_size_limit"
         case videoFileSizeLimit = "video_file_size_limit"
     }
-}
-
-/// Application meta information response
-public struct ApplicationMetaResponse: Codable, Sendable {
-    public let toolIcons: [String: ToolIcon]
-    
-    private enum CodingKeys: String, CodingKey {
-        case toolIcons = "tool_icons"
-    }
-}
-
-public enum ToolIcon: Codable, Sendable {
-    case url(String)
-    case icon(ToolIconObject)
-    
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        if let urlString = try? container.decode(String.self) {
-            self = .url(urlString)
-        } else if let iconObject = try? container.decode(ToolIconObject.self) {
-            self = .icon(iconObject)
-        } else {
-            throw DecodingError.typeMismatch(ToolIcon.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Invalid tool icon format"))
-        }
-    }
-    
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        switch self {
-        case .url(let string):
-            try container.encode(string)
-        case .icon(let toolIconObject):
-            try container.encode(toolIconObject)
-        }
-    }
-}
-
-public struct ToolIconObject: Codable, Sendable {
-    public let background: String
-    public let content: String
 }
 
 /// Application site/webapp settings response
@@ -838,14 +218,606 @@ public struct ApplicationSiteResponse: Codable, Sendable {
     }
 }
 
-// MARK: - Enhanced Feedback Models
+/// File upload response
+public struct FileUploadResponse: Codable, Sendable {
+    public let id: String
+    public let name: String
+    public let size: Int
+    public let fileExtension: String
+    public let mimeType: String
+    public let createdBy: String
+    public let createdAt: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case size
+        case fileExtension = "extension"
+        case mimeType = "mime_type"
+        case createdBy = "created_by"
+        case createdAt = "created_at"
+    }
+}
 
-/// Enhanced message feedback request with content support
-public struct EnhancedMessageFeedbackRequest: Codable, Sendable {
-    public let rating: String?
-    public let user: String
+// MARK: - Completion Models
+
+/// Completion message response (for blocking mode)
+public struct CompletionMessageResponse: Codable, Sendable {
+    public let event: String
+    public let messageId: String
+    public let mode: String
+    public let answer: String
+    public let metadata: Metadata?
+    public let createdAt: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case messageId = "message_id"
+        case mode
+        case answer
+        case metadata
+        case createdAt = "created_at"
+    }
+}
+
+public struct Metadata: Codable, Sendable {
+    public let usage: Usage?
+    public let retrieverResources: [RetrieverResource]?
+
+    private enum CodingKeys: String, CodingKey {
+        case usage
+        case retrieverResources = "retriever_resources"
+    }
+}
+
+public struct Usage: Codable, Sendable {
+    public let promptTokens: Int
+    public let completionTokens: Int
+    public let totalTokens: Int
+    public let promptUnitPrice: String?
+    public let promptPriceUnit: String?
+    public let promptPrice: String?
+    public let completionUnitPrice: String?
+    public let completionPriceUnit: String?
+    public let completionPrice: String?
+    public let totalPrice: String?
+    public let currency: String?
+    public let latency: Double?
+
+    private enum CodingKeys: String, CodingKey {
+        case promptTokens = "prompt_tokens"
+        case completionTokens = "completion_tokens"
+        case totalTokens = "total_tokens"
+        case promptUnitPrice = "prompt_unit_price"
+        case promptPriceUnit = "prompt_price_unit"
+        case promptPrice = "prompt_price"
+        case completionUnitPrice = "completion_unit_price"
+        case completionPriceUnit = "completion_price_unit"
+        case completionPrice = "completion_price"
+        case totalPrice = "total_price"
+        case currency
+        case latency
+    }
+}
+
+public struct RetrieverResource: Codable, Sendable {
+    public let position: Int?
+    public let datasetId: String?
+    public let datasetName: String?
+    public let documentId: String?
+    public let documentName: String?
+    public let segmentId: String?
+    public let score: Double?
     public let content: String?
     
+    private enum CodingKeys: String, CodingKey {
+        case position
+        case datasetId = "dataset_id"
+        case datasetName = "dataset_name"
+        case documentId = "document_id"
+        case documentName = "document_name"
+        case segmentId = "segment_id"
+        case score
+        case content
+    }
+}
+
+// MARK: - Streaming Completion Response Models
+
+public enum StreamingCompletionResponse: Decodable, Sendable {
+    case message(MessageStreamEvent)
+    case messageEnd(MessageEndStreamEvent)
+    case ttsMessage(TTSMessageStreamEvent)
+    case ttsMessageEnd(TTSMessageEndStreamEvent)
+    case messageReplace(MessageReplaceStreamEvent)
+    case error(ErrorStreamEvent)
+    case ping
+
+    private enum CodingKeys: String, CodingKey {
+        case event
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let eventType = try container.decode(String.self, forKey: .event)
+        
+        switch eventType {
+        case "message":
+            self = .message(try MessageStreamEvent(from: decoder))
+        case "message_end":
+            self = .messageEnd(try MessageEndStreamEvent(from: decoder))
+        case "tts_message":
+            self = .ttsMessage(try TTSMessageStreamEvent(from: decoder))
+        case "tts_message_end":
+            self = .ttsMessageEnd(try TTSMessageEndStreamEvent(from: decoder))
+        case "message_replace":
+            self = .messageReplace(try MessageReplaceStreamEvent(from: decoder))
+        case "error":
+            self = .error(try ErrorStreamEvent(from: decoder))
+        case "ping":
+            self = .ping
+        default:
+            throw DecodingError.dataCorruptedError(forKey: .event, in: container, debugDescription: "Unknown event type: \(eventType)")
+        }
+    }
+}
+
+public struct MessageStreamEvent: Codable, Sendable {
+    public let event: String
+    public let taskId: String
+    public let messageId: String
+    public let answer: String
+    public let createdAt: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case taskId = "task_id"
+        case messageId = "message_id"
+        case answer
+        case createdAt = "created_at"
+    }
+}
+
+public struct MessageEndStreamEvent: Codable, Sendable {
+    public let event: String
+    public let taskId: String
+    public let messageId: String
+    public let metadata: Metadata
+
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case taskId = "task_id"
+        case messageId = "message_id"
+        case metadata
+    }
+}
+
+public struct TTSMessageStreamEvent: Codable, Sendable {
+    public let event: String
+    public let taskId: String
+    public let messageId: String
+    public let audio: String // Base64 encoded
+    public let createdAt: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case taskId = "task_id"
+        case messageId = "message_id"
+        case audio
+        case createdAt = "created_at"
+    }
+}
+
+public struct TTSMessageEndStreamEvent: Codable, Sendable {
+    public let event: String
+    public let taskId: String
+    public let messageId: String
+    public let audio: String // Empty string
+    public let createdAt: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case taskId = "task_id"
+        case messageId = "message_id"
+        case audio
+        case createdAt = "created_at"
+    }
+}
+
+public struct MessageReplaceStreamEvent: Codable, Sendable {
+    public let event: String
+    public let taskId: String
+    public let messageId: String
+    public let answer: String
+    public let createdAt: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case taskId = "task_id"
+        case messageId = "message_id"
+        case answer
+        case createdAt = "created_at"
+    }
+}
+
+public struct ErrorStreamEvent: Codable, Sendable {
+    public let event: String
+    public let taskId: String
+    public let messageId: String
+    public let status: Int
+    public let code: String
+    public let message: String
+
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case taskId = "task_id"
+        case messageId = "message_id"
+        case status
+        case code
+        case message
+    }
+}
+
+// MARK: - Chat Models
+
+public struct ChatMessageResponse: Codable, Sendable {
+    public let messageId: String
+    public let conversationId: String
+    public let mode: String
+    public let answer: String
+    public let metadata: Metadata?
+    public let createdAt: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case messageId = "message_id"
+        case conversationId = "conversation_id"
+        case mode
+        case answer
+        case metadata
+        case createdAt = "created_at"
+    }
+}
+
+public enum StreamingChatMessageResponse: Decodable, Sendable {
+    case message(MessageStreamEvent)
+    case messageEnd(MessageEndStreamEvent)
+    case agentMessage(AgentMessageStreamEvent)
+    case agentThought(AgentThoughtStreamEvent)
+    case error(ErrorStreamEvent)
+    case ping
+
+    private enum CodingKeys: String, CodingKey {
+        case event
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let eventType = try container.decode(String.self, forKey: .event)
+        
+        switch eventType {
+        case "message":
+            self = .message(try MessageStreamEvent(from: decoder))
+        case "message_end":
+            self = .messageEnd(try MessageEndStreamEvent(from: decoder))
+        case "agent_message":
+            self = .agentMessage(try AgentMessageStreamEvent(from: decoder))
+        case "agent_thought":
+            self = .agentThought(try AgentThoughtStreamEvent(from: decoder))
+        case "error":
+            self = .error(try ErrorStreamEvent(from: decoder))
+        case "ping":
+            self = .ping
+        default:
+            throw DecodingError.dataCorruptedError(forKey: .event, in: container, debugDescription: "Unknown event type: \(eventType)")
+        }
+    }
+}
+
+public struct AgentMessageStreamEvent: Codable, Sendable {
+    public let event: String
+    public let taskId: String
+    public let messageId: String
+    public let conversationId: String
+    public let answer: String
+    public let createdAt: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case taskId = "task_id"
+        case messageId = "message_id"
+        case conversationId = "conversation_id"
+        case answer
+        case createdAt = "created_at"
+    }
+}
+
+public struct AgentThoughtStreamEvent: Codable, Sendable {
+    // Define properties based on API documentation for agent_thought event
+    public let event: String
+}
+
+public struct ConversationsResponse: Codable, Sendable {
+    public let data: [Conversation]
+    public let hasMore: Bool
+    public let limit: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case data
+        case hasMore = "has_more"
+        case limit
+    }
+}
+
+public struct Conversation: Codable, Sendable {
+    public let id: String
+    public let name: String
+    public let inputs: [String: String]?
+    public let status: String
+    public let introduction: String?
+    public let createdAt: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, name, inputs, status, introduction
+        case createdAt = "created_at"
+    }
+}
+
+// MARK: - Workflow Models
+
+public struct WorkflowResponse: Codable, Sendable {
+    public let workflowRunId: String
+    public let taskId: String
+    public let data: WorkflowData
+    
+    private enum CodingKeys: String, CodingKey {
+        case workflowRunId = "workflow_run_id"
+        case taskId = "task_id"
+        case data
+    }
+}
+
+public struct WorkflowData: Codable, Sendable {
+    public let id: String
+    public let workflowId: String
+    public let status: String
+    public let outputs: [String: AnyCodable]?
+    public let error: String?
+    public let elapsedTime: Double
+    public let totalTokens: Int
+    public let totalSteps: Int
+    public let createdAt: Int
+    public let finishedAt: Int?
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case workflowId = "workflow_id"
+        case status
+        case outputs
+        case error
+        case elapsedTime = "elapsed_time"
+        case totalTokens = "total_tokens"
+        case totalSteps = "total_steps"
+        case createdAt = "created_at"
+        case finishedAt = "finished_at"
+    }
+}
+
+public enum StreamingWorkflowResponse: Decodable, Sendable {
+    case workflowStarted(WorkflowStartedEvent)
+    case nodeStarted(NodeStartedEvent)
+    case nodeFinished(NodeFinishedEvent)
+    case workflowFinished(WorkflowFinishedEvent)
+    case textChunk(TextChunkEvent)
+    case error(ErrorStreamEvent)
+    case ping
+
+    private enum CodingKeys: String, CodingKey {
+        case event
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let eventType = try container.decode(String.self, forKey: .event)
+        
+        switch eventType {
+        case "workflow_started":
+            self = .workflowStarted(try WorkflowStartedEvent(from: decoder))
+        case "node_started":
+            self = .nodeStarted(try NodeStartedEvent(from: decoder))
+        case "node_finished":
+            self = .nodeFinished(try NodeFinishedEvent(from: decoder))
+        case "workflow_finished":
+            self = .workflowFinished(try WorkflowFinishedEvent(from: decoder))
+        case "text_chunk":
+            self = .textChunk(try TextChunkEvent(from: decoder))
+        case "error":
+            self = .error(try ErrorStreamEvent(from: decoder))
+        case "ping":
+            self = .ping
+        default:
+            throw DecodingError.dataCorruptedError(forKey: .event, in: container, debugDescription: "Unknown event type: \(eventType)")
+        }
+    }
+}
+
+public struct WorkflowStartedEvent: Codable, Sendable {
+    public let event: String
+    public let taskId: String
+    public let workflowRunId: String
+    public let data: WorkflowData
+    
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case taskId = "task_id"
+        case workflowRunId = "workflow_run_id"
+        case data
+    }
+}
+
+public struct NodeStartedEvent: Codable, Sendable {
+    public let event: String
+    public let taskId: String
+    public let data: NodeExecutionData
+    
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case taskId = "task_id"
+        case data
+    }
+}
+
+public struct NodeFinishedEvent: Codable, Sendable {
+    public let event: String
+    public let taskId: String
+    public let data: NodeExecutionData
+    
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case taskId = "task_id"
+        case data
+    }
+}
+
+public struct WorkflowFinishedEvent: Codable, Sendable {
+    public let event: String
+    public let taskId: String
+    public let workflowRunId: String
+    public let data: WorkflowData
+    
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case taskId = "task_id"
+        case workflowRunId = "workflow_run_id"
+        case data
+    }
+}
+
+public struct TextChunkEvent: Codable, Sendable {
+    public let event: String
+    public let taskId: String
+    public let text: String
+    
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case taskId = "task_id"
+        case text
+    }
+}
+
+public struct NodeExecutionData: Codable, Sendable {
+    public let id: String
+    public let nodeId: String
+    public let index: Int
+    public let title: String
+    public let inputs: [String: AnyCodable]?
+    public let processData: [String: AnyCodable]?
+    public let outputs: [String: AnyCodable]?
+    public let status: String
+    public let error: String?
+    public let elapsedTime: Double
+    public let createdAt: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case nodeId = "node_id"
+        case index, title, inputs
+        case processData = "process_data"
+        case outputs, status, error
+        case elapsedTime = "elapsed_time"
+        case createdAt = "created_at"
+    }
+}
+
+// MARK: - Knowledge Base Models
+
+public struct DatasetResponse: Codable, Sendable {
+    public let id: String
+    public let name: String
+    public let description: String?
+    public let permission: String
+    public let dataSourceType: String
+    public let indexingTechnique: String
+    public let appCount: Int
+    public let documentCount: Int
+    public let wordCount: Int
+    public let createdBy: String
+    public let createdAt: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, name, description, permission
+        case dataSourceType = "data_source_type"
+        case indexingTechnique = "indexing_technique"
+        case appCount = "app_count"
+        case documentCount = "document_count"
+        case wordCount = "word_count"
+        case createdBy = "created_by"
+        case createdAt = "created_at"
+    }
+}
+
+public struct DatasetsResponse: Codable, Sendable {
+    public let data: [DatasetResponse]
+    public let hasMore: Bool
+    public let limit: Int
+    public let total: Int
+    public let page: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case data
+        case hasMore = "has_more"
+        case limit, total, page
+    }
+}
+
+public struct DocumentResponse: Codable, Sendable {
+    public let id: String
+    public let position: Int
+    public let name: String
+    public let tokens: Int
+    public let indexingStatus: String
+    public let createdBy: String
+    public let createdAt: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, position, name, tokens
+        case indexingStatus = "indexing_status"
+        case createdBy = "created_by"
+        case createdAt = "created_at"
+    }
+}
+
+public struct DocumentsResponse: Codable, Sendable {
+    public let data: [DocumentResponse]
+    public let hasMore: Bool
+    public let limit: Int
+    public let total: Int
+    public let page: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case data
+        case hasMore = "has_more"
+        case limit, total, page
+    }
+}
+
+public struct ProcessRule: Codable, Sendable {
+    public let mode: String
+    public let rules: [String: String]?
+    
+    public init(mode: String, rules: [String : String]? = nil) {
+        self.mode = mode
+        self.rules = rules
+    }
+}
+
+
+// MARK: - Feedback Models
+
+public struct MessageFeedbackRequest: Codable, Sendable {
+    public let rating: String? // "like", "dislike", or null
+    public let user: String
+    public let content: String?
+
     public init(rating: String?, user: String, content: String? = nil) {
         self.rating = rating
         self.user = user
@@ -853,18 +825,17 @@ public struct EnhancedMessageFeedbackRequest: Codable, Sendable {
     }
 }
 
-/// Application feedbacks list response
 public struct ApplicationFeedbacksResponse: Codable, Sendable {
     public let data: [FeedbackItem]
     
     public struct FeedbackItem: Codable, Sendable {
         public let id: String
-        public let appId: String
+        public let appId: String?
         public let conversationId: String?
-        public let messageId: String
-        public let rating: String
+        public let messageId: String?
+        public let rating: String?
         public let content: String?
-        public let fromSource: String
+        public let fromSource: String?
         public let fromEndUserId: String?
         public let fromAccountId: String?
         public let createdAt: String
@@ -886,320 +857,43 @@ public struct ApplicationFeedbacksResponse: Codable, Sendable {
     }
 }
 
-// MARK: - Conversation Variables Models
+// MARK: - Text to Audio Models
 
-/// Conversation variables response
-public struct ConversationVariablesResponse: Codable, Sendable {
-    public let limit: Int
-    public let hasMore: Bool
-    public let data: [ConversationVariable]
-    
-    private enum CodingKeys: String, CodingKey {
-        case limit
-        case hasMore = "has_more"
-        case data
-    }
-    
-    public struct ConversationVariable: Codable, Sendable {
-        public let id: String
-        public let name: String
-        public let valueType: String
-        public let value: String
-        public let description: String?
-        public let createdAt: Int
-        public let updatedAt: Int
-        
-        private enum CodingKeys: String, CodingKey {
-            case id
-            case name
-            case valueType = "value_type"
-            case value
-            case description
-            case createdAt = "created_at"
-            case updatedAt = "updated_at"
-        }
-    }
-}
-
-// MARK: - Annotation Models
-
-/// Annotation list response
-public struct AnnotationListResponse: Codable, Sendable {
-    public let data: [Annotation]
-    public let hasMore: Bool
-    public let limit: Int
-    public let total: Int
-    public let page: Int
-    
-    private enum CodingKeys: String, CodingKey {
-        case data
-        case hasMore = "has_more"
-        case limit
-        case total
-        case page
-    }
-    
-    public struct Annotation: Codable, Sendable {
-        public let id: String
-        public let question: String
-        public let answer: String
-        public let hitCount: Int
-        public let createdAt: Int
-        
-        private enum CodingKeys: String, CodingKey {
-            case id
-            case question
-            case answer
-            case hitCount = "hit_count"
-            case createdAt = "created_at"
-        }
-    }
-}
-
-/// Create/Update annotation request
-public struct AnnotationRequest: Codable, Sendable {
-    public let question: String
-    public let answer: String
-    
-    public init(question: String, answer: String) {
-        self.question = question
-        self.answer = answer
-    }
-}
-
-/// Annotation reply settings request
-public struct AnnotationReplySettingsRequest: Codable, Sendable {
-    public let scoreThreshold: Double?
-    public let embeddingProviderName: String?
-    public let embeddingModelName: String?
-    
-    private enum CodingKeys: String, CodingKey {
-        case scoreThreshold = "score_threshold"
-        case embeddingProviderName = "embedding_provider_name"
-        case embeddingModelName = "embedding_model_name"
-    }
-    
-    public init(scoreThreshold: Double? = nil, embeddingProviderName: String? = nil, embeddingModelName: String? = nil) {
-        self.scoreThreshold = scoreThreshold
-        self.embeddingProviderName = embeddingProviderName
-        self.embeddingModelName = embeddingModelName
-    }
-}
-
-/// Annotation reply settings response
-public struct AnnotationReplySettingsResponse: Codable, Sendable {
-    public let jobId: String
-    public let jobStatus: String
-    
-    private enum CodingKeys: String, CodingKey {
-        case jobId = "job_id"
-        case jobStatus = "job_status"
-    }
-}
-
-/// Annotation job status response
-public struct AnnotationJobStatusResponse: Codable, Sendable {
-    public let jobId: String
-    public let jobStatus: String
-    public let errorMsg: String?
-    
-    private enum CodingKeys: String, CodingKey {
-        case jobId = "job_id"
-        case jobStatus = "job_status"
-        case errorMsg = "error_msg"
-    }
-}
-
-// MARK: - Workflow Logs Models
-
-/// Workflow logs response
-public struct WorkflowLogsResponse: Codable, Sendable {
-    public let page: Int
-    public let limit: Int
-    public let total: Int
-    public let hasMore: Bool
-    public let data: [WorkflowLog]
-    
-    private enum CodingKeys: String, CodingKey {
-        case page
-        case limit
-        case total
-        case hasMore = "has_more"
-        case data
-    }
-    
-    public struct WorkflowLog: Codable, Sendable {
-        public let id: String
-        public let workflowRun: WorkflowRun
-        public let createdFrom: String
-        public let createdByRole: String
-        public let createdByAccount: String?
-        public let createdByEndUser: EndUser
-        public let createdAt: Int
-        
-        private enum CodingKeys: String, CodingKey {
-            case id
-            case workflowRun = "workflow_run"
-            case createdFrom = "created_from"
-            case createdByRole = "created_by_role"
-            case createdByAccount = "created_by_account"
-            case createdByEndUser = "created_by_end_user"
-            case createdAt = "created_at"
-        }
-        
-        public struct WorkflowRun: Codable, Sendable {
-            public let id: String
-            public let version: String
-            public let status: String
-            public let error: String?
-            public let elapsedTime: Double
-            public let totalTokens: Int
-            public let totalSteps: Int
-            public let createdAt: Int
-            public let finishedAt: Int?
-            
-            private enum CodingKeys: String, CodingKey {
-                case id
-                case version
-                case status
-                case error
-                case elapsedTime = "elapsed_time"
-                case totalTokens = "total_tokens"
-                case totalSteps = "total_steps"
-                case createdAt = "created_at"
-                case finishedAt = "finished_at"
-            }
-        }
-        
-        public struct EndUser: Codable, Sendable {
-            public let id: String
-            public let type: String
-            public let isAnonymous: Bool
-            public let sessionId: String
-            
-            private enum CodingKeys: String, CodingKey {
-                case id
-                case type
-                case isAnonymous = "is_anonymous"
-                case sessionId = "session_id"
-            }
-        }
-    }
-}
-
-// MARK: - Streaming Event Models
-
-/// Streaming event types for advanced features
-public enum StreamingEventType: String, Codable, Sendable {
-    case message
-    case messageEnd = "message_end"
-    case messageReplace = "message_replace"
-    case messageFile = "message_file"
-    case agentMessage = "agent_message"
-    case agentThought = "agent_thought"
-    case ttsMessage = "tts_message"
-    case ttsMessageEnd = "tts_message_end"
-    case workflowStarted = "workflow_started"
-    case nodeStarted = "node_started"
-    case nodeFinished = "node_finished"
-    case workflowFinished = "workflow_finished"
-    case textChunk = "text_chunk"
-    case error
-    case ping
-}
-
-/// Base streaming event protocol
-public protocol StreamingEvent: Codable, Sendable {
-    var event: StreamingEventType { get }
-    var taskId: String? { get }
-    var messageId: String? { get }
-    var conversationId: String? { get }
-    var createdAt: Int? { get }
-}
-
-/// Generic streaming event container
-public struct GenericStreamingEvent: Codable, @unchecked Sendable {
-    public let event: StreamingEventType
-    public let taskId: String?
+public struct TextToAudioRequest: Codable, Sendable {
     public let messageId: String?
-    public let conversationId: String?
-    public let workflowRunId: String?
-    public let createdAt: Int?
-    public let data: [String: Any]?
-    
+    public let text: String?
+    public let user: String
+
     private enum CodingKeys: String, CodingKey {
-        case event
-        case taskId = "task_id"
         case messageId = "message_id"
-        case conversationId = "conversation_id"
-        case workflowRunId = "workflow_run_id"
-        case createdAt = "created_at"
-        case data
+        case text
+        case user
     }
-    
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        event = try container.decode(StreamingEventType.self, forKey: .event)
-        taskId = try container.decodeIfPresent(String.self, forKey: .taskId)
-        messageId = try container.decodeIfPresent(String.self, forKey: .messageId)
-        conversationId = try container.decodeIfPresent(String.self, forKey: .conversationId)
-        workflowRunId = try container.decodeIfPresent(String.self, forKey: .workflowRunId)
-        createdAt = try container.decodeIfPresent(Int.self, forKey: .createdAt)
-        
-        // Try to decode additional data as a generic dictionary
-        if let dataContainer = try? container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: .data) {
-            var dataDict: [String: Any] = [:]
-            for key in dataContainer.allKeys {
-                if let value = try? dataContainer.decode(AnyCodable.self, forKey: key) {
-                    dataDict[key.stringValue] = value.value
-                }
-            }
-            data = dataDict.isEmpty ? nil : dataDict
-        } else {
-            data = nil
-        }
-    }
-    
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(event, forKey: .event)
-        try container.encodeIfPresent(taskId, forKey: .taskId)
-        try container.encodeIfPresent(messageId, forKey: .messageId)
-        try container.encodeIfPresent(conversationId, forKey: .conversationId)
-        try container.encodeIfPresent(workflowRunId, forKey: .workflowRunId)
-        try container.encodeIfPresent(createdAt, forKey: .createdAt)
-        
-        if let data = data {
-            var dataContainer = container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: .data)
-            for (key, value) in data {
-                let codingKey = AnyCodingKey(stringValue: key)!
-                try dataContainer.encode(AnyCodable(value), forKey: codingKey)
-            }
-        }
+
+    public init(messageId: String? = nil, text: String? = nil, user: String) {
+        self.messageId = messageId
+        self.text = text
+        self.user = user
     }
 }
 
-// MARK: - Utility Types for Generic Decoding
+// MARK: - AnyCodable Helper
 
-/// Helper for encoding/decoding Any values
 public struct AnyCodable: Codable, @unchecked Sendable {
     public let value: Any
-    
+
     public init(_ value: Any) {
         self.value = value
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        
-        if container.decodeNil() {
-            value = NSNull()
-        } else if let boolValue = try? container.decode(Bool.self) {
-            value = boolValue
-        } else if let intValue = try? container.decode(Int.self) {
+        if let intValue = try? container.decode(Int.self) {
             value = intValue
         } else if let doubleValue = try? container.decode(Double.self) {
             value = doubleValue
+        } else if let boolValue = try? container.decode(Bool.self) {
+            value = boolValue
         } else if let stringValue = try? container.decode(String.self) {
             value = stringValue
         } else if let arrayValue = try? container.decode([AnyCodable].self) {
@@ -1207,46 +901,26 @@ public struct AnyCodable: Codable, @unchecked Sendable {
         } else if let dictValue = try? container.decode([String: AnyCodable].self) {
             value = dictValue.mapValues { $0.value }
         } else {
-            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unsupported type")
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "AnyCodable value cannot be decoded")
         }
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        
-        switch value {
-        case is NSNull:
-            try container.encodeNil()
-        case let boolValue as Bool:
-            try container.encode(boolValue)
-        case let intValue as Int:
+        if let intValue = value as? Int {
             try container.encode(intValue)
-        case let doubleValue as Double:
+        } else if let doubleValue = value as? Double {
             try container.encode(doubleValue)
-        case let stringValue as String:
+        } else if let boolValue = value as? Bool {
+            try container.encode(boolValue)
+        } else if let stringValue = value as? String {
             try container.encode(stringValue)
-        case let arrayValue as [Any]:
+        } else if let arrayValue = value as? [Any] {
             try container.encode(arrayValue.map { AnyCodable($0) })
-        case let dictValue as [String: Any]:
+        } else if let dictValue = value as? [String: Any] {
             try container.encode(dictValue.mapValues { AnyCodable($0) })
-        default:
-            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: encoder.codingPath, debugDescription: "Unsupported type"))
+        } else {
+            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [], debugDescription: "AnyCodable value cannot be encoded"))
         }
-    }
-}
-
-/// Dynamic coding key for generic dictionaries
-public struct AnyCodingKey: CodingKey {
-    public let stringValue: String
-    public let intValue: Int?
-    
-    public init?(stringValue: String) {
-        self.stringValue = stringValue
-        self.intValue = nil
-    }
-    
-    public init?(intValue: Int) {
-        self.stringValue = String(intValue)
-        self.intValue = intValue
     }
 }

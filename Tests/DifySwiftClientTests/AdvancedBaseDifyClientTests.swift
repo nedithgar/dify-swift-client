@@ -105,23 +105,23 @@ struct AdvancedBaseDifyClientMockTests {
     func testTextToAudio() async throws {
         MockURLProtocol.registerMock(
             endpoint: "text-to-audio",
-            response: MockURLProtocol.MockResponse.json(MockDataProvider.textToAudioResponse)
+            response: MockURLProtocol.MockResponse.data(MockDataProvider.textToAudioResponse, contentType: "audio/wav")
         )
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         MockRequestCapture.startCapturing()
         defer { MockRequestCapture.stopCapturing() }
         
-        let response = try await client.textToAudio(
+        let audioData = try await client.getTextToAudio(
             text: "Hello, this is a test message for audio conversion.",
-            user: MockTestConfig.user,
-            streaming: false
+            user: MockTestConfig.user
         )
         
-        #expect(response.taskId == "audio-task-123")
-        #expect(response.audio?.starts(with: "data:audio/wav;base64,") == true)
+        // Verify that we got valid audio data
+        #expect(audioData.count > 0)
+        #expect(audioData.starts(with: "RIFF".data(using: .ascii)!))
         
         // Validate request
         let requests = MockRequestCapture.getCapturedRequests()
@@ -132,9 +132,15 @@ struct AdvancedBaseDifyClientMockTests {
         )
         
         struct ExpectedRequest: Codable, Sendable {
-            let text: String
+            let text: String?
+            let messageId: String?
             let user: String
-            let streaming: Bool
+            
+            private enum CodingKeys: String, CodingKey {
+                case text
+                case messageId = "message_id"
+                case user
+            }
         }
         
         let requestBody = try TestUtilities.validateJSONRequestBody(
@@ -144,7 +150,7 @@ struct AdvancedBaseDifyClientMockTests {
         
         #expect(requestBody.text == "Hello, this is a test message for audio conversion.")
         #expect(requestBody.user == MockTestConfig.user)
-        #expect(requestBody.streaming == false)
+        #expect(requestBody.messageId == nil)
     }
     
     @Test("Get meta information")
@@ -732,10 +738,10 @@ struct BaseClientErrorHandlingTests {
         )
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         await TestUtilities.expectError(DifyError.self) {
-            try await client.textToAudio(
+            try await client.getTextToAudio(
                 text: "Test audio conversion",
                 user: MockTestConfig.user
             )
@@ -773,21 +779,21 @@ struct BaseClientEdgeCasesTests {
     func testTextToAudioWithSpecialCharacters() async throws {
         MockURLProtocol.registerMock(
             endpoint: "text-to-audio",
-            response: MockURLProtocol.MockResponse.json(MockDataProvider.textToAudioResponse)
+            response: MockURLProtocol.MockResponse.data(MockDataProvider.textToAudioResponse, contentType: "audio/wav")
         )
         defer { TestUtilities.cleanup() }
         
-        let client = try TestUtilities.createMockDifyClient()
+        let client = try TestUtilities.createMockCompletionClient()
         
         let specialText = "Hello! 你好世界 🌍 Café naïve résumé. Testing special chars: !@#$%^&*()_+-=[]{}|;':\",./<>?"
         
-        let response = try await client.textToAudio(
+        let audioData = try await client.getTextToAudio(
             text: specialText,
-            user: MockTestConfig.user,
-            streaming: true
+            user: MockTestConfig.user
         )
         
-        #expect(response.taskId == "audio-task-123")
+        #expect(audioData.count > 0)
+        #expect(audioData.starts(with: "RIFF".data(using: .ascii)!))
     }
     
     @Test("Handle concurrent API requests")

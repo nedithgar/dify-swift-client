@@ -3,431 +3,87 @@ import Foundation
 import FoundationNetworking
 #endif
 
-/// Client for knowledge base management with Dify
+/// A client for managing knowledge bases (datasets, documents, and segments) in the Dify API.
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 public final class KnowledgeBaseClient: DifyClient, @unchecked Sendable {
     
-    // MARK: - Properties
+    // MARK: - Datasets
     
-    public let datasetId: String?
-    
-    // MARK: - Initialization
-    
-    /// Initialize a new knowledge base client
+    /// Retrieves a list of datasets.
     /// - Parameters:
-    ///   - apiKey: Your Dify API key
-    ///   - baseURL: Base URL for the Dify API
-    ///   - datasetId: Optional dataset ID for operations requiring a specific dataset
-    ///   - session: URLSession to use for requests
-    public init(apiKey: String, baseURL: String = "https://api.dify.ai/v1", datasetId: String? = nil, session: URLSession = .shared) throws {
-        self.datasetId = datasetId
-        try super.init(apiKey: apiKey, baseURL: baseURL, session: session)
-    }
-    
-    /// Get the dataset ID, throwing an error if not set
-    /// - Returns: Dataset ID
-    /// - Throws: DifyError.missingDatasetId if dataset ID is not set
-    private func getDatasetId() throws -> String {
-        guard let datasetId = datasetId else {
-            throw DifyError.missingDatasetId
-        }
-        return datasetId
-    }
-    
-    // MARK: - Dataset Management
-    
-    /// Create a new dataset
-    /// - Parameter name: Name of the dataset
-    /// - Returns: Dataset response
-    public func createDataset(name: String) async throws -> DatasetResponse {
-        struct CreateDatasetRequest: Codable {
-            let name: String
-        }
-        
-        let request = CreateDatasetRequest(name: name)
-        let data = try await sendRequest(
-            method: .POST,
-            endpoint: "/datasets",
-            body: request
-        )
-        
-        return try decode(data, to: DatasetResponse.self)
-    }
-    
-    /// List datasets
-    /// - Parameters:
-    ///   - page: Page number (default: 1)
-    ///   - pageSize: Number of items per page (default: 20)
-    /// - Returns: Datasets response
-    public func listDatasets(page: Int = 1, pageSize: Int = 20) async throws -> DatasetsResponse {
-        let queryItems = [
-            URLQueryItem(name: "page", value: String(page)),
-            URLQueryItem(name: "limit", value: String(pageSize))
-        ]
-        
-        let data = try await sendRequest(
-            method: .GET,
-            endpoint: "/datasets",
-            queryItems: queryItems
-        )
-        
+    ///   - page: The page number for pagination.
+    ///   - limit: The number of datasets to return per page.
+    /// - Returns: A `DatasetsResponse` object containing the list of datasets.
+    public func listDatasets(page: Int = 1, limit: Int = 20) async throws -> DatasetsResponse {
+        let params = ["page": String(page), "limit": String(limit)]
+        let data = try await sendRequest(method: .GET, endpoint: "/datasets", params: params)
         return try decode(data, to: DatasetsResponse.self)
     }
     
-    /// Delete the current dataset
-    /// - Returns: Empty response (204 status code expected)
-    public func deleteDataset() async throws {
-        let datasetId = try getDatasetId()
-        _ = try await sendRequest(
-            method: .DELETE,
-            endpoint: "/datasets/\(datasetId)"
-        )
+    /// Creates a new dataset.
+    /// - Parameter name: The name for the new dataset.
+    /// - Returns: A `DatasetResponse` object for the newly created dataset.
+    public func createDataset(name: String) async throws -> DatasetResponse {
+        let requestBody = ["name": name]
+        let data = try await sendRequest(method: .POST, endpoint: "/datasets", body: requestBody)
+        return try decode(data, to: DatasetResponse.self)
     }
     
-    // MARK: - Document Management
-    
-    /// Create a document by text
-    /// - Parameters:
-    ///   - name: Name of the document
-    ///   - text: Text content of the document
-    ///   - extraParams: Additional parameters for indexing and processing
-    /// - Returns: Create document response
-    public func createDocumentByText(
-        name: String,
-        text: String,
-        extraParams: [String: Any]? = nil
-    ) async throws -> CreateDocumentResponse {
-        let datasetId = try getDatasetId()
-        
-        var requestData: [String: Any] = [
-            "indexing_technique": "high_quality",
-            "process_rule": ["mode": "automatic"],
-            "name": name,
-            "text": text
-        ]
-        
-        if let extraParams = extraParams {
-            for (key, value) in extraParams {
-                requestData[key] = value
-            }
-        }
-        
-        let jsonData = try JSONSerialization.data(withJSONObject: requestData)
-        let data = try await sendRawJSONRequest(
-            method: .POST,
-            endpoint: "/datasets/\(datasetId)/document/create_by_text",
-            jsonData: jsonData
-        )
-        
-        return try decode(data, to: CreateDocumentResponse.self)
+    /// Deletes a dataset.
+    /// - Parameter datasetId: The ID of the dataset to delete.
+    /// - Returns: A `BaseResponse` indicating the result of the operation.
+    public func deleteDataset(datasetId: String) async throws -> BaseResponse {
+        let data = try await sendRequest(method: .DELETE, endpoint: "/datasets/\(datasetId)")
+        return try decode(data, to: BaseResponse.self)
     }
     
-    /// Update a document by text
-    /// - Parameters:
-    ///   - documentId: ID of the document to update
-    ///   - name: New name of the document
-    ///   - text: New text content of the document
-    ///   - extraParams: Additional parameters for indexing and processing
-    /// - Returns: Create document response
-    public func updateDocumentByText(
-        documentId: String,
-        name: String,
-        text: String,
-        extraParams: [String: Any]? = nil
-    ) async throws -> CreateDocumentResponse {
-        let datasetId = try getDatasetId()
-        
-        var requestData: [String: Any] = [
-            "name": name,
-            "text": text
-        ]
-        
-        if let extraParams = extraParams {
-            for (key, value) in extraParams {
-                requestData[key] = value
-            }
-        }
-        
-        let jsonData = try JSONSerialization.data(withJSONObject: requestData)
-        let data = try await sendRawJSONRequest(
-            method: .POST,
-            endpoint: "/datasets/\(datasetId)/documents/\(documentId)/update_by_text",
-            jsonData: jsonData
-        )
-        
-        return try decode(data, to: CreateDocumentResponse.self)
-    }
+    // MARK: - Documents
     
-    /// Create a document by file
+    /// Retrieves a list of documents within a specific dataset.
     /// - Parameters:
-    ///   - fileData: File data to upload
-    ///   - filename: Name of the file
-    ///   - mimeType: MIME type of the file
-    ///   - originalDocumentId: Optional ID of document to replace
-    ///   - extraParams: Additional parameters for indexing and processing
-    /// - Returns: Create document response
-    public func createDocumentByFile(
-        fileData: Data,
-        filename: String,
-        mimeType: String,
-        originalDocumentId: String? = nil,
-        extraParams: [String: Any]? = nil
-    ) async throws -> CreateDocumentResponse {
-        let datasetId = try getDatasetId()
+    ///   - datasetId: The ID of the dataset.
+    ///   - page: The page number for pagination.
+    ///   - limit: The number of documents to return per page.
+    ///   - keyword: An optional keyword to filter documents by name.
+    /// - Returns: A `DocumentsResponse` object containing the list of documents.
+    public func listDocuments(datasetId: String, page: Int = 1, limit: Int = 20, keyword: String? = nil) async throws -> DocumentsResponse {
+        var params = ["page": String(page), "limit": String(limit)]
+        if let keyword { params["keyword"] = keyword }
         
-        var requestData: [String: Any] = [
-            "process_rule": ["mode": "automatic"],
-            "indexing_technique": "high_quality"
-        ]
-        
-        if let extraParams = extraParams {
-            for (key, value) in extraParams {
-                requestData[key] = value
-            }
-        }
-        
-        if let originalDocumentId = originalDocumentId {
-            requestData["original_document_id"] = originalDocumentId
-        }
-        
-        let jsonString = String(data: try JSONSerialization.data(withJSONObject: requestData), encoding: .utf8) ?? "{}"
-        
-        let data = try await sendRequestWithFiles(
-            method: .POST,
-            endpoint: "/datasets/\(datasetId)/document/create_by_file",
-            parameters: ["data": jsonString],
-            files: [(key: "file", filename: filename, data: fileData, mimeType: mimeType)]
-        )
-        
-        return try decode(data, to: CreateDocumentResponse.self)
-    }
-    
-    /// Update a document by file
-    /// - Parameters:
-    ///   - documentId: ID of the document to update
-    ///   - fileData: File data to upload
-    ///   - filename: Name of the file
-    ///   - mimeType: MIME type of the file
-    ///   - extraParams: Additional parameters for indexing and processing
-    /// - Returns: Create document response
-    public func updateDocumentByFile(
-        documentId: String,
-        fileData: Data,
-        filename: String,
-        mimeType: String,
-        extraParams: [String: Any]? = nil
-    ) async throws -> CreateDocumentResponse {
-        let datasetId = try getDatasetId()
-        
-        var requestData: [String: Any] = [:]
-        
-        if let extraParams = extraParams {
-            for (key, value) in extraParams {
-                requestData[key] = value
-            }
-        }
-        
-        let jsonString = String(data: try JSONSerialization.data(withJSONObject: requestData), encoding: .utf8) ?? "{}"
-        
-        let data = try await sendRequestWithFiles(
-            method: .POST,
-            endpoint: "/datasets/\(datasetId)/documents/\(documentId)/update_by_file",
-            parameters: ["data": jsonString],
-            files: [(key: "file", filename: filename, data: fileData, mimeType: mimeType)]
-        )
-        
-        return try decode(data, to: CreateDocumentResponse.self)
-    }
-    
-    /// List documents in the dataset
-    /// - Parameters:
-    ///   - page: Page number
-    ///   - pageSize: Number of items per page
-    ///   - keyword: Search keyword
-    /// - Returns: Documents response
-    public func listDocuments(
-        page: Int? = nil,
-        pageSize: Int? = nil,
-        keyword: String? = nil
-    ) async throws -> DocumentsResponse {
-        let datasetId = try getDatasetId()
-        
-        var queryItems: [URLQueryItem] = []
-        
-        if let page = page {
-            queryItems.append(URLQueryItem(name: "page", value: String(page)))
-        }
-        if let pageSize = pageSize {
-            queryItems.append(URLQueryItem(name: "limit", value: String(pageSize)))
-        }
-        if let keyword = keyword {
-            queryItems.append(URLQueryItem(name: "keyword", value: keyword))
-        }
-        
-        let data = try await sendRequest(
-            method: .GET,
-            endpoint: "/datasets/\(datasetId)/documents",
-            queryItems: queryItems
-        )
-        
+        let data = try await sendRequest(method: .GET, endpoint: "/datasets/\(datasetId)/documents", params: params)
         return try decode(data, to: DocumentsResponse.self)
     }
     
-    /// Delete a document
-    /// - Parameter documentId: ID of the document to delete
-    /// - Returns: Base response
-    public func deleteDocument(documentId: String) async throws -> BaseResponse {
-        let datasetId = try getDatasetId()
-        let data = try await sendRequest(
-            method: .DELETE,
-            endpoint: "/datasets/\(datasetId)/documents/\(documentId)"
-        )
+    /// Creates a new document by uploading a file.
+    /// - Parameters:
+    ///   - datasetId: The ID of the dataset to add the document to.
+    ///   - fileData: The raw data of the file.
+    ///   - fileName: The name of the file.
+    ///   - processRule: The processing rule for the document.
+    /// - Returns: A `DocumentResponse` for the newly created document.
+    public func createDocument(datasetId: String, fileData: Data, fileName: String, processRule: ProcessRule) async throws -> DocumentResponse {
+        let multipart = MultipartFormData()
+        multipart.addTextField(named: "name", value: fileName)
         
+        if let processRuleData = try? JSONEncoder.difyEncoder.encode(processRule),
+           let processRuleString = String(data: processRuleData, encoding: .utf8) {
+            multipart.addTextField(named: "process_rule", value: processRuleString)
+        }
+        
+        multipart.addFileField(named: "file", fileName: fileName, data: fileData, mimeType: "application/octet-stream")
+        
+        let request = try createURLRequest(method: .POST, endpoint: "/datasets/\(datasetId)/documents/upload", multipart: multipart)
+        let (data, _) = try await URLSession.shared.data(for: request)
+        return try decode(data, to: DocumentResponse.self)
+    }
+    
+    /// Deletes a document.
+    /// - Parameters:
+    ///   - datasetId: The ID of the dataset containing the document.
+    ///   - documentId: The ID of the document to delete.
+    /// - Returns: A `BaseResponse` indicating the result of the operation.
+    public func deleteDocument(datasetId: String, documentId: String) async throws -> BaseResponse {
+        let data = try await sendRequest(method: .DELETE, endpoint: "/datasets/\(datasetId)/documents/\(documentId)")
         return try decode(data, to: BaseResponse.self)
-    }
-    
-    /// Get batch indexing status
-    /// - Parameter batchId: Batch ID to check status for
-    /// - Returns: Batch indexing status response
-    public func batchIndexingStatus(batchId: String) async throws -> BatchIndexingStatusResponse {
-        let datasetId = try getDatasetId()
-        let data = try await sendRequest(
-            method: .GET,
-            endpoint: "/datasets/\(datasetId)/documents/\(batchId)/indexing-status"
-        )
-        
-        return try decode(data, to: BatchIndexingStatusResponse.self)
-    }
-    
-    // MARK: - Segment Management
-    
-    /// Add segments to a document
-    /// - Parameters:
-    ///   - documentId: ID of the document
-    ///   - segments: Array of segment data
-    /// - Returns: Add segments response
-    public func addSegments(documentId: String, segments: [SegmentData]) async throws -> AddSegmentsResponse {
-        let datasetId = try getDatasetId()
-        
-        struct AddSegmentsRequest: Codable {
-            let segments: [SegmentData]
-        }
-        
-        let request = AddSegmentsRequest(segments: segments)
-        let data = try await sendRequest(
-            method: .POST,
-            endpoint: "/datasets/\(datasetId)/documents/\(documentId)/segments",
-            body: request
-        )
-        
-        return try decode(data, to: AddSegmentsResponse.self)
-    }
-    
-    /// Query segments in a document
-    /// - Parameters:
-    ///   - documentId: ID of the document
-    ///   - keyword: Search keyword
-    ///   - status: Status filter
-    /// - Returns: Segments response
-    public func querySegments(
-        documentId: String,
-        keyword: String? = nil,
-        status: String? = nil
-    ) async throws -> SegmentsResponse {
-        let datasetId = try getDatasetId()
-        
-        var queryItems: [URLQueryItem] = []
-        
-        if let keyword = keyword {
-            queryItems.append(URLQueryItem(name: "keyword", value: keyword))
-        }
-        if let status = status {
-            queryItems.append(URLQueryItem(name: "status", value: status))
-        }
-        
-        let data = try await sendRequest(
-            method: .GET,
-            endpoint: "/datasets/\(datasetId)/documents/\(documentId)/segments",
-            queryItems: queryItems
-        )
-        
-        return try decode(data, to: SegmentsResponse.self)
-    }
-    
-    /// Update a document segment
-    /// - Parameters:
-    ///   - documentId: ID of the document
-    ///   - segmentId: ID of the segment
-    ///   - segmentData: New segment data
-    /// - Returns: Update segment response
-    public func updateDocumentSegment(
-        documentId: String,
-        segmentId: String,
-        segmentData: SegmentData
-    ) async throws -> UpdateSegmentResponse {
-        let datasetId = try getDatasetId()
-        
-        struct UpdateSegmentRequest: Codable {
-            let segment: SegmentData
-        }
-        
-        let request = UpdateSegmentRequest(segment: segmentData)
-        let data = try await sendRequest(
-            method: .POST,
-            endpoint: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)",
-            body: request
-        )
-        
-        return try decode(data, to: UpdateSegmentResponse.self)
-    }
-    
-    /// Delete a document segment
-    /// - Parameters:
-    ///   - documentId: ID of the document
-    ///   - segmentId: ID of the segment to delete
-    /// - Returns: Base response
-    public func deleteDocumentSegment(documentId: String, segmentId: String) async throws -> BaseResponse {
-        let datasetId = try getDatasetId()
-        let data = try await sendRequest(
-            method: .DELETE,
-            endpoint: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)"
-        )
-        
-        return try decode(data, to: BaseResponse.self)
-    }
-    
-    // MARK: - Private Helper Methods
-    
-    /// Send a raw JSON request (used for complex request bodies)
-    /// - Parameters:
-    ///   - method: HTTP method
-    ///   - endpoint: API endpoint
-    ///   - jsonData: Raw JSON data
-    /// - Returns: Response data
-    private func sendRawJSONRequest(
-        method: HTTPMethod,
-        endpoint: String,
-        jsonData: Data
-    ) async throws -> Data {
-        let url = baseURL.appendingPathComponent(endpoint)
-        var request = URLRequest(url: url)
-        request.httpMethod = method.rawValue
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = jsonData
-        
-        let session = URLSession.shared
-        let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw DifyError.invalidResponse
-        }
-        
-        guard 200...299 ~= httpResponse.statusCode else {
-            let errorMessage = String(data: data, encoding: .utf8)
-            throw DifyError.httpError(httpResponse.statusCode, errorMessage)
-        }
-        
-        return data
     }
 }

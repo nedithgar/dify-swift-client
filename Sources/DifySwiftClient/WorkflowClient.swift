@@ -3,158 +3,61 @@ import Foundation
 import FoundationNetworking
 #endif
 
-/// Client for workflow-based interactions with Dify
+/// A client for executing and managing workflows in the Dify API.
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 public final class WorkflowClient: DifyClient, @unchecked Sendable {
     
-    // MARK: - Workflow Methods
+    // MARK: - Workflow Execution
     
-    /// Run a workflow
+    /// Runs a workflow and waits for the complete result.
     /// - Parameters:
-    ///   - inputs: Input parameters for the workflow
-    ///   - responseMode: Response mode (streaming or blocking)
-    ///   - user: User identifier
-    /// - Returns: Workflow response
-    public func run(
-        inputs: [String: String],
-        responseMode: ResponseMode = .streaming,
-        user: String = "abc-123"
-    ) async throws -> WorkflowResponse {
-        struct WorkflowRequest: Codable {
-            let inputs: [String: String]
-            let responseMode: ResponseMode
-            let user: String
-            
-            private enum CodingKeys: String, CodingKey {
-                case inputs
-                case responseMode = "response_mode"
-                case user
-            }
-        }
-        
-        let request = WorkflowRequest(
-            inputs: inputs,
-            responseMode: responseMode,
-            user: user
-        )
-        
-        let data = try await sendRequest(
-            method: .POST,
-            endpoint: "/workflows/run",
-            body: request
-        )
-        
+    ///   - inputs: A dictionary of input variables for the workflow.
+    ///   - user: A unique identifier for the end-user.
+    /// - Returns: A `WorkflowResponse` object containing the final result of the workflow execution.
+    public func runWorkflow(inputs: [String: Any], user: String) async throws -> WorkflowResponse {
+        let requestBody = WorkflowRequestBody(inputs: inputs, responseMode: .blocking, user: user)
+        let data = try await sendRequest(method: .POST, endpoint: "/workflows/run", body: requestBody)
         return try decode(data, to: WorkflowResponse.self)
     }
     
-    /// Run a workflow with streaming response
+    /// Runs a workflow and streams the events.
     /// - Parameters:
-    ///   - inputs: Input parameters for the workflow
-    ///   - user: User identifier
-    /// - Returns: Async sequence of data chunks
-    public func runStreaming(
-        inputs: [String: String],
-        user: String = "abc-123"
-    ) async throws -> StreamingResponse {
-        struct WorkflowRequest: Codable {
-            let inputs: [String: String]
-            let responseMode: ResponseMode
-            let user: String
-            
-            private enum CodingKeys: String, CodingKey {
-                case inputs
-                case responseMode = "response_mode"
-                case user
-            }
-        }
-        
-        let request = WorkflowRequest(
-            inputs: inputs,
-            responseMode: .streaming,
-            user: user
-        )
-        
-        let url = baseURL.appendingPathComponent("/workflows/run")
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = HTTPMethod.POST.rawValue
-        try urlRequest.setJSONBody(request)
-        
-        return createStreamingResponse(for: urlRequest)
+    ///   - inputs: A dictionary of input variables for the workflow.
+    ///   - user: A unique identifier for the end-user.
+    /// - Returns: An `AsyncThrowingStream` of `StreamingWorkflowResponse` events.
+    public func runStreamingWorkflow(inputs: [String: Any], user: String) async throws -> AsyncThrowingStream<StreamingWorkflowResponse, Error> {
+        let requestBody = WorkflowRequestBody(inputs: inputs, responseMode: .streaming, user: user)
+        let request = try createURLRequest(method: .POST, endpoint: "/workflows/run", body: requestBody)
+        return try await createStreamingResponse(for: request)
     }
     
-    /// Stop a workflow task
+    /// Stops a running workflow task.
     /// - Parameters:
-    ///   - taskId: Task ID to stop
-    ///   - user: User identifier
-    /// - Returns: Base response
-    public func stop(taskId: String, user: String) async throws -> BaseResponse {
-        struct StopRequest: Codable {
-            let user: String
-        }
-        
-        let request = StopRequest(user: user)
-        let data = try await sendRequest(
-            method: .POST,
-            endpoint: "/workflows/tasks/\(taskId)/stop",
-            body: request
-        )
-        
+    ///   - taskId: The ID of the task to stop, obtained from a streaming event.
+    ///   - user: The user identifier.
+    /// - Returns: A `BaseResponse` indicating the result of the operation.
+    public func stopWorkflowTask(taskId: String, user: String) async throws -> BaseResponse {
+        let requestBody = ["user": user]
+        let data = try await sendRequest(method: .POST, endpoint: "/workflows/tasks/\(taskId)/stop", body: requestBody)
         return try decode(data, to: BaseResponse.self)
     }
     
-    /// Get workflow run result
-    /// - Parameter workflowRunId: Workflow run ID
-    /// - Returns: Workflow response
-    public func getResult(workflowRunId: String) async throws -> WorkflowResponse {
-        let data = try await sendRequest(
-            method: .GET,
-            endpoint: "/workflows/run/\(workflowRunId)"
-        )
-        
-        return try decode(data, to: WorkflowResponse.self)
-    }
+    // MARK: - Private Helpers
     
-    /// Get workflow logs
-    /// - Parameters:
-    ///   - keyword: Optional keyword to search
-    ///   - status: Optional status filter (succeeded/failed/stopped)
-    ///   - page: Page number (default 1)
-    ///   - limit: Records per page (default 20)
-    ///   - createdByEndUserSessionId: Optional filter by end user session ID
-    ///   - createdByAccount: Optional filter by account email
-    /// - Returns: Workflow logs response
-    public func getWorkflowLogs(
-        keyword: String? = nil,
-        status: String? = nil,
-        page: Int = 1,
-        limit: Int = 20,
-        createdByEndUserSessionId: String? = nil,
-        createdByAccount: String? = nil
-    ) async throws -> WorkflowLogsResponse {
-        var queryItems: [URLQueryItem] = [
-            URLQueryItem(name: "page", value: String(page)),
-            URLQueryItem(name: "limit", value: String(limit))
-        ]
+    private struct WorkflowRequestBody: Codable {
+        let inputs: [String: AnyCodable]
+        let responseMode: ResponseMode
+        let user: String
         
-        if let keyword = keyword {
-            queryItems.append(URLQueryItem(name: "keyword", value: keyword))
-        }
-        if let status = status {
-            queryItems.append(URLQueryItem(name: "status", value: status))
-        }
-        if let sessionId = createdByEndUserSessionId {
-            queryItems.append(URLQueryItem(name: "created_by_end_user_session_id", value: sessionId))
-        }
-        if let account = createdByAccount {
-            queryItems.append(URLQueryItem(name: "created_by_account", value: account))
+        init(inputs: [String: Any], responseMode: ResponseMode, user: String) {
+            self.inputs = inputs.mapValues { AnyCodable($0) }
+            self.responseMode = responseMode
+            self.user = user
         }
         
-        let data = try await sendRequest(
-            method: .GET,
-            endpoint: "/workflows/logs",
-            queryItems: queryItems
-        )
-        
-        return try decode(data, to: WorkflowLogsResponse.self)
+        private enum CodingKeys: String, CodingKey {
+            case inputs, user
+            case responseMode = "response_mode"
+        }
     }
 }

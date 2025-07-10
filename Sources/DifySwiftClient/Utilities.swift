@@ -5,180 +5,65 @@ import FoundationNetworking
 
 // MARK: - Errors
 
-/// Errors that can occur when using the Dify client
-public enum DifyError: Error, LocalizedError {
-    case invalidURL(String)
-    case noData
-    case decodingError(Error)
-    case httpError(Int, String?)
-    case networkError(Error)
-    case invalidResponse
-    case fileNotFound(String)
-    case invalidAPIKey
-    case missingDatasetId
-    
-    public var errorDescription: String? {
-        switch self {
-        case .invalidURL(let url):
-            return "Invalid URL: \(url)"
-        case .noData:
-            return "No data received from server"
-        case .decodingError(let error):
-            return "Failed to decode response: \(error.localizedDescription)"
-        case .httpError(let code, let message):
-            return "HTTP error \(code): \(message ?? "Unknown error")"
-        case .networkError(let error):
-            return "Network error: \(error.localizedDescription)"
-        case .invalidResponse:
-            return "Invalid response format"
-        case .fileNotFound(let path):
-            return "File not found: \(path)"
-        case .invalidAPIKey:
-            return "Invalid API key"
-        case .missingDatasetId:
-            return "Dataset ID is required but not provided"
-        }
+/// Errors that can occur when using the Dify client.
+public struct DifyError: Error, LocalizedError, Decodable, Sendable {
+    public let message: String?
+    public let code: String?
+    public let status: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case message, code, status
     }
+    
+    init(message: String, code: String? = nil, status: Int? = nil) {
+        self.message = message
+        self.code = code
+        self.status = status
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.message = try container.decodeIfPresent(String.self, forKey: .message)
+        self.code = try container.decodeIfPresent(String.self, forKey: .code)
+        self.status = try container.decodeIfPresent(Int.self, forKey: .status)
+    }
+
+    public var errorDescription: String? {
+        return "Dify API Error: \(message ?? "Unknown error") (Code: \(code ?? "N/A"), Status: \(status ?? 0))"
+    }
+
+    static let invalidURL: @Sendable () -> DifyError = { DifyError(message: "Invalid URL provided.") }
+    static let noData: @Sendable () -> DifyError = { DifyError(message: "No data received from the server.") }
+    static let decodingError: @Sendable (Error) -> DifyError = { (error: Error) in DifyError(message: "Failed to decode response: \(error.localizedDescription)") }
+    static let httpError: @Sendable (Int, String?) -> DifyError = { (statusCode: Int, message: String?) in DifyError(message: "HTTP error: \(message ?? "Unknown")", status: statusCode) }
+    static let networkError: @Sendable (Error) -> DifyError = { (error: Error) in DifyError(message: "Network error: \(error.localizedDescription)") }
+    static let invalidResponse: @Sendable () -> DifyError = { DifyError(message: "Invalid response from the server.") }
+    static let fileNotFound: @Sendable (String) -> DifyError = { (path: String) in DifyError(message: "File not found at path: \(path)") }
+    static let invalidAPIKey: @Sendable () -> DifyError = { DifyError(message: "Invalid API key provided.") }
+    static let missingDatasetId: @Sendable () -> DifyError = { DifyError(message: "Dataset ID is required for this operation.") }
 }
+
 
 // MARK: - HTTP Method
 
-/// HTTP methods for API requests
+/// HTTP methods for API requests.
 public enum HTTPMethod: String {
-    case GET = "GET"
-    case POST = "POST"
-    case PUT = "PUT"
-    case DELETE = "DELETE"
-    case PATCH = "PATCH"
+    case GET, POST, PUT, DELETE, PATCH
 }
 
-// MARK: - Streaming Response
-
-/// Protocol for handling streaming responses
-public protocol StreamingDelegate: AnyObject {
-    func didReceiveData(_ data: Data)
-    func didCompleteWithError(_ error: Error?)
-}
-
-/// AsyncSequence for streaming responses
-public struct StreamingResponse: AsyncSequence, Sendable {
-    public typealias Element = Data
-    
-    private let urlRequest: URLRequest
-    private let session: URLSession
-    
-    init(urlRequest: URLRequest, session: URLSession = .shared) {
-        self.urlRequest = urlRequest
-        self.session = session
-    }
-    
-    public func makeAsyncIterator() -> AsyncIterator {
-        AsyncIterator(urlRequest: urlRequest, session: session)
-    }
-    
-    public struct AsyncIterator: AsyncIteratorProtocol, @unchecked Sendable {
-        private let urlRequest: URLRequest
-        private let session: URLSession
-        private var task: URLSessionDataTask?
-        private var stream: AsyncStream<Data>?
-        private var iterator: AsyncStream<Data>.AsyncIterator?
-        
-        init(urlRequest: URLRequest, session: URLSession) {
-            self.urlRequest = urlRequest
-            self.session = session
-        }
-        
-        public mutating func next() async throws -> Data? {
-            if stream == nil {
-                setupStream()
-            }
-            
-            if iterator == nil {
-                iterator = stream?.makeAsyncIterator()
-            }
-            
-            return await iterator?.next()
-        }
-        
-        private mutating func setupStream() {
-            let (stream, continuation) = AsyncStream.makeStream(of: Data.self)
-            self.stream = stream
-            
-            task = session.dataTask(with: urlRequest) { data, response, error in
-                if let _ = error {
-                    continuation.finish()
-                    return
-                }
-                
-                if let httpResponse = response as? HTTPURLResponse,
-                   httpResponse.statusCode >= 400 {
-                    continuation.finish()
-                    return
-                }
-                
-                if let data = data, !data.isEmpty {
-                    continuation.yield(data)
-                }
-                
-                continuation.finish()
-            }
-            
-            task?.resume()
-        }
-    }
-}
-
-// MARK: - Utilities
+// MARK: - URL Extension
 
 extension URL {
-    func appendingQueryItems(_ queryItems: [URLQueryItem]) -> URL {
-        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else {
+    func appendingQueryParameters(_ parameters: [String: String]) -> URL {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: true) else {
             return self
         }
-        
-        var existingQueryItems = components.queryItems ?? []
-        existingQueryItems.append(contentsOf: queryItems)
-        components.queryItems = existingQueryItems
-        
+        components.queryItems = (components.queryItems ?? []) + parameters.map { URLQueryItem(name: $0.key, value: $0.value) }
         return components.url ?? self
     }
 }
 
-extension URLRequest {
-    mutating func setJSONBody<T: Encodable>(_ object: T) throws {
-        let data = try JSONEncoder().encode(object)
-        self.httpBody = data
-        self.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    }
-    
-    mutating func setMultipartBody(parameters: [String: String], fileData: [(key: String, filename: String, data: Data, mimeType: String)]) {
-        let boundary = UUID().uuidString
-        let boundaryString = "--\(boundary)"
-        
-        var body = Data()
-        
-        // Add parameters
-        for (key, value) in parameters {
-            body.append("\(boundaryString)\r\n".data(using: .utf8)!)
-            body.append("Content-Disposition: form-data; name=\"\(key)\"\r\n\r\n".data(using: .utf8)!)
-            body.append("\(value)\r\n".data(using: .utf8)!)
-        }
-        
-        // Add files
-        for fileInfo in fileData {
-            body.append("\(boundaryString)\r\n".data(using: .utf8)!)
-            body.append("Content-Disposition: form-data; name=\"\(fileInfo.key)\"; filename=\"\(fileInfo.filename)\"\r\n".data(using: .utf8)!)
-            body.append("Content-Type: \(fileInfo.mimeType)\r\n\r\n".data(using: .utf8)!)
-            body.append(fileInfo.data)
-            body.append("\r\n".data(using: .utf8)!)
-        }
-        
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
-        
-        self.httpBody = body
-        self.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-    }
-}
+// MARK: - JSON Coders
 
 extension JSONDecoder {
     static let difyDecoder: JSONDecoder = {
@@ -194,4 +79,59 @@ extension JSONEncoder {
         encoder.dateEncodingStrategy = .secondsSince1970
         return encoder
     }()
+}
+
+// MARK: - MultipartFormData
+
+/// A helper class to build `multipart/form-data` request bodies.
+public class MultipartFormData {
+    private var fields: [String: String] = [:]
+    private var files: [(name: String, fileName: String, data: Data, mimeType: String)] = []
+    
+    public init() {}
+    
+    /// Adds a text field to the form data.
+    public func addTextField(named name: String, value: String) {
+        fields[name] = value
+    }
+    
+    /// Adds a file to the form data.
+    public func addFileField(named name: String, fileName: String, data: Data, mimeType: String) {
+        files.append((name, fileName, data, mimeType))}
+    
+    /// Builds the final multipart body and headers.
+    /// - Returns: A tuple containing the request headers and the body data.
+    public func build() -> (headers: [String: String], body: Data) {
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var body = Data()
+        
+        for (name, value) in fields {
+            body.append("--\(boundary)\r\n")
+            body.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n")
+            body.append("\(value)\r\n")
+        }
+        
+        for file in files {
+            body.append("--\(boundary)\r\n")
+            body.append("Content-Disposition: form-data; name=\"\(file.name)\"; filename=\"\(file.fileName)\"\r\n")
+            body.append("Content-Type: \(file.mimeType)\r\n\r\n")
+            body.append(file.data)
+            body.append("\r\n")
+        }
+        
+        body.append("--\(boundary)--\r\n")
+        
+        let headers = ["Content-Type": "multipart/form-data; boundary=\(boundary)"]
+        return (headers, body)
+    }
+}
+
+// MARK: - Data Extension
+
+extension Data {
+    mutating func append(_ string: String) {
+        if let data = string.data(using: .utf8) {
+            append(data)
+        }
+    }
 }
