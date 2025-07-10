@@ -42,6 +42,74 @@ public final class WorkflowClient: DifyClient, @unchecked Sendable {
         return try decode(data, to: BaseResponse.self)
     }
     
+    /// Gets the current execution results of a workflow task based on the workflow execution ID.
+    /// - Parameter workflowId: The workflow execution ID.
+    /// - Returns: A `WorkflowRunDetailResponse` containing the execution details.
+    public func getWorkflowRunDetail(workflowId: String) async throws -> WorkflowRunDetailResponse {
+        let data = try await sendRequest(method: .GET, endpoint: "/workflows/run/\(workflowId)")
+        return try decode(data, to: WorkflowRunDetailResponse.self)
+    }
+    
+    /// Gets workflow logs with pagination and filtering options.
+    /// - Parameters:
+    ///   - keyword: Optional keyword to search.
+    ///   - status: Optional status filter (succeeded/failed/stopped).
+    ///   - page: Current page number (default: 1).
+    ///   - limit: Number of items per page (default: 20).
+    ///   - createdByEndUserSessionId: Optional filter by end user session ID.
+    ///   - createdByAccount: Optional filter by account email.
+    /// - Returns: A `WorkflowLogsResponse` containing the paginated logs.
+    public func getWorkflowLogs(
+        keyword: String? = nil,
+        status: String? = nil,
+        page: Int = 1,
+        limit: Int = 20,
+        createdByEndUserSessionId: String? = nil,
+        createdByAccount: String? = nil
+    ) async throws -> WorkflowLogsResponse {
+        var params: [String: String] = [
+            "page": String(page),
+            "limit": String(limit)
+        ]
+        
+        if let keyword = keyword {
+            params["keyword"] = keyword
+        }
+        if let status = status {
+            params["status"] = status
+        }
+        if let createdByEndUserSessionId = createdByEndUserSessionId {
+            params["created_by_end_user_session_id"] = createdByEndUserSessionId
+        }
+        if let createdByAccount = createdByAccount {
+            params["created_by_account"] = createdByAccount
+        }
+        
+        let data = try await sendRequest(method: .GET, endpoint: "/workflows/logs", params: params)
+        return try decode(data, to: WorkflowLogsResponse.self)
+    }
+    
+    /// Gets basic information about the workflow application.
+    /// - Returns: An `ApplicationInfoResponse` containing the application details.
+    public func getApplicationInfo() async throws -> ApplicationInfoResponse {
+        let data = try await sendRequest(method: .GET, endpoint: "/info")
+        return try decode(data, to: ApplicationInfoResponse.self)
+    }
+    
+    /// Gets application parameters information including input forms and file upload configurations.
+    /// - Returns: An `ApplicationParametersResponse` containing the parameter details.
+    public func getApplicationParameters() async throws -> ApplicationParametersResponse {
+        let data = try await sendRequest(method: .GET, endpoint: "/parameters")
+        return try decode(data, to: ApplicationParametersResponse.self)
+    }
+    
+    /// Gets the WebApp settings of the application.
+    /// - Returns: An `ApplicationWebAppSettingsResponse` containing the WebApp settings.
+    public func getApplicationWebAppSettings() async throws -> ApplicationWebAppSettingsResponse {
+        let data = try await sendRequest(method: .GET, endpoint: "/site")
+        return try decode(data, to: ApplicationWebAppSettingsResponse.self)
+    }
+    
     // MARK: - Private Helpers
     
     private struct WorkflowRequestBody: Codable {

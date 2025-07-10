@@ -11,21 +11,41 @@
 - [x] Fixed Swift 6 concurrency issues in `Utilities.swift` with proper `@Sendable` annotations
 - [x] Corrected `JSONEncoder.dateEncodingStrategy` configuration
 
+### Workflow API Updates (template_workflow.en.mdx alignment)
+- [x] Updated `FileType` enum to include all supported types: document, image, audio, video, custom
+- [x] Enhanced `TextChunkEvent` model to include `workflowRunId` and structured `TextChunkData`
+- [x] Updated `NodeExecutionData` to include `nodeType`, `predecessorNodeId`, and `ExecutionMetadata`
+- [x] Added `StreamingWorkflowResponse` support for TTS events (`tts_message`, `tts_message_end`)
+- [x] Added new workflow response models: `WorkflowRunDetailResponse`, `WorkflowLogsResponse`, `ApplicationWebAppSettingsResponse`
+- [x] Extended `WorkflowClient` with new API methods:
+  - `getWorkflowRunDetail(workflowId:)` - Get workflow execution details
+  - `getWorkflowLogs(...)` - Get paginated workflow logs with filtering
+  - `getApplicationInfo()` - Get basic application information
+  - `getApplicationParameters()` - Get application parameter configuration
+  - `getApplicationWebAppSettings()` - Get WebApp settings
+- [x] Updated mock data provider with comprehensive mock responses for all new endpoints
+- [x] All new API endpoints properly aligned with Dify Service API specification from template
+
 ## 🚧 Current Priority Items
 
 ### Test Infrastructure Improvements (HIGH PRIORITY)
 - [ ] Fix outdated test methods that reference non-existent API methods
-  - [ ] Review and fix `AdvancedBaseDifyClientTests.swift` test methods
-  - [ ] Review and fix `AdvancedChatClientTests.swift` test methods  
-  - [ ] Review and fix `AdvancedCompletionClientTests.swift` test methods
-  - [ ] Review and fix `AdvancedKnowledgeBaseClientTests.swift` test methods
+  - [ ] Review and fix `AdvancedBaseDifyClientTests.swift` test methods (messageFeedback, sendEnhancedMessageFeedback)
+  - [ ] Review and fix `AdvancedChatClientTests.swift` test methods (createChatMessage signature, stopMessage, getSuggestedMessages, etc.)
+  - [ ] Review and fix `AdvancedCompletionClientTests.swift` test methods (responseMode parameter issues)
+  - [ ] Review and fix `AdvancedKnowledgeBaseClientTests.swift` test methods (datasetId parameter)
+  - [ ] Fix `TestUtilities.swift` - StreamingResponse type not found, KnowledgeBaseClient constructor
 - [ ] Align test expectations with actual API implementation
+- [ ] Add tests for new workflow endpoints (getWorkflowRunDetail, getWorkflowLogs, getApplicationInfo, etc.)
 - [ ] Focus on completion client tests first, then expand to other clients
 
 ### Documentation Updates (MEDIUM PRIORITY)
 - [ ] Update `DOCUMENTATION.md` to reflect latest API specification changes
-- [ ] Add examples for new file upload MIME type detection
+- [ ] Add examples for new file upload MIME type detection  
 - [ ] Document text-to-audio raw data response handling
+- [ ] Document new workflow API endpoints and their usage
+- [ ] Add examples for workflow logs filtering and pagination
+- [ ] Document TTS streaming events in workflow responses
 
 ## 🔄 Ongoing Maintenance
 
@@ -58,4 +78,4 @@ The immediate focus should be on:
 ---
 
 **Last Updated**: 2025-01-10
-**Current Status**: API specification alignment completed, test infrastructure needs updates
+**Current Status**: Workflow API alignment with template_workflow.en.mdx completed, test infrastructure needs updates

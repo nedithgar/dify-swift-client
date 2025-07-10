@@ -181,6 +181,30 @@ public final class MockDataProvider: @unchecked Sendable {
         ]
     ]
     
+    nonisolated(unsafe)
+    public static let workflowRunDetailResponse: [String: Any] = [
+        "id": testWorkflowRunId,
+        "workflow_id": "workflow-456",
+        "status": "succeeded",
+        "inputs": [
+            "query": "Hello world"
+        ],
+        "outputs": [
+            "text": "Hello! How can I help you today?"
+        ],
+        "error": NSNull(),
+        "total_steps": 3,
+        "total_tokens": 150,
+        "created_at": 1726139643,
+        "finished_at": 1726139644,
+        "elapsed_time": 1.3588523610014818
+    ]
+    
+    nonisolated(unsafe)
+    public static let baseResponse: [String: Any] = [
+        "result": "success"
+    ]
+    
     // MARK: - File Upload Responses
     
     nonisolated(unsafe)
@@ -582,6 +606,10 @@ public final class MockDataProvider: @unchecked Sendable {
             return workflowResponse
         case "workflows/logs":
             return workflowLogsResponse
+        case let endpoint where endpoint.hasPrefix("workflows/run/") && !endpoint.contains("/stop"):
+            return workflowRunDetailResponse
+        case let endpoint where endpoint.contains("workflows/tasks") && endpoint.contains("/stop"):
+            return baseResponse
         case "files/upload":
             return fileUploadResponse
         case "info":
@@ -634,6 +662,17 @@ public final class MockConfiguration {
         MockURLProtocol.registerMock(
             endpoint: "workflows/logs",
             response: MockURLProtocol.MockResponse.json(MockDataProvider.workflowLogsResponse)
+        )
+        
+        // Additional workflow endpoints
+        MockURLProtocol.registerMock(
+            endpoint: "workflows/run/test-workflow-run-abc",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.workflowRunDetailResponse)
+        )
+        
+        MockURLProtocol.registerMock(
+            endpoint: "workflows/tasks/test-task-123/stop",
+            response: MockURLProtocol.MockResponse.json(MockDataProvider.baseResponse)
         )
         
         // File upload endpoints

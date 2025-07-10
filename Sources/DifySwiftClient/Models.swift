@@ -16,7 +16,11 @@ public enum FileTransferMethod: String, Codable, Sendable {
 
 /// File type
 public enum FileType: String, Codable, Sendable {
+    case document
     case image
+    case audio
+    case video
+    case custom
 }
 
 /// API file representation
@@ -608,6 +612,8 @@ public enum StreamingWorkflowResponse: Decodable, Sendable {
     case nodeFinished(NodeFinishedEvent)
     case workflowFinished(WorkflowFinishedEvent)
     case textChunk(TextChunkEvent)
+    case ttsMessage(TTSMessageStreamEvent)
+    case ttsMessageEnd(TTSMessageEndStreamEvent)
     case error(ErrorStreamEvent)
     case ping
 
@@ -630,6 +636,10 @@ public enum StreamingWorkflowResponse: Decodable, Sendable {
             self = .workflowFinished(try WorkflowFinishedEvent(from: decoder))
         case "text_chunk":
             self = .textChunk(try TextChunkEvent(from: decoder))
+        case "tts_message":
+            self = .ttsMessage(try TTSMessageStreamEvent(from: decoder))
+        case "tts_message_end":
+            self = .ttsMessageEnd(try TTSMessageEndStreamEvent(from: decoder))
         case "error":
             self = .error(try ErrorStreamEvent(from: decoder))
         case "ping":
@@ -695,36 +705,67 @@ public struct WorkflowFinishedEvent: Codable, Sendable {
 public struct TextChunkEvent: Codable, Sendable {
     public let event: String
     public let taskId: String
-    public let text: String
+    public let workflowRunId: String
+    public let data: TextChunkData
     
     private enum CodingKeys: String, CodingKey {
         case event
         case taskId = "task_id"
+        case workflowRunId = "workflow_run_id"
+        case data
+    }
+}
+
+public struct TextChunkData: Codable, Sendable {
+    public let text: String
+    public let fromVariableSelector: [String]?
+    
+    private enum CodingKeys: String, CodingKey {
         case text
+        case fromVariableSelector = "from_variable_selector"
     }
 }
 
 public struct NodeExecutionData: Codable, Sendable {
     public let id: String
     public let nodeId: String
+    public let nodeType: String
     public let index: Int
     public let title: String
+    public let predecessorNodeId: String?
     public let inputs: [String: AnyCodable]?
     public let processData: [String: AnyCodable]?
     public let outputs: [String: AnyCodable]?
     public let status: String
     public let error: String?
-    public let elapsedTime: Double
+    public let elapsedTime: Double?
+    public let executionMetadata: ExecutionMetadata?
     public let createdAt: Int
     
     private enum CodingKeys: String, CodingKey {
         case id
         case nodeId = "node_id"
-        case index, title, inputs
+        case nodeType = "node_type"
+        case index, title
+        case predecessorNodeId = "predecessor_node_id"
+        case inputs
         case processData = "process_data"
         case outputs, status, error
         case elapsedTime = "elapsed_time"
+        case executionMetadata = "execution_metadata"
         case createdAt = "created_at"
+    }
+}
+
+public struct ExecutionMetadata: Codable, Sendable {
+    public let totalTokens: Int?
+    public let totalPrice: Double?
+    public let currency: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case totalTokens = "total_tokens"
+        case totalPrice = "total_price"
+        case currency
     }
 }
 
@@ -922,5 +963,143 @@ public struct AnyCodable: Codable, @unchecked Sendable {
         } else {
             throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [], debugDescription: "AnyCodable value cannot be encoded"))
         }
+    }
+}
+
+// MARK: - Additional Workflow Models (from template_workflow.en.mdx)
+
+/// Workflow run detail response
+public struct WorkflowRunDetailResponse: Codable, Sendable {
+    public let id: String
+    public let workflowId: String
+    public let status: String
+    public let inputs: [String: AnyCodable]?
+    public let outputs: [String: AnyCodable]?
+    public let error: String?
+    public let totalSteps: Int
+    public let totalTokens: Int
+    public let createdAt: Int
+    public let finishedAt: Int?
+    public let elapsedTime: Double
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case workflowId = "workflow_id"
+        case status
+        case inputs
+        case outputs
+        case error
+        case totalSteps = "total_steps"
+        case totalTokens = "total_tokens"
+        case createdAt = "created_at"
+        case finishedAt = "finished_at"
+        case elapsedTime = "elapsed_time"
+    }
+}
+
+/// Workflow logs response
+public struct WorkflowLogsResponse: Codable, Sendable {
+    public let page: Int
+    public let limit: Int
+    public let total: Int
+    public let hasMore: Bool
+    public let data: [WorkflowLogEntry]
+    
+    private enum CodingKeys: String, CodingKey {
+        case page
+        case limit
+        case total
+        case hasMore = "has_more"
+        case data
+    }
+}
+
+/// Workflow log entry
+public struct WorkflowLogEntry: Codable, Sendable {
+    public let id: String
+    public let workflowRun: WorkflowRunInfo
+    public let createdFrom: String
+    public let createdByRole: String
+    public let createdByAccount: String?
+    public let createdByEndUser: EndUserInfo
+    public let createdAt: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case workflowRun = "workflow_run"
+        case createdFrom = "created_from"
+        case createdByRole = "created_by_role"
+        case createdByAccount = "created_by_account"
+        case createdByEndUser = "created_by_end_user"
+        case createdAt = "created_at"
+    }
+}
+
+/// Workflow run info
+public struct WorkflowRunInfo: Codable, Sendable {
+    public let id: String
+    public let version: String
+    public let status: String
+    public let error: String?
+    public let elapsedTime: Double
+    public let totalTokens: Int
+    public let totalSteps: Int
+    public let createdAt: Int
+    public let finishedAt: Int?
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case version
+        case status
+        case error
+        case elapsedTime = "elapsed_time"
+        case totalTokens = "total_tokens"
+        case totalSteps = "total_steps"
+        case createdAt = "created_at"
+        case finishedAt = "finished_at"
+    }
+}
+
+/// End user info
+public struct EndUserInfo: Codable, Sendable {
+    public let id: String
+    public let type: String
+    public let isAnonymous: Bool
+    public let sessionId: String
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case type
+        case isAnonymous = "is_anonymous"
+        case sessionId = "session_id"
+    }
+}
+
+/// Application WebApp settings response
+public struct ApplicationWebAppSettingsResponse: Codable, Sendable {
+    public let title: String
+    public let iconType: String
+    public let icon: String
+    public let iconBackground: String
+    public let iconUrl: String?
+    public let description: String
+    public let copyright: String
+    public let privacyPolicy: String
+    public let customDisclaimer: String
+    public let defaultLanguage: String
+    public let showWorkflowSteps: Bool
+    
+    private enum CodingKeys: String, CodingKey {
+        case title
+        case iconType = "icon_type"
+        case icon
+        case iconBackground = "icon_background"
+        case iconUrl = "icon_url"
+        case description
+        case copyright
+        case privacyPolicy = "privacy_policy"
+        case customDisclaimer = "custom_disclaimer"
+        case defaultLanguage = "default_language"
+        case showWorkflowSteps = "show_workflow_steps"
     }
 }
