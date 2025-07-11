@@ -152,7 +152,9 @@ struct ChatClientTests {
     func testCreateStreamingChatMessageWithError() async throws {
         let client = try TestUtilities.createMockChatClient()
         
-        MockStreamingURLProtocol.streamingError = DifyError.networkError(NSError(domain: "Test", code: 0, userInfo: nil))
+        await MainActor.run {
+            MockStreamingURLProtocol.streamingError = DifyError.networkError(NSError(domain: "Test", code: 0, userInfo: nil))
+        }
         
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockStreamingURLProtocol.self]

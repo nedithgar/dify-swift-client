@@ -105,8 +105,10 @@ struct CompletionClientTests {
         let client = try TestUtilities.createMockCompletionClient()
         
         // Setup streaming mock
-        MockStreamingURLProtocol.streamingData = MockDataProvider.mockStreamingCompletionData
-        
+        await MainActor.run {
+            MockStreamingURLProtocol.streamingData = MockDataProvider.mockStreamingCompletionData
+        }
+
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockStreamingURLProtocol.self]
         let streamingSession = URLSession(configuration: config)
