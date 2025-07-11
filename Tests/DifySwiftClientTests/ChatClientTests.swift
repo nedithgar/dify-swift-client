@@ -125,7 +125,10 @@ struct ChatClientTests {
     func testCreateStreamingChatMessageWithConversationID() async throws {
         let client = try TestUtilities.createMockChatClient()
         
-        MockStreamingURLProtocol.streamingData = MockDataProvider.mockStreamingChatData
+        // Setup streaming mock on the main actor
+        await MainActor.run {
+            MockStreamingURLProtocol.streamingData = MockDataProvider.mockStreamingChatData
+        }
         
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockStreamingURLProtocol.self]
