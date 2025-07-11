@@ -591,22 +591,25 @@ struct KnowledgeBaseClientTests {
         let mockListData = MockDataProvider.jsonData(MockDataProvider.mockDocuments)
         let mockCreateData = MockDataProvider.jsonData(MockDataProvider.mockDocument)
         
-        MockURLProtocol.requestHandler = { request in
-            let response = HTTPURLResponse(
-                url: request.url!,
-                statusCode: 200,
-                httpVersion: "HTTP/1.1",
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            
-            if request.httpMethod == "GET" {
-                return (response, mockListData, nil)
-            } else if request.httpMethod == "POST" {
-                return (response, mockCreateData, nil)
-            } else {
-                return (response, Data(), nil)
+        await MainActor.run {
+            MockURLProtocol.requestHandler = { request in
+                let response = HTTPURLResponse(
+                    url: request.url!,
+                    statusCode: 200,
+                    httpVersion: "HTTP/1.1",
+                    headerFields: ["Content-Type": "application/json"]
+                )!
+                
+                if request.httpMethod == "GET" {
+                    return (response, mockListData, nil)
+                } else if request.httpMethod == "POST" {
+                    return (response, mockCreateData, nil)
+                } else {
+                    return (response, Data(), nil)
+                }
             }
         }
+
         
         let fileData = TestUtilities.createTestFileData()
         let processRule = TestUtilities.createTestProcessRule()
