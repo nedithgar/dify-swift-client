@@ -129,8 +129,11 @@ struct CompletionClientTests {
     func testCreateStreamingCompletionMessageWithFiles() async throws {
         let client = try TestUtilities.createMockCompletionClient()
         
-        MockStreamingURLProtocol.streamingData = MockDataProvider.mockStreamingCompletionData
-        
+        // Setup streaming mock
+        await MainActor.run {
+            MockStreamingURLProtocol.streamingData = MockDataProvider.mockStreamingCompletionData
+        }
+
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockStreamingURLProtocol.self]
         let streamingSession = URLSession(configuration: config)
@@ -153,9 +156,11 @@ struct CompletionClientTests {
     @Test("Create streaming completion message with error")
     func testCreateStreamingCompletionMessageWithError() async throws {
         let client = try TestUtilities.createMockCompletionClient()
-        
-        MockStreamingURLProtocol.streamingError = DifyError.networkError(NSError(domain: "Test", code: 0, userInfo: nil))
-        
+
+        await MainActor.run {
+            MockStreamingURLProtocol.streamingError = DifyError.networkError(NSError(domain: "Test", code: 0, userInfo: nil))
+        }
+
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockStreamingURLProtocol.self]
         let streamingSession = URLSession(configuration: config)
@@ -176,7 +181,11 @@ struct CompletionClientTests {
     func testCreateStreamingCompletionMessageWithMalformedData() async throws {
         let client = try TestUtilities.createMockCompletionClient()
         
-        MockStreamingURLProtocol.streamingData = ["data: {invalid json}\n"]
+        // Setup streaming mock with malformed data
+        await MainActor.run {
+            MockStreamingURLProtocol.streamingData = ["data: {invalid json}\n"]
+        }
+        
         
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockStreamingURLProtocol.self]
@@ -687,7 +696,9 @@ struct CompletionClientTests {
         }
         streamingData.append("data: {\"event\":\"message_end\",\"task_id\":\"task-123\",\"message_id\":\"msg-final\",\"metadata\":{\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":20,\"total_tokens\":30}}}\n")
         
-        MockStreamingURLProtocol.streamingData = streamingData
+        await MainActor.run {
+            MockStreamingURLProtocol.streamingData = streamingData
+        }
         
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockStreamingURLProtocol.self]
