@@ -78,6 +78,7 @@ class MockURLProtocol: URLProtocol {
     // MARK: - Helper Methods
     
     /// Reset all mock data to clean state
+    @MainActor
     static func reset() {
         mockData = nil
         mockResponse = nil
@@ -87,6 +88,7 @@ class MockURLProtocol: URLProtocol {
     }
     
     /// Configure mock to return successful response
+    @MainActor
     static func setMockResponse(data: Data, statusCode: Int = 200, headers: [String: String] = [:]) {
         mockData = data
         mockResponse = HTTPURLResponse(
@@ -99,12 +101,14 @@ class MockURLProtocol: URLProtocol {
     }
     
     /// Configure mock to return error response
+    @MainActor
     static func setMockError(_ error: Error) {
         mockError = error
         shouldReturnError = true
     }
     
     /// Configure mock to return HTTP error with specific status code
+    @MainActor
     static func setMockHTTPError(statusCode: Int, message: String = "Mock error") {
         let errorData = try! JSONSerialization.data(withJSONObject: ["message": message])
         mockData = errorData
