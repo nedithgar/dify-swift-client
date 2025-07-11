@@ -97,26 +97,29 @@ struct ChatClientTests {
     @Test("Create streaming chat message")
     func testCreateStreamingChatMessage() async throws {
         let client = try TestUtilities.createMockChatClient()
-        
-        // Setup streaming mock
-        MockStreamingURLProtocol.streamingData = MockDataProvider.mockStreamingChatData
-        
+
+        // Setup streaming mock on the main actor
+        await MainActor.run {
+            MockStreamingURLProtocol.streamingData = MockDataProvider.mockStreamingChatData
+        }
+
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockStreamingURLProtocol.self]
         let streamingSession = URLSession(configuration: config)
-        
+
         let streamingClient = try ChatClient(apiKey: "test-api-key", session: streamingSession)
-        
+
         let stream = try await streamingClient.createStreamingChatMessage(
             inputs: ["query": "Hello"],
             query: "Hello world",
             user: "test-user"
         )
-        
+
         let events = try await TestUtilities.collectStreamItems(stream, limit: 2)
-        
+
         #expect(events.count == 2)
     }
+
     
     @Test("Create streaming chat message with conversation ID")
     func testCreateStreamingChatMessageWithConversationID() async throws {
