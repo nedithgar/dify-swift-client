@@ -163,10 +163,13 @@ struct DifyClientTests {
         let client = try TestUtilities.createMockDifyClient()
         
         // Mock a response that's not HTTPURLResponse
-        MockURLProtocol.requestHandler = { _ in
+        await MainActor.run {
+            MockURLProtocol.requestHandler = { _ in
             let response = URLResponse(url: URL(string: "https://test.com")!, mimeType: nil, expectedContentLength: 0, textEncodingName: nil)
             return (response as! HTTPURLResponse, Data(), nil)
         }
+        }
+
         
         await TestUtilities.assertThrowsAnyError {
             try await client.sendRequest(method: .GET, endpoint: "/test")
@@ -213,7 +216,9 @@ struct DifyClientTests {
         let request = try client.createURLRequest(method: .POST, endpoint: "/chat-messages", body: ["test": "data"])
         
         // Setup streaming mock
-        MockStreamingURLProtocol.streamingData = MockDataProvider.mockStreamingChatData
+        await MainActor.run {
+            MockStreamingURLProtocol.streamingData = MockDataProvider.mockStreamingChatData
+        }
         
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockStreamingURLProtocol.self]
@@ -235,8 +240,10 @@ struct DifyClientTests {
         let request = try client.createURLRequest(method: .POST, endpoint: "/chat-messages", body: ["test": "data"])
         
         // Setup streaming mock with error
-        MockStreamingURLProtocol.streamingError = DifyError.networkError(NSError(domain: "Test", code: 0, userInfo: nil))
-        
+        await MainActor.run {
+            MockStreamingURLProtocol.streamingError = DifyError.networkError(NSError(domain: "Test", code: 0, userInfo: nil))
+        }
+
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockStreamingURLProtocol.self]
         let streamingSession = URLSession(configuration: config)

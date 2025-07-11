@@ -554,22 +554,25 @@ struct KnowledgeBaseClientTests {
         let mockListData = MockDataProvider.jsonData(MockDataProvider.mockDatasets)
         let mockCreateData = MockDataProvider.jsonData(MockDataProvider.mockDataset)
         
-        MockURLProtocol.requestHandler = { request in
-            let response = HTTPURLResponse(
-                url: request.url!,
-                statusCode: 200,
-                httpVersion: "HTTP/1.1",
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            
-            if request.httpMethod == "GET" {
-                return (response, mockListData, nil)
-            } else if request.httpMethod == "POST" {
-                return (response, mockCreateData, nil)
-            } else {
-                return (response, Data(), nil)
+        await MainActor.run {
+            MockURLProtocol.requestHandler = { request in
+                let response = HTTPURLResponse(
+                    url: request.url!,
+                    statusCode: 200,
+                    httpVersion: "HTTP/1.1",
+                    headerFields: ["Content-Type": "application/json"]
+                )!
+                
+                if request.httpMethod == "GET" {
+                    return (response, mockListData, nil)
+                } else if request.httpMethod == "POST" {
+                    return (response, mockCreateData, nil)
+                } else {
+                    return (response, Data(), nil)
+                }
             }
         }
+
         
         async let list = client.listDatasets()
         async let create1 = client.createDataset(name: "Dataset 1")
