@@ -141,10 +141,14 @@ open class DifyClient: @unchecked Sendable {
                                 continuation.yield(decodedObject)
                             } catch {
                                 // Try to decode a DifyError if object decoding fails
-                                if let difyError = try? self.decode(jsonData, to: DifyError.self) {
+                                if let difyError = try? self.decode(jsonData, to: DifyError.self),
+                                   difyError.message != nil || difyError.code != nil || difyError.status != nil {
                                     continuation.finish(throwing: difyError)
                                     return
                                 }
+                                // Re-throw the original decoding error
+                                continuation.finish(throwing: error)
+                                return
                             }
                         }
                     }
@@ -185,11 +189,14 @@ open class DifyClient: @unchecked Sendable {
                             continuation.yield(decodedObject)
                         } catch {
                             // Try to decode a DifyError if object decoding fails
-                            if let difyError = try? self.decode(jsonData, to: DifyError.self) {
+                            if let difyError = try? self.decode(jsonData, to: DifyError.self),
+                               difyError.message != nil || difyError.code != nil || difyError.status != nil {
                                 continuation.finish(throwing: difyError)
                                 return
                             }
-                            // Skip lines that can't be decoded
+                            // Re-throw the original decoding error
+                            continuation.finish(throwing: error)
+                            return
                         }
                     }
                 }

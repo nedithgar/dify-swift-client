@@ -22,7 +22,8 @@
   - [x] All 14 tests passing including streaming support
 - [x] Create tests for CompletionClient
   - [x] All 10 tests passing including file upload
-- [ ] Create tests for WorkflowClient
+- [x] Create tests for WorkflowClient
+  - [x] All 12 tests passing including streaming support
 - [ ] Create tests for KnowledgeBaseClient
 - [ ] Add performance benchmarks
 - [ ] Create integration test suite (with test server)
@@ -261,7 +262,7 @@
 
 - Total Tasks: ~150
 - Completed: ~29 (19%)
-- In Progress: 2 (WorkflowClient tests, KnowledgeBaseClient tests)
+- In Progress: 1 (KnowledgeBaseClient tests)
 - Blocked: 0
 
 Last Updated: 2025-07-12
