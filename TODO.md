@@ -236,6 +236,7 @@
 - [x] ~~Fix URLSession.bytes compatibility with MockURLProtocol for streaming tests~~
 - [x] ~~Fix race condition in concurrent requests~~ (Fixed with isolated mock sessions)
 - [x] ~~Fix "'is' test is always true" warnings in test assertions~~ (Fixed 2025-07-12)
+- [x] ~~Fix CodeQL workflow failing due to Swift version mismatch~~ (Fixed 2025-07-12)
 - [ ] Investigate memory usage in long-running streams
 - [ ] Address timeout handling in slow networks
 - [ ] Resolve JSON decoding edge cases
@@ -313,6 +314,10 @@
 Last Updated: 2025-07-12
 
 ### Recent Completions
+- **Fixed CodeQL workflow to use Swift 6.1 (2025-07-12)**
+  - Added swift-lang/setup-swift@v1 action to install Swift 6.1
+  - Fixed build failure: "package is using Swift tools version 6.1.0 but installed version is 5.10.0"
+  - CodeQL analysis should now work properly with the correct Swift version
 - **Improved DifyClient test coverage from 66% to 71.59% (2025-07-12)**
   - Added 42 comprehensive tests for DifyClient base class
   - Covered all client initialization error cases (empty API key, invalid URL)
