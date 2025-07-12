@@ -1,5 +1,10 @@
 # DifySwiftClient
 
+[![Test](https://github.com/nedithgar/dify-swift-client/actions/workflows/test.yml/badge.svg)](https://github.com/nedithgar/dify-swift-client/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Swift Version](https://img.shields.io/badge/Swift-6.1+-orange.svg)](https://swift.org)
+[![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS-lightgrey.svg)](https://github.com/nedithgar/dify-swift-client)
+
 A Swift SDK for Dify AI that provides a complete interface to the Dify Service API. This SDK follows Swift best practices and provides native async/await support with comprehensive error handling.
 
 ## Features
