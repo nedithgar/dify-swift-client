@@ -180,7 +180,7 @@ swift test --filter "test.*Streaming"
 1. Add request/response models to `Models.swift`
 2. Implement method in appropriate client class
 3. Add comprehensive test coverage using isolated mock sessions
-4. Update documentation in `DOCUMENTATION.md`
+4. Update documentation and examples as needed
 
 ### New Client Types
 1. Extend `DifyClient` for specialized functionality
@@ -226,7 +226,7 @@ swift test --filter "test.*Streaming"
 4. Add comprehensive test coverage using isolated mock sessions
 5. Update `MockDataProvider.swift` with appropriate mock responses if using shared mocks
 6. Add usage example to `Examples/main.swift` if significant
-7. Update `DOCUMENTATION.md` with the new functionality
+7. Document the new functionality appropriately
 
 ### Debugging Tips
 - Check `DifyError` cases for specific error handling
