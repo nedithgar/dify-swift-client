@@ -46,7 +46,7 @@ jobs:
         - language: actions
           build-mode: none
         - language: swift
-          build-mode: autobuild
+          build-mode: manual
         # CodeQL supports the following values keywords for 'language': 'actions', 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'rust', 'swift'
         # Use `c-cpp` to analyze code written in C, C++ or both
         # Use 'java-kotlin' to analyze code written in Java, Kotlin or both
@@ -79,21 +79,22 @@ jobs:
         # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
         # queries: security-extended,security-and-quality
 
-    # If the analyze step fails for one of the languages you are analyzing with
-    # "We were unable to automatically build your code", modify the matrix above
-    # to set the build mode to "manual" for that language. Then modify this step
-    # to build your code.
-    # ℹ️ Command-line programs to run using the OS shell.
-    # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
+    # Manual build step for languages that require it
     - if: matrix.build-mode == 'manual'
+      name: Build project
       shell: bash
       run: |
-        echo 'If you are using a "manual" build mode for one or more of the' \
-          'languages you are analyzing, replace this with the commands to build' \
-          'your code, for example:'
-        echo '  make bootstrap'
-        echo '  make release'
-        exit 1
+        if [ "${{ matrix.language }}" = "swift" ]; then
+          # Use the Swift 6.1 that was installed by setup-swift
+          export PATH="/Users/runner/hostedtoolcache/swift-macOS/6.1/arm64/usr/bin:$PATH"
+          echo "Swift version:"
+          swift --version
+          echo "Building Swift project..."
+          swift build
+        else
+          echo 'Manual build mode selected but no build steps defined for ${{ matrix.language }}'
+          exit 1
+        fi
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
