@@ -11,8 +11,8 @@
 - [ ] Add troubleshooting guide for common issues
 
 ### Testing Infrastructure
-- [x] Mock-based testing framework
-- [x] Comprehensive test coverage for all clients
+- [ ] Rebuild mock-based testing framework (was removed in commit e6cea26)
+- [ ] Recreate comprehensive test coverage for all clients
 - [ ] Add performance benchmarks
 - [ ] Create integration test suite (with test server)
 - [ ] Add stress tests for streaming responses
