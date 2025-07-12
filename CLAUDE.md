@@ -29,6 +29,7 @@ This is a Swift SDK for Dify AI that provides a complete interface to the Dify S
 **Context7 MCP Integration:**
 When needing Swift documentation or migration guidance, use these Context7 library IDs:
 - `/swiftlang/swift` - For Swift language documentation and APIs
+- `/swiftlang/swift-testing` - For Swift Testing framework documentation and APIs
 - `/swiftlang/swift-migration-guide` - For Swift 6 migration guidance, common errors and best practices
 
 **IMPORTANT: Swift 6 Error Handling Principle**
