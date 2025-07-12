@@ -2,6 +2,19 @@ import Foundation
 import Testing
 @testable import DifySwiftClient
 
+/// Test error for explicit test failures
+struct TestError: Error, LocalizedError {
+    let message: String
+    
+    init(_ message: String) {
+        self.message = message
+    }
+    
+    var errorDescription: String? {
+        message
+    }
+}
+
 /// Utilities for setting up and tearing down tests
 enum TestUtilities {
     
