@@ -34,14 +34,16 @@
 - [x] Create tests for KnowledgeBaseClient
   - [x] All 12 tests passing including dataset and document management
 - [x] **Create comprehensive tests for Models.swift (2025-07-12)**
-  - [x] All 107 tests passing with 100% coverage
+  - [x] All 111 tests passing with 100% coverage
   - [x] Tests for all enums (ResponseMode, FileTransferMethod, FileType)
   - [x] Tests for all Codable structs with JSON key mapping validation
   - [x] Tests for custom Decodable implementations (streaming responses)
-  - [x] Tests for AnyCodable with all supported types
+  - [x] Tests for AnyCodable with all supported types including floating-point edge cases
   - [x] Tests for ToolIcon enum with both URL and emoji cases
   - [x] Tests for all initializers and edge cases
   - [x] Tests for Unicode, special characters, and boundary values
+  - [x] Added tests for unknown event types in streaming response decoders
+  - [x] Achieved comprehensive coverage of all decoder branches
 - [ ] Add performance benchmarks
 - [ ] Create integration test suite (with test server)
 - [ ] Add stress tests for streaming responses
