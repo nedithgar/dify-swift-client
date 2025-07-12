@@ -11,7 +11,7 @@ A Swift SDK for Dify AI that provides a complete interface to the Dify Service A
 - **Advanced Streaming**: Built-in streaming response handling for real-time interactions including workflow events
 - **Type Safety**: Comprehensive Swift types for all API request/response models with proper snake_case to camelCase conversion
 - **Error Handling**: Detailed error types with localized descriptions
-- **Testing**: Full test coverage using the latest Swift Testing framework (WWDC2024)
+- **Testing**: Full test coverage using the latest Swift Testing framework (WWDC2024) with parallel test execution support
 - **Application Management**: Complete application info, parameters, metadata, and configuration support
 - **Feedback & Annotations**: Full support for message feedback with content and annotation management
 - **Conversation Variables**: Extract and manage structured data from conversations
@@ -461,7 +461,7 @@ for log in workflowLogs.data {
 
 ### Response Models
 
-All API responses are strongly typed with Swift structs and include comprehensive support for the latest Dify API features:
+All API responses are strongly typed with Swift structs and include comprehensive support for the latest Dify API features. The SDK uses custom `AnyCodable` for flexible JSON handling and proper snake_case to camelCase conversion:
 
 #### Core Response Models
 - `ChatMessageResponse`
@@ -551,11 +551,35 @@ let response = try await kbClient.createDocumentByText(
 
 ## Testing
 
-The SDK includes comprehensive tests using Swift Testing framework:
+The SDK includes comprehensive tests using Swift Testing framework with enhanced parallel execution support:
 
 ```bash
+# Run all tests (parallel execution by default)
 swift test
+
+# Run specific test suites
+swift test --filter "DifyClientTests"
+swift test --filter "ChatClientTests"
+swift test --filter "CompletionClientTests"
+swift test --filter "WorkflowClientTests"
+swift test --filter "KnowledgeBaseClientTests"
+swift test --filter "ModelsTests"
+swift test --filter "UtilitiesTests"
+
+# Run tests with verbose output
+swift test --verbose
+
+# Run tests sequentially if needed (not recommended)
+swift test --no-parallel
 ```
+
+### Test Features
+
+- **100% Mock-based Testing**: All tests use mock responses with no real API calls required
+- **Parallel Test Execution**: Tests use isolated mock sessions for thread-safe parallel execution
+- **No External Dependencies**: Tests run offline and are completely deterministic
+- **Comprehensive Coverage**: Includes unit tests for all API endpoints, streaming responses, error scenarios, and edge cases
+- **Swift Testing Framework**: Built with the modern Swift Testing framework introduced at WWDC 2024
 
 ## Contributing
 
