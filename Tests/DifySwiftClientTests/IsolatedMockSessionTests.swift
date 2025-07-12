@@ -83,7 +83,8 @@ final class IsolatedMockSessionTests {
             Issue.record("Expected request to fail after reset")
         } catch {
             // Expected to fail
-            #expect(error is NSError)
+            let nsError = error as NSError
+            #expect(nsError.domain == "IsolatedMockURLProtocol")
         }
     }
 }
