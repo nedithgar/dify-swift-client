@@ -16,7 +16,7 @@ This is a Swift SDK for Dify AI that provides a complete interface to the Dify S
 - Changing feature priorities
 - Finding bugs that need to be tracked
 
-The TODO.md file is the single source of truth for all pending work.
+**The TODO.md file is the single source of truth for all pending work.**
 
 ## Architecture
 
