@@ -172,7 +172,6 @@ final class DifyClientTests: DifyTestCase {
             Issue.record("Expected network error but request succeeded")
         } catch {
             // We expect an NSError from the mock session when no mock is registered
-            #expect(error is NSError)
             let nsError = error as NSError
             #expect(nsError.domain == "IsolatedMockURLProtocol")
             #expect(nsError.code == 404)
@@ -354,7 +353,8 @@ final class DifyClientTests: DifyTestCase {
             Issue.record("Expected network error")
         } catch {
             // Any error is acceptable here since we're testing error handling
-            #expect(error is NSError || error is DifyError)
+            // Just ensure we got some error
+            #expect(error.localizedDescription.count > 0)
         }
     }
     
@@ -429,7 +429,8 @@ final class DifyClientTests: DifyTestCase {
             }
         } catch {
             // Expected to fail with network error
-            #expect(error is NSError)
+            let nsError = error as NSError
+            #expect(nsError.domain.count > 0) // Verify it's a proper error
         }
     }
     
@@ -619,7 +620,8 @@ final class DifyClientTests: DifyTestCase {
             }
         } catch {
             // Should get network error
-            #expect(error is NSError)
+            let nsError = error as NSError
+            #expect(nsError.domain.count > 0) // Verify it's a proper error
         }
     }
     
@@ -681,7 +683,7 @@ final class DifyClientTests: DifyTestCase {
             }
         } catch {
             // Expected to fail - we're testing the code path, not the result
-            #expect(error is NSError || error is DifyError)
+            #expect(error.localizedDescription.count > 0)
         }
     }
     
@@ -701,8 +703,8 @@ final class DifyClientTests: DifyTestCase {
                 Issue.record("Should not receive events")
             }
         } catch {
-            // Should fail with appropriate error
-            #expect(error is NSError || error is DifyError)
+            // Should fail with appropriate error  
+            #expect(error.localizedDescription.count > 0)
         }
     }
     
