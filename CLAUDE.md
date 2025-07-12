@@ -15,7 +15,7 @@ This is a Swift SDK for Dify AI that provides a complete interface to the Dify S
 ## Development Rules
 
 ### **TODO Management**
-**IMPORTANT**: Always update the [TODO.md](./TODO.md) file when:
+**MOST IMPORTANT**: Always update the [TODO.md](./TODO.md) file when:
 - Starting work on a new feature
 - Completing a feature or subtask
 - Discovering new requirements or edge cases
@@ -23,6 +23,13 @@ This is a Swift SDK for Dify AI that provides a complete interface to the Dify S
 - Finding bugs that need to be tracked
 
 **The TODO.md file is the single source of truth for all pending work.**
+
+### Documentation and Learning Resources
+
+**Context7 MCP Integration:**
+When needing Swift documentation or migration guidance, use these Context7 library IDs:
+- `/swiftlang/swift` - For Swift language documentation and APIs
+- `/swiftlang/swift-migration-guide` - For Swift 6 migration guidance, common errors and best practices
 
 ## Architecture
 
