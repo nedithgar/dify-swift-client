@@ -8,33 +8,8 @@ on:
 
 jobs:
   test:
-    name: Run Tests (macOS)
+    name: Run Tests
     runs-on: macos-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - uses: swift-actions/setup-swift@v2
-      with:
-        swift-version: "6.1.0"
-      
-    - name: Resolve dependencies
-      run: swift package resolve
-      
-    - name: Build project
-      run: swift build -v
-      
-    - name: Run tests
-      env:
-        DIFY_API_KEY: ${{ secrets.DIFY_API_KEY }}
-        DIFY_BASE_URL: ${{ secrets.DIFY_BASE_URL }}
-        DIFY_USER_ID: ${{ secrets.DIFY_USER_ID }}
-      run: swift test -v
-
-  test-linux:
-    name: Run Tests (Linux)
-    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
