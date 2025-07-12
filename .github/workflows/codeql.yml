@@ -90,7 +90,7 @@ jobs:
           echo "Swift version:"
           swift --version
           echo "Building Swift project..."
-          swift build
+          swift build -Xswiftc -target -Xswiftc arm64-apple-macosx14.0
         else
           echo 'Manual build mode selected but no build steps defined for ${{ matrix.language }}'
           exit 1
