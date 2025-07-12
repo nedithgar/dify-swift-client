@@ -57,18 +57,19 @@ When creating tests or implementing new features, proactively seek assistance fr
 swift build
 
 # Run all tests (uses Swift Testing framework)
-swift test
+# Note: Run without parallelization to avoid MockURLProtocol conflicts
+swift test --no-parallel
 
 # Run specific test suites
-swift test --filter "DifyClientTests"
-swift test --filter "ChatClientTests"
-swift test --filter "CompletionClientTests"
-swift test --filter "WorkflowClientTests"
-swift test --filter "KnowledgeBaseClientTests"
+swift test --filter "DifyClientTests" --no-parallel
+swift test --filter "ChatClientTests" --no-parallel
+swift test --filter "CompletionClientTests" --no-parallel
+swift test --filter "WorkflowClientTests" --no-parallel
+swift test --filter "KnowledgeBaseClientTests" --no-parallel
 
 # Run advanced mock tests
-swift test --filter "AdvancedMockAPITests"
-swift test --filter "ErrorHandlingMockTests"
+swift test --filter "AdvancedMockAPITests" --no-parallel
+swift test --filter "ErrorHandlingMockTests" --no-parallel
 ```
 
 ### Test Environment

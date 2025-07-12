@@ -3,8 +3,8 @@ import Testing
 @testable import DifySwiftClient
 
 /// Base test case providing common setup and teardown for Dify SDK tests
-@Suite("Dify SDK Tests")
-struct DifyTestCase {
+@Suite("Dify SDK Tests", .serialized)
+class DifyTestCase {
     
     // MARK: - Properties
     
@@ -26,9 +26,8 @@ struct DifyTestCase {
     // MARK: - Setup & Teardown
     
     private func setupTestEnvironment() {
-        // Reset mocks
+        // Clear any existing mocks first
         MockURLProtocol.reset()
-        
         // Register MockURLProtocol globally for tests
         URLProtocol.registerClass(MockURLProtocol.self)
     }
@@ -45,7 +44,7 @@ struct DifyTestCase {
     
     /// Setup mocks before each test
     func setupMocks() {
-        MockURLProtocol.reset()
+        // Don't reset mocks here - let tests control when to reset
         TestUtilities.setupCommonMocks()
     }
     
@@ -67,21 +66,18 @@ struct DifyTestCase {
     /// Assert async throwing operation throws specific error
     func assertThrowsError<T>(
         _ expression: () async throws -> T,
-        expectedError: DifyError,
-        file: StaticString = #file,
-        line: UInt = #line
+        expectedError: DifyError
     ) async {
         do {
             _ = try await expression()
-            Issue.record("Expected error \(expectedError) but no error was thrown", 
-                        sourceLocation: SourceLocation(file: file, line: line))
+            Issue.record("Expected error \(expectedError) but no error was thrown")
         } catch {
             if let difyError = error as? DifyError {
-                #expect(difyError == expectedError, 
+                // Compare DifyError by message and status since it's a struct
+                #expect(difyError.message == expectedError.message && difyError.status == expectedError.status, 
                        "Expected error \(expectedError) but got \(difyError)")
             } else {
-                Issue.record("Expected DifyError but got \(error)", 
-                           sourceLocation: SourceLocation(file: file, line: line))
+                Issue.record("Expected DifyError but got \(error)")
             }
         }
     }
@@ -145,36 +141,33 @@ struct DifyTestCase {
 extension DifyTestCase {
     
     /// Test successful API call
-    func testSuccessfulResponse<T: Decodable>(
+    func testSuccessfulResponse<T: Decodable, B: Codable>(
         client: DifyClient,
         endpoint: String,
-        method: String = "GET",
-        requestBody: Encodable? = nil,
+        method: HTTPMethod = .GET,
+        params: [String: String]? = nil,
+        requestBody: B? = nil,
         mockResponse: Any,
         expectedType: T.Type,
         verification: (T) -> Void
     ) async throws {
         // Setup mock
         MockURLProtocol.register(
-            method: method,
+            method: method.rawValue,
             urlPattern: endpoint,
             response: MockResponse.json(mockResponse)
         )
         
         // Make request
-        var request = try client.createRequest(endpoint: endpoint, method: method)
-        if let body = requestBody {
-            request.httpBody = try JSONEncoder.difyEncoder.encode(body)
-        }
-        
-        let response: T = try await client.sendRequest(request)
+        let data = try await client.sendRequest(method: method, endpoint: endpoint, params: params, body: requestBody)
+        let response = try client.decode(data, to: T.self)
         
         // Verify response
         verification(response)
         
         // Verify request was made
         TestUtilities.assertRequestCaptured(
-            method: method,
+            method: method.rawValue,
             urlPattern: endpoint,
             headers: ["Authorization": "Bearer \(apiKey)"]
         )
@@ -184,7 +177,7 @@ extension DifyTestCase {
     func testErrorResponse(
         client: DifyClient,
         endpoint: String,
-        method: String = "GET",
+        method: HTTPMethod = .GET,
         mockStatusCode: Int,
         mockErrorCode: String,
         mockErrorMessage: String,
@@ -192,7 +185,7 @@ extension DifyTestCase {
     ) async {
         // Setup mock
         MockURLProtocol.register(
-            method: method,
+            method: method.rawValue,
             urlPattern: endpoint,
             response: MockResponse.error(
                 statusCode: mockStatusCode,
@@ -203,35 +196,30 @@ extension DifyTestCase {
         
         // Make request and expect error
         await assertThrowsError({
-            let request = try client.createRequest(endpoint: endpoint, method: method)
-            let _: [String: Any] = try await client.sendRequest(request)
+            _ = try await client.sendRequest(method: method, endpoint: endpoint)
         }, expectedError: expectedError)
     }
     
     /// Test streaming response
-    func testStreamingResponse<T>(
+    func testStreamingResponse<T: Decodable, B: Codable>(
         client: DifyClient,
         endpoint: String,
-        method: String = "POST",
-        requestBody: Encodable,
+        method: HTTPMethod = .POST,
+        requestBody: B,
         mockEvents: [String],
         expectedEventCount: Int,
         eventVerification: ([T]) -> Void
-    ) async throws where T: Decodable {
+    ) async throws {
         // Setup mock
         MockURLProtocol.register(
-            method: method,
+            method: method.rawValue,
             urlPattern: endpoint,
             response: MockResponse.streaming(mockEvents)
         )
         
-        // Create request
-        var request = try client.createRequest(endpoint: endpoint, method: method)
-        request.httpBody = try JSONEncoder.difyEncoder.encode(requestBody)
-        
-        // Get streaming response
-        let response = try await client.streamRequest(request)
-        let stream = response.stream(T.self)
+        // Create request and get streaming response
+        let request = try client.createURLRequest(method: method, endpoint: endpoint, body: requestBody)
+        let stream: AsyncThrowingStream<T, Error> = try await client.createStreamingResponse(for: request)
         
         // Collect events
         let events = try await collectStreamingEvents(from: stream, maxEvents: expectedEventCount)

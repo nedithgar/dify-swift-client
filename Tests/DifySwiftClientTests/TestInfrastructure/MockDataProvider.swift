@@ -5,7 +5,7 @@ enum MockDataProvider {
     
     // MARK: - Chat API Mocks
     
-    static let chatMessageResponse: [String: Any] = [
+    nonisolated(unsafe) static let chatMessageResponse: [String: Any] = [
         "event": "message",
         "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227",
         "id": "663c5084-a254-4040-8ad3-51f2a3c1a77c",
@@ -34,16 +34,16 @@ enum MockDataProvider {
     ]
     
     static let streamingChatEvents: [String] = [
-        #"data: {"event": "message", "message_id": "5ad4cb98-f0c7-4085-b384-88c403be6290", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "answer": "Hello", "created_at": 1679586595}"#,
-        #"data: {"event": "message", "message_id": "5ad4cb98-f0c7-4085-b384-88c403be6290", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "answer": "!", "created_at": 1679586595}"#,
-        #"data: {"event": "message", "message_id": "5ad4cb98-f0c7-4085-b384-88c403be6290", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "answer": " How", "created_at": 1679586595}"#,
-        #"data: {"event": "message", "message_id": "5ad4cb98-f0c7-4085-b384-88c403be6290", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "answer": " can", "created_at": 1679586595}"#,
-        #"data: {"event": "message", "message_id": "5ad4cb98-f0c7-4085-b384-88c403be6290", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "answer": " I", "created_at": 1679586595}"#,
-        #"data: {"event": "message", "message_id": "5ad4cb98-f0c7-4085-b384-88c403be6290", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "answer": " help?", "created_at": 1679586595}"#,
-        #"data: {"event": "message_end", "id": "5e52ce04-874b-4d27-9045-b3bc80def685", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "metadata": {"usage": {"prompt_tokens": 1033, "completion_tokens": 135, "total_tokens": 1168}}}"#
+        #"data: {"event": "message", "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227", "message_id": "5ad4cb98-f0c7-4085-b384-88c403be6290", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "answer": "Hello", "created_at": 1679586595}"#,
+        #"data: {"event": "message", "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227", "message_id": "5ad4cb98-f0c7-4085-b384-88c403be6290", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "answer": "!", "created_at": 1679586595}"#,
+        #"data: {"event": "message", "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227", "message_id": "5ad4cb98-f0c7-4085-b384-88c403be6290", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "answer": " How", "created_at": 1679586595}"#,
+        #"data: {"event": "message", "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227", "message_id": "5ad4cb98-f0c7-4085-b384-88c403be6290", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "answer": " can", "created_at": 1679586595}"#,
+        #"data: {"event": "message", "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227", "message_id": "5ad4cb98-f0c7-4085-b384-88c403be6290", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "answer": " I", "created_at": 1679586595}"#,
+        #"data: {"event": "message", "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227", "message_id": "5ad4cb98-f0c7-4085-b384-88c403be6290", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "answer": " help?", "created_at": 1679586595}"#,
+        #"data: {"event": "message_end", "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227", "message_id": "5ad4cb98-f0c7-4085-b384-88c403be6290", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "metadata": {"usage": {"prompt_tokens": 1033, "completion_tokens": 135, "total_tokens": 1168}}}"#
     ]
     
-    static let conversationList: [String: Any] = [
+    nonisolated(unsafe) static let conversationList: [String: Any] = [
         "data": [
             [
                 "id": "10799fb8-64f7-4296-bbf7-b42bfbe0ae54",
@@ -66,7 +66,7 @@ enum MockDataProvider {
         "limit": 20
     ]
     
-    static let messageHistory: [String: Any] = [
+    nonisolated(unsafe) static let messageHistory: [String: Any] = [
         "data": [
             [
                 "id": "a076a87f-31e5-48dc-b452-0061adbbc922",
@@ -75,6 +75,7 @@ enum MockDataProvider {
                 "query": "Hello",
                 "answer": "Hi there! How can I help you today?",
                 "message_files": [],
+                "agent_thoughts": [],
                 "feedback": nil,
                 "retriever_resources": [],
                 "created_at": 1705569239
@@ -84,7 +85,7 @@ enum MockDataProvider {
         "limit": 20
     ]
     
-    static let suggestedQuestions: [String: Any] = [
+    nonisolated(unsafe) static let suggestedQuestions: [String: Any] = [
         "result": "success",
         "data": [
             "What is machine learning?",
@@ -95,10 +96,8 @@ enum MockDataProvider {
     
     // MARK: - Completion API Mocks
     
-    static let completionResponse: [String: Any] = [
+    nonisolated(unsafe) static let completionResponse: [String: Any] = [
         "event": "message",
-        "task_id": "c3800678-a077-43df-a102-53f23ed20b88",
-        "id": "9da23599-e713-473b-982c-4328d4f5c78a",
         "message_id": "9da23599-e713-473b-982c-4328d4f5c78a",
         "mode": "completion",
         "answer": "The capital of France is Paris.",
@@ -114,7 +113,7 @@ enum MockDataProvider {
     
     // MARK: - Workflow API Mocks
     
-    static let workflowResponse: [String: Any] = [
+    nonisolated(unsafe) static let workflowResponse: [String: Any] = [
         "workflow_run_id": "djflajgkldjgd",
         "task_id": "9da23599-e713-473b-982c-4328d4f5c78a",
         "data": [
@@ -140,7 +139,7 @@ enum MockDataProvider {
         #"data: {"event": "workflow_finished", "task_id": "5ad4cb98-f0c7-4085-b384-88c403be6290", "workflow_run_id": "5ad498-f0c7-4085-b384-88cbe6290", "data": {"id": "5ad498-f0c7-4085-b384-88cbe6290", "workflow_id": "dfjasklfjdslag", "outputs": {"result": "Success"}, "status": "succeeded", "elapsed_time": 0.324, "total_tokens": 100, "total_steps": 1, "created_at": 1679586595, "finished_at": 1679976595}}"#
     ]
     
-    static let workflowLogs: [String: Any] = [
+    nonisolated(unsafe) static let workflowLogs: [String: Any] = [
         "page": 1,
         "limit": 20,
         "total": 1,
@@ -175,7 +174,7 @@ enum MockDataProvider {
     
     // MARK: - Knowledge Base API Mocks
     
-    static let datasetList: [String: Any] = [
+    nonisolated(unsafe) static let datasetList: [String: Any] = [
         "data": [
             [
                 "id": "b5829712-b2fb-4e47-bc0b-5f6f29c08162",
@@ -193,7 +192,7 @@ enum MockDataProvider {
         "limit": 20
     ]
     
-    static let documentList: [String: Any] = [
+    nonisolated(unsafe) static let documentList: [String: Any] = [
         "data": [
             [
                 "id": "c8b7e36e-0dca-443e-b5f5-2e865e6cbeb5",
@@ -222,7 +221,7 @@ enum MockDataProvider {
     
     // MARK: - File Upload Mock
     
-    static let fileUploadResponse: [String: Any] = [
+    nonisolated(unsafe) static let fileUploadResponse: [String: Any] = [
         "id": "72fa9618-8f89-4a37-9b33-7e1178a24a67",
         "name": "example.png",
         "size": 1024,
@@ -234,7 +233,7 @@ enum MockDataProvider {
     
     // MARK: - Application Info Mocks
     
-    static let applicationInfo: [String: Any] = [
+    nonisolated(unsafe) static let applicationInfo: [String: Any] = [
         "name": "My Dify App",
         "description": "This is a test application",
         "tags": ["ai", "chatbot"],
@@ -242,7 +241,7 @@ enum MockDataProvider {
         "author_name": "Dify"
     ]
     
-    static let applicationParameters: [String: Any] = [
+    nonisolated(unsafe) static let applicationParameters: [String: Any] = [
         "opening_statement": "Hello! How can I help you today?",
         "suggested_questions": [
             "What can you do?",
@@ -278,28 +277,28 @@ enum MockDataProvider {
     
     // MARK: - Error Responses
     
-    static let notFoundError: [String: Any] = [
+    nonisolated(unsafe) static let notFoundError: [String: Any] = [
         "error": [
             "code": "not_found",
             "message": "The requested resource was not found"
         ]
     ]
     
-    static let invalidParamError: [String: Any] = [
+    nonisolated(unsafe) static let invalidParamError: [String: Any] = [
         "error": [
             "code": "invalid_param",
             "message": "Invalid parameter provided"
         ]
     ]
     
-    static let unauthorizedError: [String: Any] = [
+    nonisolated(unsafe) static let unauthorizedError: [String: Any] = [
         "error": [
             "code": "unauthorized",
             "message": "Invalid API key"
         ]
     ]
     
-    static let rateLimitError: [String: Any] = [
+    nonisolated(unsafe) static let rateLimitError: [String: Any] = [
         "error": [
             "code": "rate_limit_exceeded",
             "message": "Rate limit exceeded"

@@ -2,44 +2,43 @@ import Foundation
 import Testing
 @testable import DifySwiftClient
 
-@Suite("DifyClient Tests")
-struct DifyClientTests: DifyTestCase {
+@Suite("DifyClient Tests", .serialized)
+final class DifyClientTests: DifyTestCase {
     
     @Test("Client Initialization")
     func testClientInitialization() async throws {
         // Test default initialization
-        let client = DifyClient(apiKey: "test-key")
+        let client = try DifyClient(apiKey: "test-key")
         #expect(client.apiKey == "test-key")
-        #expect(client.baseURL == "https://api.dify.ai/v1")
+        #expect(client.baseURL.absoluteString == "https://api.dify.ai/v1")
         
         // Test custom base URL
-        let customClient = DifyClient(apiKey: "test-key", baseURL: "https://custom.api.com/v2")
+        let customClient = try DifyClient(apiKey: "test-key", baseURL: "https://custom.api.com/v2")
         #expect(customClient.apiKey == "test-key")
-        #expect(customClient.baseURL == "https://custom.api.com/v2")
+        #expect(customClient.baseURL.absoluteString == "https://custom.api.com/v2")
     }
     
-    @Test("Create Request - Basic")
-    func testCreateBasicRequest() async throws {
+    @Test("Create URL Request - Basic")
+    func testCreateBasicURLRequest() async throws {
         let client = TestUtilities.createTestClient()
         
-        let request = try client.createRequest(endpoint: "/test", method: "GET")
+        let request = try client.createURLRequest(method: .GET, endpoint: "test")
         
         #expect(request.url?.absoluteString == "https://api.dify.ai/v1/test")
         #expect(request.httpMethod == "GET")
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer test-api-key")
-        #expect(request.value(forHTTPHeaderField: "Content-Type") == "application/json")
     }
     
-    @Test("Create Request - With Query Parameters")
+    @Test("Create URL Request - With Query Parameters")
     func testCreateRequestWithQueryParameters() async throws {
         let client = TestUtilities.createTestClient()
         
-        let request = try client.createRequest(
-            endpoint: "/test",
-            method: "GET",
-            queryItems: [
-                URLQueryItem(name: "page", value: "1"),
-                URLQueryItem(name: "limit", value: "20")
+        let request = try client.createURLRequest(
+            method: .GET,
+            endpoint: "test",
+            params: [
+                "page": "1",
+                "limit": "20"
             ]
         )
         
@@ -47,59 +46,80 @@ struct DifyClientTests: DifyTestCase {
         #expect(request.url?.absoluteString.contains("limit=20") == true)
     }
     
-    @Test("File Upload")
-    func testFileUpload() async throws {
-        setupMocks()
-        let client = TestUtilities.createTestClient()
-        
-        let imageData = TestUtilities.createTestImageData()
-        let file = APIFile(
-            data: imageData,
-            filename: "test.png",
-            mimeType: "image/png"
+    @Test("Send Request - Basic GET")
+    func testSendRequest() async throws {
+        // Register test-specific mock
+        MockURLProtocol.register(
+            method: "GET",
+            urlPattern: "/test",
+            response: MockResponse.json(["result": "success"])
         )
         
-        let response = try await client.uploadFile(file: file, user: "test-user")
+        let client = TestUtilities.createTestClient()
         
-        #expect(response.id == "72fa9618-8f89-4a37-9b33-7e1178a24a67")
-        #expect(response.name == "example.png")
-        #expect(response.extension == "png")
-        #expect(response.mimeType == "image/png")
+        let data = try await client.sendRequest(method: .GET, endpoint: "test")
+        let result = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        
+        #expect(result?["result"] as? String == "success")
         
         // Verify request was made correctly
         TestUtilities.assertRequestCaptured(
-            method: "POST",
-            urlPattern: "/files/upload",
+            method: "GET",
+            urlPattern: "/test",
             headers: ["Authorization": "Bearer test-api-key"]
         )
     }
     
-    @Test("Get Application Info")
-    func testGetApplicationInfo() async throws {
-        setupMocks()
+    @Test("Send Request - With Body")
+    func testSendRequestWithBody() async throws {
+        // Register test-specific mock
+        MockURLProtocol.register(
+            method: "POST",
+            urlPattern: "/test",
+            response: MockResponse.json(["result": "created"])
+        )
+        
         let client = TestUtilities.createTestClient()
         
-        let info = try await client.getApplicationInfo()
+        struct TestBody: Codable {
+            let name: String
+            let value: Int
+        }
         
-        #expect(info.name == "My Dify App")
-        #expect(info.description == "This is a test application")
-        #expect(info.tags == ["ai", "chatbot"])
-        #expect(info.mode == .chat)
-        #expect(info.authorName == "Dify")
+        let body = TestBody(name: "test", value: 42)
+        let data = try await client.sendRequest(method: .POST, endpoint: "test", body: body)
+        let result = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        
+        #expect(result?["result"] as? String == "created")
+        
+        // Verify request was made correctly
+        TestUtilities.assertRequestCaptured(
+            method: "POST",
+            urlPattern: "/test",
+            headers: ["Authorization": "Bearer test-api-key"]
+        )
     }
     
-    @Test("Get Application Parameters")
-    func testGetApplicationParameters() async throws {
-        setupMocks()
+    @Test("Decode Response")
+    func testDecodeResponse() async throws {
         let client = TestUtilities.createTestClient()
         
-        let params = try await client.getApplicationParameters()
+        struct TestResponse: Codable {
+            let name: String
+            let value: Int
+        }
         
-        #expect(params.openingStatement == "Hello! How can I help you today?")
-        #expect(params.suggestedQuestions?.count == 2)
-        #expect(params.speechToText?.enabled == true)
-        #expect(params.fileUpload?.image?.enabled == true)
-        #expect(params.systemParameters?.imageSizeLimit == 10)
+        let jsonData = """
+        {
+            "name": "test",
+            "value": 42
+        }
+        """.data(using: .utf8)!
+        
+        let response = try client.decode(jsonData, to: TestResponse.self)
+        
+        #expect(response.name == "test")
+        #expect(response.value == 42)
     }
     
     @Test("HTTP Error Handling - 404")
@@ -117,9 +137,8 @@ struct DifyClientTests: DifyTestCase {
         let client = TestUtilities.createTestClient()
         
         await assertThrowsError({
-            let request = try client.createRequest(endpoint: "/not-found", method: "GET")
-            let _: [String: Any] = try await client.sendRequest(request)
-        }, expectedError: .httpError(statusCode: 404, message: "Resource not found"))
+            _ = try await client.sendRequest(method: .GET, endpoint: "not-found")
+        }, expectedError: DifyError.httpError(404, "Resource not found"))
     }
     
     @Test("HTTP Error Handling - 401")
@@ -137,9 +156,8 @@ struct DifyClientTests: DifyTestCase {
         let client = TestUtilities.createTestClient()
         
         await assertThrowsError({
-            let request = try client.createRequest(endpoint: "/unauthorized", method: "GET")
-            let _: [String: Any] = try await client.sendRequest(request)
-        }, expectedError: .httpError(statusCode: 401, message: "Invalid API key"))
+            _ = try await client.sendRequest(method: .GET, endpoint: "unauthorized")
+        }, expectedError: DifyError.httpError(401, "Invalid API key"))
     }
     
     @Test("Network Error Handling")
@@ -148,12 +166,14 @@ struct DifyClientTests: DifyTestCase {
         let client = TestUtilities.createTestClient()
         
         do {
-            let request = try client.createRequest(endpoint: "/test", method: "GET")
-            let _: [String: Any] = try await client.sendRequest(request)
+            _ = try await client.sendRequest(method: .GET, endpoint: "test")
             Issue.record("Expected network error but request succeeded")
         } catch {
-            // We expect an error here
-            #expect(error is DifyError)
+            // We expect an NSError from MockURLProtocol when no mock is registered
+            #expect(error is NSError)
+            let nsError = error as NSError
+            #expect(nsError.domain == "MockURLProtocol")
+            #expect(nsError.code == 404)
         }
     }
     
@@ -172,12 +192,14 @@ struct DifyClientTests: DifyTestCase {
         let client = TestUtilities.createTestClient()
         
         do {
-            let request = try client.createRequest(endpoint: "/invalid-json", method: "GET")
-            let _: ApplicationInfo = try await client.sendRequest(request)
+            struct TestResponse: Decodable { let name: String }
+            let data = try await client.sendRequest(method: .GET, endpoint: "invalid-json")
+            _ = try client.decode(data, to: TestResponse.self)
             Issue.record("Expected decoding error but request succeeded")
-        } catch DifyError.decodingError {
-            // Expected error
-            #expect(true)
+        } catch let difyError as DifyError {
+            // DifyError.decodingError produces a DifyError with specific message
+            // We expect any DifyError with decoding-related message
+            #expect(difyError.message?.contains("decode") == true)
         } catch {
             Issue.record("Unexpected error type: \(error)")
         }

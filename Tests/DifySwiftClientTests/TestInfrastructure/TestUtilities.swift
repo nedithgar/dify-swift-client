@@ -9,10 +9,15 @@ enum TestUtilities {
     
     /// Create a test URL session with MockURLProtocol
     static func createMockURLSession() -> URLSession {
+        // Ensure MockURLProtocol is registered globally first
+        URLProtocol.registerClass(MockURLProtocol.self)
+        
         let configuration = URLSessionConfiguration.ephemeral
+        // Set ONLY MockURLProtocol for this session
         configuration.protocolClasses = [MockURLProtocol.self]
         configuration.timeoutIntervalForRequest = 10
         configuration.timeoutIntervalForResource = 10
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         return URLSession(configuration: configuration)
     }
     
@@ -23,7 +28,7 @@ enum TestUtilities {
         apiKey: String = "test-api-key",
         baseURL: String = "https://api.dify.ai/v1"
     ) -> DifyClient {
-        let client = DifyClient(apiKey: apiKey, baseURL: baseURL)
+        let client = try! DifyClient(apiKey: apiKey, baseURL: baseURL)
         client.session = createMockURLSession()
         return client
     }
@@ -33,7 +38,7 @@ enum TestUtilities {
         apiKey: String = "test-api-key",
         baseURL: String = "https://api.dify.ai/v1"
     ) -> ChatClient {
-        let client = ChatClient(apiKey: apiKey, baseURL: baseURL)
+        let client = try! ChatClient(apiKey: apiKey, baseURL: baseURL)
         client.session = createMockURLSession()
         return client
     }
@@ -43,7 +48,7 @@ enum TestUtilities {
         apiKey: String = "test-api-key",
         baseURL: String = "https://api.dify.ai/v1"
     ) -> CompletionClient {
-        let client = CompletionClient(apiKey: apiKey, baseURL: baseURL)
+        let client = try! CompletionClient(apiKey: apiKey, baseURL: baseURL)
         client.session = createMockURLSession()
         return client
     }
@@ -53,7 +58,7 @@ enum TestUtilities {
         apiKey: String = "test-api-key",
         baseURL: String = "https://api.dify.ai/v1"
     ) -> WorkflowClient {
-        let client = WorkflowClient(apiKey: apiKey, baseURL: baseURL)
+        let client = try! WorkflowClient(apiKey: apiKey, baseURL: baseURL)
         client.session = createMockURLSession()
         return client
     }
@@ -63,7 +68,7 @@ enum TestUtilities {
         apiKey: String = "test-api-key",
         baseURL: String = "https://api.dify.ai/v1"
     ) -> KnowledgeBaseClient {
-        let client = KnowledgeBaseClient(apiKey: apiKey, baseURL: baseURL)
+        let client = try! KnowledgeBaseClient(apiKey: apiKey, baseURL: baseURL)
         client.session = createMockURLSession()
         return client
     }

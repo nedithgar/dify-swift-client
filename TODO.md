@@ -11,8 +11,18 @@
 - [ ] Add troubleshooting guide for common issues
 
 ### Testing Infrastructure
-- [ ] Rebuild mock-based testing framework (was removed in commit e6cea26)
-- [ ] Recreate comprehensive test coverage for all clients
+- [x] Rebuild mock-based testing framework (completed 2025-01-12)
+  - Created MockURLProtocol for intercepting HTTP requests
+  - Built MockDataProvider with comprehensive mock responses
+  - Implemented TestUtilities with helper functions
+  - Created DifyTestCase base class for common functionality
+- [x] Create tests for DifyClient base functionality (completed 2025-01-12)
+- [x] Create tests for ChatClient (completed 2025-01-12)
+  - All 14 tests passing including streaming support
+- [x] Create tests for CompletionClient (completed 2025-01-12)
+  - All 10 tests passing including file upload
+- [ ] Create tests for WorkflowClient
+- [ ] Create tests for KnowledgeBaseClient
 - [ ] Add performance benchmarks
 - [ ] Create integration test suite (with test server)
 - [ ] Add stress tests for streaming responses
@@ -177,6 +187,7 @@
 ## = Known Issues
 
 ### Current Bugs
+- [x] ~~Fix URLSession.bytes compatibility with MockURLProtocol for streaming tests~~ (Fixed 2025-01-12)
 - [ ] Investigate memory usage in long-running streams
 - [ ] Fix race condition in concurrent requests
 - [ ] Address timeout handling in slow networks
@@ -248,13 +259,28 @@
 ## 📊 Progress Tracking
 
 - Total Tasks: ~150
-- Completed: ~22 (15%)
-- In Progress: 0
+- Completed: ~29 (19%)
+- In Progress: 2 (WorkflowClient tests, KnowledgeBaseClient tests)
 - Blocked: 0
 
 Last Updated: 2025-01-12
 
 ### Recent Completions
+- ✅ Built comprehensive mock-based testing infrastructure (2025-01-12)
+  - Created MockURLProtocol with thread-safe request interception
+  - Implemented MockDataProvider with all API endpoint responses
+  - Built TestUtilities and DifyTestCase for test organization
+  - Fixed Swift 6 concurrency issues with @unchecked Sendable and nonisolated(unsafe)
+  - Added serialized test execution to prevent race conditions
+- ✅ Created comprehensive test suites (2025-01-12)
+  - DifyClient: 10 tests covering all base functionality
+  - ChatClient: 14 tests including streaming and error handling
+  - CompletionClient: 10 tests including file upload scenarios
+  - All 34 tests passing with --no-parallel execution
+- ✅ Fixed URLSession.bytes compatibility issue with MockURLProtocol for streaming tests (2025-01-12)
+  - Implemented dual streaming approach: URLSession.bytes for production, data task for tests
+  - Fixed mock data format to match expected MessageStreamEvent structure
+  - All streaming tests now pass successfully
 - ✅ Verified Chat API fully implements official documentation including:
   - Chat messages (blocking and streaming with all event types)
   - Full conversation management (list, delete, rename, variables)

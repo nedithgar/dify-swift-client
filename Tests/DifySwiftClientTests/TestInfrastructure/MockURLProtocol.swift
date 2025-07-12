@@ -5,13 +5,13 @@ import FoundationNetworking
 
 /// MockURLProtocol intercepts all HTTP requests during tests and returns mock responses
 /// This allows us to test without any real network calls
-final class MockURLProtocol: URLProtocol {
+final class MockURLProtocol: URLProtocol, @unchecked Sendable {
     
     /// Storage for mock responses keyed by request
-    private static var mockResponses: [MockRequest: MockResponse] = [:]
+    private nonisolated(unsafe) static var mockResponses: [MockRequest: MockResponse] = [:]
     
     /// Storage for captured requests for verification
-    private static var capturedRequests: [URLRequest] = []
+    private nonisolated(unsafe) static var capturedRequests: [URLRequest] = []
     
     /// Thread-safe access queue
     private static let queue = DispatchQueue(label: "MockURLProtocol.queue", attributes: .concurrent)
@@ -25,8 +25,9 @@ final class MockURLProtocol: URLProtocol {
         response: MockResponse
     ) {
         let mockRequest = MockRequest(method: method, urlPattern: urlPattern)
-        queue.async(flags: .barrier) {
+        queue.sync(flags: .barrier) {
             mockResponses[mockRequest] = response
+            print("[MockURLProtocol] Registered mock: \(method) \(urlPattern) - Total mocks: \(mockResponses.count) - Thread: \(Thread.current)")
         }
     }
     
@@ -44,14 +45,15 @@ final class MockURLProtocol: URLProtocol {
             headers: headers,
             bodyPattern: bodyPattern
         )
-        queue.async(flags: .barrier) {
+        queue.sync(flags: .barrier) {
             mockResponses[mockRequest] = response
         }
     }
     
     /// Clear all registered mocks and captured requests
     static func reset() {
-        queue.async(flags: .barrier) {
+        queue.sync(flags: .barrier) {
+            print("[MockURLProtocol] Resetting all mocks - Had \(mockResponses.count) mocks")
             mockResponses.removeAll()
             capturedRequests.removeAll()
         }
@@ -82,6 +84,7 @@ final class MockURLProtocol: URLProtocol {
               ["http", "https"].contains(scheme) else {
             return false
         }
+        
         return true
     }
     
@@ -91,7 +94,7 @@ final class MockURLProtocol: URLProtocol {
     
     override func startLoading() {
         // Capture the request
-        Self.queue.async(flags: .barrier) {
+        Self.queue.sync(flags: .barrier) {
             Self.capturedRequests.append(self.request)
         }
         
@@ -117,15 +120,19 @@ final class MockURLProtocol: URLProtocol {
     
     private static func findMatchingResponse(for request: URLRequest) -> MockResponse? {
         guard let url = request.url else { return nil }
-        let method = request.httpMethod ?? "GET"
+        
+        print("[MockURLProtocol] Finding mock for: \(url.absoluteString)")
+        print("[MockURLProtocol] Registered mocks: \(mockResponses.keys.map { "\($0.method) \($0.urlPattern)" })")
         
         // Try to find a matching mock
         for (mockRequest, mockResponse) in mockResponses {
             if mockRequest.matches(request: request) {
+                print("[MockURLProtocol] Found matching mock!")
                 return mockResponse
             }
         }
         
+        print("[MockURLProtocol] No matching mock found")
         return nil
     }
     
@@ -305,12 +312,12 @@ struct MockResponse {
         message: String,
         headers: [String: String]? = nil
     ) -> MockResponse {
+        // Return DifyError-compatible format
         let errorData = [
-            "error": [
-                "code": code,
-                "message": message
-            ]
-        ]
+            "message": message,
+            "code": code,
+            "status": statusCode
+        ] as [String : Any]
         return json(errorData, statusCode: statusCode, headers: headers)
     }
 }
