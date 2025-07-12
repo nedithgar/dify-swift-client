@@ -16,6 +16,7 @@
   - [x] Built MockDataProvider with comprehensive mock responses
   - [x] Implemented TestUtilities with helper functions
   - [x] Created DifyTestCase base class for common functionality
+  - [x] All test suites use .serialized trait - no need for --no-parallel flag
 - [x] Create tests for DifyClient base functionality
 - [x] Create tests for ChatClient
   - [x] All 14 tests passing including streaming support
@@ -263,9 +264,16 @@
 - In Progress: 2 (WorkflowClient tests, KnowledgeBaseClient tests)
 - Blocked: 0
 
-Last Updated: 2025-01-12
+Last Updated: 2025-07-12
 
 ### Recent Completions
+- Updated test infrastructure documentation (2025-07-12)
+  - Verified all test suites already use .serialized trait
+  - Updated CLAUDE.md to recommend --no-parallel for reliable test execution
+  - Added documentation about proper mock reset in tests
+  - Created TestHelpers.swift with setupTest() extension method
+  - Tests have race conditions in parallel mode despite .serialized trait
+  - Recommendation: Use --no-parallel flag until mock system is refactored
 - Built comprehensive mock-based testing infrastructure (2025-01-12)
   - Created MockURLProtocol with thread-safe request interception
   - Implemented MockDataProvider with all API endpoint responses

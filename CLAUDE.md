@@ -57,19 +57,20 @@ When creating tests or implementing new features, proactively seek assistance fr
 swift build
 
 # Run all tests (uses Swift Testing framework)
-# Note: Run without parallelization to avoid MockURLProtocol conflicts
+# Note: Tests may have race conditions with mocks in parallel mode
+# Recommended: Use --no-parallel for reliable test execution
 swift test --no-parallel
 
 # Run specific test suites
 swift test --filter "DifyClientTests" --no-parallel
 swift test --filter "ChatClientTests" --no-parallel
 swift test --filter "CompletionClientTests" --no-parallel
-swift test --filter "WorkflowClientTests" --no-parallel
-swift test --filter "KnowledgeBaseClientTests" --no-parallel
 
-# Run advanced mock tests
-swift test --filter "AdvancedMockAPITests" --no-parallel
-swift test --filter "ErrorHandlingMockTests" --no-parallel
+# Run tests with verbose output
+swift test --verbose --no-parallel
+
+# Run tests in parallel (faster but may have mock conflicts)
+swift test
 ```
 
 ### Test Environment
@@ -102,9 +103,30 @@ The SDK supports comprehensive file handling across document, image, audio, vide
 ## Test Structure
 
 ### Mock-based Testing Infrastructure
-- **`MockingInfrastructure.swift`** - Custom URLProtocol for intercepting HTTP requests
+- **`MockURLProtocol.swift`** - Custom URLProtocol for intercepting HTTP requests
 - **`MockDataProvider.swift`** - Predefined mock responses for all API endpoints
 - **`TestUtilities.swift`** - Helper functions for creating mock clients and test setup
+- **`DifyTestCase.swift`** - Base test class with common test helpers
+- **`TestHelpers.swift`** - Extension methods for proper test setup
+
+### Writing Tests
+All test suites use the `.serialized` trait to ensure proper test execution. When writing tests that use mocks:
+
+```swift
+@Test func myTest() async throws {
+    // IMPORTANT: Reset mocks at the beginning of each test
+    MockURLProtocol.reset()
+    
+    // Register your mock responses
+    MockURLProtocol.register(
+        method: "POST",
+        urlPattern: "/endpoint",
+        response: MockResponse.json(mockData)
+    )
+    
+    // ... rest of your test
+}
+```
 
 ### Test Categories
 1. **Basic Client Tests** - Client initialization and parameter validation
@@ -116,10 +138,13 @@ The SDK supports comprehensive file handling across document, image, audio, vide
 ### Running Individual Tests
 ```bash
 # Run a specific test class
-swift test --filter "AdvancedChatClientTests"
+swift test --filter "ChatClientTests"
 
-# Run tests with parallel execution
-swift test --parallel
+# Run a specific test method
+swift test --filter "ChatClientTests/testStreamingChatMessage"
+
+# Run tests matching a pattern
+swift test --filter "test.*Streaming"
 ```
 
 ## Key Implementation Notes

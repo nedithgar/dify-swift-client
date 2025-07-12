@@ -42,6 +42,11 @@ class DifyTestCase {
     
     // MARK: - Test Helpers
     
+    /// Reset all mocks - call this at the beginning of each test
+    func resetMocks() {
+        MockURLProtocol.reset()
+    }
+    
     /// Setup mocks before each test
     func setupMocks() {
         // Don't reset mocks here - let tests control when to reset
