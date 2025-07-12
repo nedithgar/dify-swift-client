@@ -2507,6 +2507,36 @@ struct AllStreamingEventTests {
             }
         }
     }
+    
+    @Test func testStreamingCompletionResponseUnknownEvent() throws {
+        // Test unknown event type for StreamingCompletionResponse
+        let json = #"{"event": "unknown_event_type", "data": "some data"}"#
+        let data = json.data(using: .utf8)!
+        
+        #expect(throws: DecodingError.self) {
+            _ = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: data)
+        }
+    }
+    
+    @Test func testStreamingChatMessageResponseUnknownEvent() throws {
+        // Test unknown event type for StreamingChatMessageResponse
+        let json = #"{"event": "unknown_chat_event", "data": "some data"}"#
+        let data = json.data(using: .utf8)!
+        
+        #expect(throws: DecodingError.self) {
+            _ = try JSONDecoder.difyDecoder.decode(StreamingChatMessageResponse.self, from: data)
+        }
+    }
+    
+    @Test func testStreamingWorkflowResponseUnknownEvent() throws {
+        // Test unknown event type for StreamingWorkflowResponse
+        let json = #"{"event": "unknown_workflow_event", "data": "some data"}"#
+        let data = json.data(using: .utf8)!
+        
+        #expect(throws: DecodingError.self) {
+            _ = try JSONDecoder.difyDecoder.decode(StreamingWorkflowResponse.self, from: data)
+        }
+    }
 }
 
 // MARK: - Metadata Tests
