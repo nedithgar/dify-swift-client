@@ -44,6 +44,14 @@
   - [x] Tests for Unicode, special characters, and boundary values
   - [x] Added tests for unknown event types in streaming response decoders
   - [x] Achieved comprehensive coverage of all decoder branches
+- [x] **Create comprehensive tests for Utilities.swift (2025-07-12)**
+  - [x] All 26 tests passing achieving high coverage
+  - [x] Tests for DifyError with all initialization methods and static factories
+  - [x] Tests for HTTPMethod enum raw values
+  - [x] Tests for URL extension appendingQueryParameters with edge cases
+  - [x] Tests for JSONDecoder/JSONEncoder date encoding strategies
+  - [x] Tests for MultipartFormData with text fields, file fields, and mixed content
+  - [x] Tests for Data extension append method with various string types
 - [ ] Add performance benchmarks
 - [ ] Create integration test suite (with test server)
 - [ ] Add stress tests for streaming responses
@@ -280,13 +288,22 @@
 ## 📊 Progress Tracking
 
 - Total Tasks: ~150
-- Completed: ~36 (24%)
+- Completed: ~37 (25%)
 - In Progress: 0
 - Blocked: 0
 
 Last Updated: 2025-07-12
 
 ### Recent Completions
+- **Created comprehensive tests for Utilities.swift (2025-07-12)**
+  - Implemented 26 tests covering all utility functions and classes
+  - Tests for DifyError including initialization, decoding, and all static factory methods
+  - Tests for HTTPMethod enum and URL extension methods
+  - Tests for JSONDecoder/JSONEncoder custom date strategies
+  - Comprehensive tests for MultipartFormData with various content types
+  - Tests for Data extension with UTF-8 string appending
+  - All tests pass in parallel execution mode
+  - Improved overall test coverage from 86% towards 100%
 - **Created comprehensive tests for Models.swift (2025-07-12)**
   - Implemented 107 tests achieving 100% test coverage
   - Tests cover all enums, structs, and custom Decodable implementations

@@ -45,8 +45,8 @@ When creating tests or implementing new features, proactively seek assistance fr
 - **`KnowledgeBaseClient`** - Extends DifyClient for knowledge base and document management
 
 ### Key Components
-- **Models.swift** - Contains all request/response models, enums, and data structures
-- **Utilities.swift** - Extensions for URL, URLRequest, JSON handling, and streaming responses
+- **Models.swift** - Contains all request/response models, enums, and data structures (100% test coverage)
+- **Utilities.swift** - Extensions for URL, URLRequest, JSON handling, and streaming responses (comprehensive test coverage)
 - **Examples/main.swift** - Usage examples and SDK demonstration
 
 ## Development Commands
@@ -66,6 +66,8 @@ swift test --filter "ChatClientTests"
 swift test --filter "CompletionClientTests"
 swift test --filter "WorkflowClientTests"
 swift test --filter "KnowledgeBaseClientTests"
+swift test --filter "ModelsTests"
+swift test --filter "UtilitiesTests"
 
 # Run tests with verbose output
 swift test --verbose
@@ -139,6 +141,8 @@ Each test gets its own isolated mock session, eliminating race conditions and en
 3. **Streaming Tests** - Server-sent events simulation and parsing
 4. **Error Scenario Tests** - HTTP errors, network failures, malformed responses
 5. **Request Validation Tests** - Header verification, body encoding, authorization
+6. **Model Tests** - Comprehensive testing of all data models, enums, and AnyCodable
+7. **Utilities Tests** - Testing of utility functions, extensions, and helper classes
 
 ### Running Individual Tests
 ```bash
