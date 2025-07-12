@@ -57,26 +57,28 @@ When creating tests or implementing new features, proactively seek assistance fr
 swift build
 
 # Run all tests (uses Swift Testing framework)
-# Note: Tests may have race conditions with mocks in parallel mode
-# Recommended: Use --no-parallel for reliable test execution
-swift test --no-parallel
+# Tests now support parallel execution with isolated mock sessions
+swift test
 
 # Run specific test suites
-swift test --filter "DifyClientTests" --no-parallel
-swift test --filter "ChatClientTests" --no-parallel
-swift test --filter "CompletionClientTests" --no-parallel
+swift test --filter "DifyClientTests"
+swift test --filter "ChatClientTests"
+swift test --filter "CompletionClientTests"
+swift test --filter "WorkflowClientTests"
+swift test --filter "KnowledgeBaseClientTests"
 
 # Run tests with verbose output
-swift test --verbose --no-parallel
+swift test --verbose
 
-# Run tests in parallel (faster but may have mock conflicts)
-swift test
+# Run tests sequentially if needed (not recommended)
+swift test --no-parallel
 ```
 
 ### Test Environment
 - **All tests use mock responses** - No real API calls or environment variables required
 - **No external dependencies** - Tests run offline and are deterministic
 - **Swift Testing framework** - Uses the modern Swift Testing framework (WWDC 2024)
+- **Parallel test execution** - Tests use isolated mock sessions for thread-safe parallel execution
 
 ## Code Architecture Details
 
@@ -103,22 +105,23 @@ The SDK supports comprehensive file handling across document, image, audio, vide
 ## Test Structure
 
 ### Mock-based Testing Infrastructure
-- **`MockURLProtocol.swift`** - Custom URLProtocol for intercepting HTTP requests
+- **`MockURLProtocol.swift`** - Custom URLProtocol for intercepting HTTP requests (global state, legacy)
+- **`IsolatedMockSession.swift`** - Instance-based mock sessions for parallel test execution
 - **`MockDataProvider.swift`** - Predefined mock responses for all API endpoints
-- **`TestUtilities.swift`** - Helper functions for creating mock clients and test setup
+- **`TestUtilities.swift`** - Helper functions for creating mock clients with isolated sessions
 - **`DifyTestCase.swift`** - Base test class with common test helpers
 - **`TestHelpers.swift`** - Extension methods for proper test setup
 
 ### Writing Tests
-All test suites use the `.serialized` trait to ensure proper test execution. When writing tests that use mocks:
+Tests use isolated mock sessions for parallel execution. When writing tests:
 
 ```swift
 @Test func myTest() async throws {
-    // IMPORTANT: Reset mocks at the beginning of each test
-    MockURLProtocol.reset()
+    // Create a client with an isolated mock session
+    let (client, mockSession) = TestUtilities.createTestClientWithMockSession()
     
-    // Register your mock responses
-    MockURLProtocol.register(
+    // Register your mock responses on the isolated session
+    mockSession.register(
         method: "POST",
         urlPattern: "/endpoint",
         response: MockResponse.json(mockData)
@@ -127,6 +130,8 @@ All test suites use the `.serialized` trait to ensure proper test execution. Whe
     // ... rest of your test
 }
 ```
+
+Each test gets its own isolated mock session, eliminating race conditions and enabling safe parallel execution.
 
 ### Test Categories
 1. **Basic Client Tests** - Client initialization and parameter validation
@@ -170,13 +175,13 @@ swift test --filter "test.*Streaming"
 ### New API Endpoints
 1. Add request/response models to `Models.swift`
 2. Implement method in appropriate client class
-3. Add comprehensive test coverage with mocks
+3. Add comprehensive test coverage using isolated mock sessions
 4. Update documentation in `DOCUMENTATION.md`
 
 ### New Client Types
 1. Extend `DifyClient` for specialized functionality
 2. Follow existing patterns for initialization and error handling
-3. Add mock test infrastructure for new client
+3. Add test factory methods in `TestUtilities.swift` for the new client
 4. Update examples in `Examples/main.swift`
 
 ## Platform Support
@@ -214,8 +219,8 @@ swift test --filter "test.*Streaming"
 1. Define request/response models in `Models.swift`
 2. Add the method to the appropriate client class
 3. Use `sendRequest()` for standard requests or `sendRequestWithFiles()` for file uploads
-4. Add comprehensive test coverage with mocks in the corresponding test file
-5. Update `MockDataProvider.swift` with appropriate mock responses
+4. Add comprehensive test coverage using isolated mock sessions
+5. Update `MockDataProvider.swift` with appropriate mock responses if using shared mocks
 6. Add usage example to `Examples/main.swift` if significant
 7. Update `DOCUMENTATION.md` with the new functionality
 
@@ -252,3 +257,4 @@ The SDK currently implements:
 - **Follow existing patterns** - consistency is key
 - **Document breaking changes** in commit messages
 - **Test on multiple platforms** if making platform-specific changes
+- **Use isolated mock sessions** when writing tests to ensure thread safety

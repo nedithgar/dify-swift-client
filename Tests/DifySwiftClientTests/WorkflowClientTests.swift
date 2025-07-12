@@ -2,24 +2,21 @@ import Foundation
 import Testing
 @testable import DifySwiftClient
 
-@Suite("WorkflowClient Tests", .serialized)
+@Suite("WorkflowClient Tests")
 final class WorkflowClientTests: DifyTestCase {
     
     // MARK: - Run Workflow Tests
     
     @Test("Run Workflow - Blocking Mode")
     func testRunWorkflow() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
         
         // Register workflow run mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/workflows/run",
             response: MockResponse.json(MockDataProvider.workflowResponse)
         )
-        
-        let client = TestUtilities.createTestWorkflowClient()
         
         // Run workflow
         let inputs = ["query": "Test input"]
@@ -33,6 +30,7 @@ final class WorkflowClientTests: DifyTestCase {
         
         // Verify request
         TestUtilities.assertRequestCaptured(
+            in: mockSession,
             method: "POST",
             urlPattern: "/workflows/run",
             headers: ["Authorization": "Bearer \(apiKey)"]
@@ -41,17 +39,14 @@ final class WorkflowClientTests: DifyTestCase {
     
     @Test("Run Streaming Workflow")
     func testRunStreamingWorkflow() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
         
         // Register streaming workflow mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/workflows/run",
             response: MockResponse.streaming(MockDataProvider.streamingWorkflowEvents)
         )
-        
-        let client = TestUtilities.createTestWorkflowClient()
         
         // Run streaming workflow
         let inputs = ["query": "Test streaming"]
@@ -115,19 +110,16 @@ final class WorkflowClientTests: DifyTestCase {
     
     @Test("Stop Workflow Task")
     func testStopWorkflowTask() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
         
         let taskId = "test-task-123"
         
         // Register stop task mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/workflows/tasks/\(taskId)/stop",
             response: MockResponse.json(["result": "success"])
         )
-        
-        let client = TestUtilities.createTestWorkflowClient()
         
         // Stop task
         let response = try await client.stopWorkflowTask(taskId: taskId, user: "test-user")
@@ -137,6 +129,7 @@ final class WorkflowClientTests: DifyTestCase {
         
         // Verify request
         TestUtilities.assertRequestCaptured(
+            in: mockSession,
             method: "POST",
             urlPattern: "/workflows/tasks/\(taskId)/stop",
             headers: ["Authorization": "Bearer \(apiKey)"]
@@ -147,8 +140,7 @@ final class WorkflowClientTests: DifyTestCase {
     
     @Test("Get Workflow Run Detail")
     func testGetWorkflowRunDetail() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
         
         let workflowId = "test-workflow-123"
         
@@ -167,13 +159,11 @@ final class WorkflowClientTests: DifyTestCase {
             "elapsed_time": 0.875
         ]
         
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/workflows/run/\(workflowId)",
             response: MockResponse.json(mockDetail)
         )
-        
-        let client = TestUtilities.createTestWorkflowClient()
         
         // Get workflow run detail
         let response = try await client.getWorkflowRunDetail(workflowId: workflowId)
@@ -193,17 +183,14 @@ final class WorkflowClientTests: DifyTestCase {
     
     @Test("Get Workflow Logs")
     func testGetWorkflowLogs() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
         
         // Register workflow logs mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/workflows/logs",
             response: MockResponse.json(MockDataProvider.workflowLogs)
         )
-        
-        let client = TestUtilities.createTestWorkflowClient()
         
         // Get workflow logs
         let response = try await client.getWorkflowLogs(
@@ -227,7 +214,7 @@ final class WorkflowClientTests: DifyTestCase {
         #expect(logEntry.workflowRun.elapsedTime == 1.358)
         
         // Verify request parameters
-        let capturedRequests = MockURLProtocol.getCapturedRequests()
+        let capturedRequests = mockSession.getCapturedRequests()
         let logsRequest = capturedRequests.first { $0.url?.absoluteString.contains("/workflows/logs") ?? false }
         #expect(logsRequest != nil)
         
@@ -243,17 +230,14 @@ final class WorkflowClientTests: DifyTestCase {
     
     @Test("Get Workflow Logs with Filters")
     func testGetWorkflowLogsWithFilters() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
         
         // Register workflow logs mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/workflows/logs",
             response: MockResponse.json(MockDataProvider.workflowLogs)
         )
-        
-        let client = TestUtilities.createTestWorkflowClient()
         
         // Get workflow logs with all filters
         let response = try await client.getWorkflowLogs(
@@ -270,7 +254,7 @@ final class WorkflowClientTests: DifyTestCase {
         #expect(response.data.count == 1)
         
         // Verify all parameters were sent
-        let capturedRequests = MockURLProtocol.getCapturedRequests()
+        let capturedRequests = mockSession.getCapturedRequests()
         let logsRequest = capturedRequests.first { $0.url?.absoluteString.contains("/workflows/logs") ?? false }
         #expect(logsRequest != nil)
         
@@ -290,11 +274,14 @@ final class WorkflowClientTests: DifyTestCase {
     
     @Test("Get Application Info")
     func testGetApplicationInfo() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
         
-        // Mock is already registered in setupMocks()
-        let client = TestUtilities.createTestWorkflowClient()
+        // Register application info mock
+        mockSession.register(
+            method: "GET",
+            urlPattern: "/info",
+            response: MockResponse.json(MockDataProvider.applicationInfo)
+        )
         
         // Get application info
         let response = try await client.getApplicationInfo()
@@ -307,11 +294,14 @@ final class WorkflowClientTests: DifyTestCase {
     
     @Test("Get Application Parameters")
     func testGetApplicationParameters() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
         
-        // Mock is already registered in setupMocks()
-        let client = TestUtilities.createTestWorkflowClient()
+        // Register application parameters mock
+        mockSession.register(
+            method: "GET",
+            urlPattern: "/parameters",
+            response: MockResponse.json(MockDataProvider.applicationParameters)
+        )
         
         // Get application parameters
         let response = try await client.getApplicationParameters()
@@ -325,8 +315,7 @@ final class WorkflowClientTests: DifyTestCase {
     
     @Test("Get Application WebApp Settings")
     func testGetApplicationWebAppSettings() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
         
         // Register web app settings mock
         let mockSettings: [String: Any] = [
@@ -350,13 +339,11 @@ final class WorkflowClientTests: DifyTestCase {
             "use_icon_as_answer_icon": false
         ]
         
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/site",
             response: MockResponse.json(mockSettings)
         )
-        
-        let client = TestUtilities.createTestWorkflowClient()
         
         // Get web app settings
         let response = try await client.getApplicationWebAppSettings()
@@ -377,11 +364,10 @@ final class WorkflowClientTests: DifyTestCase {
     
     @Test("Run Workflow - Network Error")
     func testRunWorkflowNetworkError() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
         
         // Register network error mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/workflows/run",
             response: MockResponse.error(
@@ -391,8 +377,6 @@ final class WorkflowClientTests: DifyTestCase {
             )
         )
         
-        let client = TestUtilities.createTestWorkflowClient()
-        
         // Attempt to run workflow
         await assertThrowsError({
             _ = try await client.runWorkflow(inputs: ["query": "test"], user: "test-user")
@@ -401,21 +385,18 @@ final class WorkflowClientTests: DifyTestCase {
     
     @Test("Run Streaming Workflow - Invalid Event")
     func testRunStreamingWorkflowInvalidEvent() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
         
         // Register streaming mock with invalid event
         let invalidEvents = [
             #"data: {"event": "unknown_event", "data": {}}"#
         ]
         
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/workflows/run",
             response: MockResponse.streaming(invalidEvents)
         )
-        
-        let client = TestUtilities.createTestWorkflowClient()
         
         // Run streaming workflow
         let stream = try await client.runStreamingWorkflow(inputs: ["query": "test"], user: "test-user")
@@ -438,8 +419,7 @@ final class WorkflowClientTests: DifyTestCase {
     
     @Test("Get Workflow Logs - Empty Response")
     func testGetWorkflowLogsEmptyResponse() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
         
         // Register empty logs mock
         let emptyLogs: [String: Any] = [
@@ -450,13 +430,11 @@ final class WorkflowClientTests: DifyTestCase {
             "data": []
         ]
         
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/workflows/logs",
             response: MockResponse.json(emptyLogs)
         )
-        
-        let client = TestUtilities.createTestWorkflowClient()
         
         // Get workflow logs
         let response = try await client.getWorkflowLogs()

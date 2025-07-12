@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import DifySwiftClient
 
-@Suite("DifyClient Tests", .serialized)
+@Suite("DifyClient Tests")
 final class DifyClientTests: DifyTestCase {
     
     @Test("Client Initialization")
@@ -48,14 +48,14 @@ final class DifyClientTests: DifyTestCase {
     
     @Test("Send Request - Basic GET")
     func testSendRequest() async throws {
+        let (client, mockSession) = TestUtilities.createTestClientWithMockSession()
+        
         // Register test-specific mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/test",
             response: MockResponse.json(["result": "success"])
         )
-        
-        let client = TestUtilities.createTestClient()
         
         let data = try await client.sendRequest(method: .GET, endpoint: "test")
         let result = try JSONSerialization.jsonObject(with: data) as? [String: Any]
@@ -64,6 +64,7 @@ final class DifyClientTests: DifyTestCase {
         
         // Verify request was made correctly
         TestUtilities.assertRequestCaptured(
+            in: mockSession,
             method: "GET",
             urlPattern: "/test",
             headers: ["Authorization": "Bearer test-api-key"]
@@ -72,14 +73,14 @@ final class DifyClientTests: DifyTestCase {
     
     @Test("Send Request - With Body")
     func testSendRequestWithBody() async throws {
+        let (client, mockSession) = TestUtilities.createTestClientWithMockSession()
+        
         // Register test-specific mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/test",
             response: MockResponse.json(["result": "created"])
         )
-        
-        let client = TestUtilities.createTestClient()
         
         struct TestBody: Codable {
             let name: String
@@ -94,6 +95,7 @@ final class DifyClientTests: DifyTestCase {
         
         // Verify request was made correctly
         TestUtilities.assertRequestCaptured(
+            in: mockSession,
             method: "POST",
             urlPattern: "/test",
             headers: ["Authorization": "Bearer test-api-key"]
@@ -124,7 +126,9 @@ final class DifyClientTests: DifyTestCase {
     
     @Test("HTTP Error Handling - 404")
     func testHTTP404Error() async throws {
-        MockURLProtocol.register(
+        let (client, mockSession) = TestUtilities.createTestClientWithMockSession()
+        
+        mockSession.register(
             method: "GET",
             urlPattern: "/not-found",
             response: MockResponse.error(
@@ -134,8 +138,6 @@ final class DifyClientTests: DifyTestCase {
             )
         )
         
-        let client = TestUtilities.createTestClient()
-        
         await assertThrowsError({
             _ = try await client.sendRequest(method: .GET, endpoint: "not-found")
         }, expectedError: DifyError.httpError(404, "Resource not found"))
@@ -143,7 +145,9 @@ final class DifyClientTests: DifyTestCase {
     
     @Test("HTTP Error Handling - 401")
     func testHTTP401Error() async throws {
-        MockURLProtocol.register(
+        let (client, mockSession) = TestUtilities.createTestClientWithMockSession()
+        
+        mockSession.register(
             method: "GET",
             urlPattern: "/unauthorized",
             response: MockResponse.error(
@@ -153,8 +157,6 @@ final class DifyClientTests: DifyTestCase {
             )
         )
         
-        let client = TestUtilities.createTestClient()
-        
         await assertThrowsError({
             _ = try await client.sendRequest(method: .GET, endpoint: "unauthorized")
         }, expectedError: DifyError.httpError(401, "Invalid API key"))
@@ -162,25 +164,27 @@ final class DifyClientTests: DifyTestCase {
     
     @Test("Network Error Handling")
     func testNetworkError() async throws {
-        // Don't register any mock - this will cause MockURLProtocol to return an error
-        let client = TestUtilities.createTestClient()
+        let (client, mockSession) = TestUtilities.createTestClientWithMockSession()
         
+        // Don't register any mock - this will cause the mock session to return an error
         do {
             _ = try await client.sendRequest(method: .GET, endpoint: "test")
             Issue.record("Expected network error but request succeeded")
         } catch {
-            // We expect an NSError from MockURLProtocol when no mock is registered
+            // We expect an NSError from the mock session when no mock is registered
             #expect(error is NSError)
             let nsError = error as NSError
-            #expect(nsError.domain == "MockURLProtocol")
+            #expect(nsError.domain == "IsolatedMockURLProtocol")
             #expect(nsError.code == 404)
         }
     }
     
     @Test("JSON Decoding Error")
     func testJSONDecodingError() async throws {
+        let (client, mockSession) = TestUtilities.createTestClientWithMockSession()
+        
         // Register mock with invalid JSON for expected response type
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/invalid-json",
             response: MockResponse(
@@ -188,8 +192,6 @@ final class DifyClientTests: DifyTestCase {
                 data: "invalid json".data(using: .utf8)
             )
         )
-        
-        let client = TestUtilities.createTestClient()
         
         do {
             struct TestResponse: Decodable { let name: String }

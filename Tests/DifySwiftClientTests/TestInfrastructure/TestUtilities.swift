@@ -21,6 +21,11 @@ enum TestUtilities {
         return URLSession(configuration: configuration)
     }
     
+    /// Create an isolated mock session for parallel testing
+    static func createIsolatedMockSession() -> IsolatedMockSession {
+        return IsolatedMockSession()
+    }
+    
     // MARK: - Client Creation
     
     /// Create a test DifyClient
@@ -33,6 +38,16 @@ enum TestUtilities {
         return client
     }
     
+    /// Create a test DifyClient with isolated mock session
+    static func createTestClientWithMockSession(
+        apiKey: String = "test-api-key",
+        baseURL: String = "https://api.dify.ai/v1"
+    ) -> (client: DifyClient, mockSession: IsolatedMockSession) {
+        let mockSession = createIsolatedMockSession()
+        let client = try! DifyClient(apiKey: apiKey, baseURL: baseURL, session: mockSession.urlSession)
+        return (client, mockSession)
+    }
+    
     /// Create a test ChatClient
     static func createTestChatClient(
         apiKey: String = "test-api-key",
@@ -41,6 +56,16 @@ enum TestUtilities {
         let client = try! ChatClient(apiKey: apiKey, baseURL: baseURL)
         client.session = createMockURLSession()
         return client
+    }
+    
+    /// Create a test ChatClient with isolated mock session
+    static func createTestChatClientWithMockSession(
+        apiKey: String = "test-api-key",
+        baseURL: String = "https://api.dify.ai/v1"
+    ) -> (client: ChatClient, mockSession: IsolatedMockSession) {
+        let mockSession = createIsolatedMockSession()
+        let client = try! ChatClient(apiKey: apiKey, baseURL: baseURL, session: mockSession.urlSession)
+        return (client, mockSession)
     }
     
     /// Create a test CompletionClient
@@ -53,6 +78,16 @@ enum TestUtilities {
         return client
     }
     
+    /// Create a test CompletionClient with isolated mock session
+    static func createTestCompletionClientWithMockSession(
+        apiKey: String = "test-api-key",
+        baseURL: String = "https://api.dify.ai/v1"
+    ) -> (client: CompletionClient, mockSession: IsolatedMockSession) {
+        let mockSession = createIsolatedMockSession()
+        let client = try! CompletionClient(apiKey: apiKey, baseURL: baseURL, session: mockSession.urlSession)
+        return (client, mockSession)
+    }
+    
     /// Create a test WorkflowClient
     static func createTestWorkflowClient(
         apiKey: String = "test-api-key",
@@ -63,6 +98,16 @@ enum TestUtilities {
         return client
     }
     
+    /// Create a test WorkflowClient with isolated mock session
+    static func createTestWorkflowClientWithMockSession(
+        apiKey: String = "test-api-key",
+        baseURL: String = "https://api.dify.ai/v1"
+    ) -> (client: WorkflowClient, mockSession: IsolatedMockSession) {
+        let mockSession = createIsolatedMockSession()
+        let client = try! WorkflowClient(apiKey: apiKey, baseURL: baseURL, session: mockSession.urlSession)
+        return (client, mockSession)
+    }
+    
     /// Create a test KnowledgeBaseClient
     static func createTestKnowledgeBaseClient(
         apiKey: String = "test-api-key",
@@ -71,6 +116,16 @@ enum TestUtilities {
         let client = try! KnowledgeBaseClient(apiKey: apiKey, baseURL: baseURL)
         client.session = createMockURLSession()
         return client
+    }
+    
+    /// Create a test KnowledgeBaseClient with isolated mock session
+    static func createTestKnowledgeBaseClientWithMockSession(
+        apiKey: String = "test-api-key",
+        baseURL: String = "https://api.dify.ai/v1"
+    ) -> (client: KnowledgeBaseClient, mockSession: IsolatedMockSession) {
+        let mockSession = createIsolatedMockSession()
+        let client = try! KnowledgeBaseClient(apiKey: apiKey, baseURL: baseURL, session: mockSession.urlSession)
+        return (client, mockSession)
     }
     
     // MARK: - Mock Setup Helpers
@@ -245,6 +300,36 @@ enum TestUtilities {
             
             if let expectedHeaders = headers {
                 for (key, value) in expectedHeaders {
+                    guard request.value(forHTTPHeaderField: key) == value else {
+                        return false
+                    }
+                }
+            }
+            
+            return true
+        }
+        
+        #expect(matchingRequest != nil, "Expected request not captured: \(method) \(urlPattern)")
+    }
+    
+    /// Assert that a request was captured with specific properties in the mock session
+    static func assertRequestCaptured(
+        in mockSession: IsolatedMockSession,
+        method: String,
+        urlPattern: String,
+        headers: [String: String]? = nil
+    ) {
+        let capturedRequests = mockSession.getCapturedRequests()
+        
+        let matchingRequest = capturedRequests.first { request in
+            guard request.httpMethod == method else { return false }
+            guard let url = request.url?.absoluteString,
+                  url.contains(urlPattern) else { return false }
+            
+            if let expectedHeaders = headers {
+                for (key, value) in expectedHeaders {
+                    // Skip checking the X-Mock-Session-ID header
+                    if key == "X-Mock-Session-ID" { continue }
                     guard request.value(forHTTPHeaderField: key) == value else {
                         return false
                     }

@@ -2,24 +2,21 @@ import Foundation
 import Testing
 @testable import DifySwiftClient
 
-@Suite("KnowledgeBaseClient Tests", .serialized)
+@Suite("KnowledgeBaseClient Tests")
 final class KnowledgeBaseClientTests: DifyTestCase {
     
     // MARK: - Dataset Tests
     
     @Test("List Datasets")
     func testListDatasets() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
         
         // Register list datasets mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/datasets",
             response: MockResponse.json(MockDataProvider.datasetList)
         )
-        
-        let client = TestUtilities.createTestKnowledgeBaseClient()
         
         // List datasets
         let response = try await client.listDatasets(page: 1, limit: 20)
@@ -41,6 +38,7 @@ final class KnowledgeBaseClientTests: DifyTestCase {
         
         // Verify request
         TestUtilities.assertRequestCaptured(
+            in: mockSession,
             method: "GET",
             urlPattern: "/datasets",
             headers: ["Authorization": "Bearer \(apiKey)"]
@@ -49,23 +47,20 @@ final class KnowledgeBaseClientTests: DifyTestCase {
     
     @Test("List Datasets with Pagination")
     func testListDatasetsWithPagination() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
         
         // Register list datasets mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/datasets",
             response: MockResponse.json(MockDataProvider.datasetList)
         )
         
-        let client = TestUtilities.createTestKnowledgeBaseClient()
-        
         // List datasets with custom pagination
         _ = try await client.listDatasets(page: 2, limit: 50)
         
         // Verify request parameters
-        let capturedRequests = MockURLProtocol.getCapturedRequests()
+        let capturedRequests = mockSession.getCapturedRequests()
         let listRequest = capturedRequests.first { $0.url?.absoluteString.contains("/datasets") ?? false }
         #expect(listRequest != nil)
         
@@ -79,8 +74,7 @@ final class KnowledgeBaseClientTests: DifyTestCase {
     
     @Test("Create Dataset")
     func testCreateDataset() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
         
         // Register create dataset mock
         let mockDataset: [String: Any] = [
@@ -98,13 +92,11 @@ final class KnowledgeBaseClientTests: DifyTestCase {
             "updated_at": 1695065710
         ]
         
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/datasets",
             response: MockResponse.json(mockDataset)
         )
-        
-        let client = TestUtilities.createTestKnowledgeBaseClient()
         
         // Create dataset
         let response = try await client.createDataset(name: "New Dataset")
@@ -118,7 +110,7 @@ final class KnowledgeBaseClientTests: DifyTestCase {
         #expect(response.documentCount == 0)
         
         // Verify request body
-        let capturedRequests = MockURLProtocol.getCapturedRequests()
+        let capturedRequests = mockSession.getCapturedRequests()
         let createRequest = capturedRequests.first { $0.url?.absoluteString.contains("/datasets") ?? false }
         #expect(createRequest != nil)
         
@@ -130,19 +122,16 @@ final class KnowledgeBaseClientTests: DifyTestCase {
     
     @Test("Delete Dataset")
     func testDeleteDataset() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
         
         let datasetId = "dataset-to-delete"
         
         // Register delete dataset mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "DELETE",
             urlPattern: "/datasets/\(datasetId)",
             response: MockResponse.json(["result": "success"])
         )
-        
-        let client = TestUtilities.createTestKnowledgeBaseClient()
         
         // Delete dataset
         let response = try await client.deleteDataset(datasetId: datasetId)
@@ -152,6 +141,7 @@ final class KnowledgeBaseClientTests: DifyTestCase {
         
         // Verify request
         TestUtilities.assertRequestCaptured(
+            in: mockSession,
             method: "DELETE",
             urlPattern: "/datasets/\(datasetId)",
             headers: ["Authorization": "Bearer \(apiKey)"]
@@ -162,19 +152,16 @@ final class KnowledgeBaseClientTests: DifyTestCase {
     
     @Test("List Documents")
     func testListDocuments() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
         
         let datasetId = "test-dataset-123"
         
         // Register list documents mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/datasets/\(datasetId)/documents",
             response: MockResponse.json(MockDataProvider.documentList)
         )
-        
-        let client = TestUtilities.createTestKnowledgeBaseClient()
         
         // List documents
         let response = try await client.listDocuments(datasetId: datasetId)
@@ -197,19 +184,16 @@ final class KnowledgeBaseClientTests: DifyTestCase {
     
     @Test("List Documents with Keyword")
     func testListDocumentsWithKeyword() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
         
         let datasetId = "test-dataset-123"
         
         // Register list documents mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/datasets/\(datasetId)/documents",
             response: MockResponse.json(MockDataProvider.documentList)
         )
-        
-        let client = TestUtilities.createTestKnowledgeBaseClient()
         
         // List documents with keyword
         _ = try await client.listDocuments(
@@ -220,7 +204,7 @@ final class KnowledgeBaseClientTests: DifyTestCase {
         )
         
         // Verify request parameters
-        let capturedRequests = MockURLProtocol.getCapturedRequests()
+        let capturedRequests = mockSession.getCapturedRequests()
         let listRequest = capturedRequests.first { $0.url?.absoluteString.contains("/documents") ?? false }
         #expect(listRequest != nil)
         
@@ -235,8 +219,7 @@ final class KnowledgeBaseClientTests: DifyTestCase {
     
     @Test("Create Document")
     func testCreateDocument() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
         
         let datasetId = "test-dataset-123"
         
@@ -251,13 +234,11 @@ final class KnowledgeBaseClientTests: DifyTestCase {
             "created_at": 1695065710
         ]
         
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/datasets/\(datasetId)/documents/upload",
             response: MockResponse.json(mockDocument)
         )
-        
-        let client = TestUtilities.createTestKnowledgeBaseClient()
         
         // Create document
         let fileData = "This is test document content".data(using: .utf8)!
@@ -278,7 +259,7 @@ final class KnowledgeBaseClientTests: DifyTestCase {
         #expect(response.indexingStatus == "indexing")
         
         // Verify request was multipart
-        let capturedRequests = MockURLProtocol.getCapturedRequests()
+        let capturedRequests = mockSession.getCapturedRequests()
         let uploadRequest = capturedRequests.first { $0.url?.absoluteString.contains("/documents/upload") ?? false }
         #expect(uploadRequest != nil)
         #expect(uploadRequest?.value(forHTTPHeaderField: "Content-Type")?.contains("multipart/form-data") == true)
@@ -286,20 +267,17 @@ final class KnowledgeBaseClientTests: DifyTestCase {
     
     @Test("Delete Document")
     func testDeleteDocument() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
         
         let datasetId = "test-dataset-123"
         let documentId = "doc-to-delete"
         
         // Register delete document mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "DELETE",
             urlPattern: "/datasets/\(datasetId)/documents/\(documentId)",
             response: MockResponse.json(["result": "success"])
         )
-        
-        let client = TestUtilities.createTestKnowledgeBaseClient()
         
         // Delete document
         let response = try await client.deleteDocument(datasetId: datasetId, documentId: documentId)
@@ -309,6 +287,7 @@ final class KnowledgeBaseClientTests: DifyTestCase {
         
         // Verify request
         TestUtilities.assertRequestCaptured(
+            in: mockSession,
             method: "DELETE",
             urlPattern: "/datasets/\(datasetId)/documents/\(documentId)",
             headers: ["Authorization": "Bearer \(apiKey)"]
@@ -319,11 +298,10 @@ final class KnowledgeBaseClientTests: DifyTestCase {
     
     @Test("List Datasets - Network Error")
     func testListDatasetsNetworkError() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
         
         // Register network error mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/datasets",
             response: MockResponse.error(
@@ -333,8 +311,6 @@ final class KnowledgeBaseClientTests: DifyTestCase {
             )
         )
         
-        let client = TestUtilities.createTestKnowledgeBaseClient()
-        
         // Attempt to list datasets
         await assertThrowsError({
             _ = try await client.listDatasets()
@@ -343,11 +319,10 @@ final class KnowledgeBaseClientTests: DifyTestCase {
     
     @Test("Create Dataset - Invalid Input")
     func testCreateDatasetInvalidInput() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
         
         // Register validation error mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/datasets",
             response: MockResponse.error(
@@ -357,8 +332,6 @@ final class KnowledgeBaseClientTests: DifyTestCase {
             )
         )
         
-        let client = TestUtilities.createTestKnowledgeBaseClient()
-        
         // Attempt to create dataset with empty name
         await assertThrowsError({
             _ = try await client.createDataset(name: "")
@@ -367,13 +340,12 @@ final class KnowledgeBaseClientTests: DifyTestCase {
     
     @Test("List Documents - Dataset Not Found")
     func testListDocumentsDatasetNotFound() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
         
         let datasetId = "non-existent-dataset"
         
         // Register not found error mock
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/datasets/\(datasetId)/documents",
             response: MockResponse.error(
@@ -383,8 +355,6 @@ final class KnowledgeBaseClientTests: DifyTestCase {
             )
         )
         
-        let client = TestUtilities.createTestKnowledgeBaseClient()
-        
         // Attempt to list documents
         await assertThrowsError({
             _ = try await client.listDocuments(datasetId: datasetId)
@@ -393,8 +363,7 @@ final class KnowledgeBaseClientTests: DifyTestCase {
     
     @Test("List Documents - Empty Results")
     func testListDocumentsEmptyResults() async throws {
-        // Setup mocks first
-        super.setupMocks()
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
         
         let datasetId = "empty-dataset"
         
@@ -407,13 +376,11 @@ final class KnowledgeBaseClientTests: DifyTestCase {
             "limit": 20
         ]
         
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/datasets/\(datasetId)/documents",
             response: MockResponse.json(emptyDocuments)
         )
-        
-        let client = TestUtilities.createTestKnowledgeBaseClient()
         
         // List documents
         let response = try await client.listDocuments(datasetId: datasetId)

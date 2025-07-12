@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import DifySwiftClient
 
-@Suite("ChatClient Tests", .serialized)
+@Suite("ChatClient Tests")
 final class ChatClientTests: DifyTestCase {
     
     @Test("Client Initialization")
@@ -14,14 +14,14 @@ final class ChatClientTests: DifyTestCase {
     
     @Test("Create Chat Message")
     func testCreateChatMessage() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        
         // Register mock response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/chat-messages",
             response: MockResponse.json(MockDataProvider.chatMessageResponse)
         )
-        
-        let client = TestUtilities.createTestChatClient()
         
         let response = try await client.createChatMessage(
             inputs: ["name": "Alice"],
@@ -38,6 +38,7 @@ final class ChatClientTests: DifyTestCase {
         
         // Verify request was made correctly
         TestUtilities.assertRequestCaptured(
+            in: mockSession,
             method: "POST",
             urlPattern: "/chat-messages",
             headers: ["Authorization": "Bearer test-api-key"]
@@ -46,14 +47,14 @@ final class ChatClientTests: DifyTestCase {
     
     @Test("Create Chat Message with Files")
     func testCreateChatMessageWithFiles() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        
         // Register mock response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/chat-messages",
             response: MockResponse.json(MockDataProvider.chatMessageResponse)
         )
-        
-        let client = TestUtilities.createTestChatClient()
         
         let files = [
             APIFile(
@@ -73,7 +74,7 @@ final class ChatClientTests: DifyTestCase {
         #expect(!response.messageId.isEmpty)
         
         // Verify request body contains files
-        let capturedRequests = MockURLProtocol.getCapturedRequests()
+        let capturedRequests = mockSession.getCapturedRequests()
         let request = capturedRequests.first { $0.url?.absoluteString.contains("/chat-messages") ?? false }
         #expect(request != nil)
         
@@ -89,15 +90,15 @@ final class ChatClientTests: DifyTestCase {
     
     @Test("Create Streaming Chat Message")
     func testCreateStreamingChatMessage() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        
         // Register streaming mock response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/chat-messages",
             bodyPattern: "\"response_mode\":\"streaming\"",
             response: MockResponse.streaming(MockDataProvider.streamingChatEvents)
         )
-        
-        let client = TestUtilities.createTestChatClient()
         
         let stream = try await client.createStreamingChatMessage(
             inputs: [:],
@@ -142,14 +143,14 @@ final class ChatClientTests: DifyTestCase {
     
     @Test("Stop Chat Generation")
     func testStopChatGeneration() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        
         // Register mock response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/chat-messages/task-123/stop",
             response: MockResponse.json(["result": "success"])
         )
-        
-        let client = TestUtilities.createTestChatClient()
         
         let response = try await client.stopChatGeneration(
             taskId: "task-123",
@@ -160,6 +161,7 @@ final class ChatClientTests: DifyTestCase {
         
         // Verify request was made correctly
         TestUtilities.assertRequestCaptured(
+            in: mockSession,
             method: "POST",
             urlPattern: "/chat-messages/task-123/stop"
         )
@@ -167,14 +169,14 @@ final class ChatClientTests: DifyTestCase {
     
     @Test("Get Conversation Messages")
     func testGetConversationMessages() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        
         // Register mock response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/messages",
             response: MockResponse.json(MockDataProvider.messageHistory)
         )
-        
-        let client = TestUtilities.createTestChatClient()
         
         let response = try await client.getConversationMessages(
             conversationId: "conv-123",
@@ -190,6 +192,7 @@ final class ChatClientTests: DifyTestCase {
         
         // Verify request parameters
         TestUtilities.assertRequestCaptured(
+            in: mockSession,
             method: "GET",
             urlPattern: "/messages"
         )
@@ -197,14 +200,14 @@ final class ChatClientTests: DifyTestCase {
     
     @Test("Get Suggested Questions")
     func testGetSuggestedQuestions() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        
         // Register mock response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/messages/msg-123/suggested",
             response: MockResponse.json(MockDataProvider.suggestedQuestions)
         )
-        
-        let client = TestUtilities.createTestChatClient()
         
         let response = try await client.getSuggestedQuestions(
             messageId: "msg-123",
@@ -220,14 +223,14 @@ final class ChatClientTests: DifyTestCase {
     
     @Test("Send Message Feedback")
     func testSendMessageFeedback() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        
         // Register mock response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/messages/msg-123/feedbacks",
             response: MockResponse.json(["result": "success"])
         )
-        
-        let client = TestUtilities.createTestChatClient()
         
         let response = try await client.sendMessageFeedback(
             messageId: "msg-123",
@@ -239,7 +242,7 @@ final class ChatClientTests: DifyTestCase {
         #expect(response.result == "success")
         
         // Verify request body
-        let capturedRequests = MockURLProtocol.getCapturedRequests()
+        let capturedRequests = mockSession.getCapturedRequests()
         let request = capturedRequests.first { $0.url?.absoluteString.contains("/feedbacks") ?? false }
         #expect(request != nil)
         
@@ -254,6 +257,8 @@ final class ChatClientTests: DifyTestCase {
     
     @Test("Get Application Feedbacks")
     func testGetApplicationFeedbacks() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        
         // Register mock response
         let mockResponse: [String: Any] = [
             "data": [
@@ -272,13 +277,11 @@ final class ChatClientTests: DifyTestCase {
                 ]
             ]
         ]
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/app/feedbacks",
             response: MockResponse.json(mockResponse)
         )
-        
-        let client = TestUtilities.createTestChatClient()
         
         let response = try await client.getApplicationFeedbacks(page: 1, limit: 20)
         
@@ -289,6 +292,8 @@ final class ChatClientTests: DifyTestCase {
     
     @Test("Get Conversation Variables")
     func testGetConversationVariables() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        
         // Register mock response
         let mockResponse: [String: Any] = [
             "data": [
@@ -314,13 +319,11 @@ final class ChatClientTests: DifyTestCase {
             "has_more": false,
             "limit": 20
         ]
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/conversations/conv-123/variables",
             response: MockResponse.json(mockResponse)
         )
-        
-        let client = TestUtilities.createTestChatClient()
         
         let response = try await client.getConversationVariables(
             conversationId: "conv-123",
@@ -335,14 +338,14 @@ final class ChatClientTests: DifyTestCase {
     
     @Test("Audio to Text")
     func testAudioToText() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        
         // Register mock response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/audio-to-text",
             response: MockResponse.json(["text": "Hello, this is the transcribed text."])
         )
-        
-        let client = TestUtilities.createTestChatClient()
         
         let audioData = TestUtilities.createTestAudioData()
         let response = try await client.audioToText(
@@ -355,9 +358,11 @@ final class ChatClientTests: DifyTestCase {
     
     @Test("Text to Audio")
     func testTextToAudio() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        
         // Register mock response with audio data
         let mockAudioData = Data([0xFF, 0xD8, 0xFF, 0xE0]) // Simplified audio data
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/text-to-audio",
             response: MockResponse(
@@ -366,8 +371,6 @@ final class ChatClientTests: DifyTestCase {
                 data: mockAudioData
             )
         )
-        
-        let client = TestUtilities.createTestChatClient()
         
         let audioData = try await client.textToAudio(
             text: "Hello, world!",
@@ -380,8 +383,10 @@ final class ChatClientTests: DifyTestCase {
     
     @Test("Error Handling - Invalid Conversation")
     func testErrorHandlingInvalidConversation() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        
         // Register error response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "GET",
             urlPattern: "/messages",
             response: MockResponse.error(
@@ -390,8 +395,6 @@ final class ChatClientTests: DifyTestCase {
                 message: "Conversation not found"
             )
         )
-        
-        let client = TestUtilities.createTestChatClient()
         
         await assertThrowsError({
             _ = try await client.getConversationMessages(
@@ -403,8 +406,10 @@ final class ChatClientTests: DifyTestCase {
     
     @Test("Error Handling - Rate Limit")
     func testErrorHandlingRateLimit() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        
         // Register rate limit error
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/chat-messages",
             response: MockResponse.error(
@@ -413,8 +418,6 @@ final class ChatClientTests: DifyTestCase {
                 message: "Rate limit exceeded"
             )
         )
-        
-        let client = TestUtilities.createTestChatClient()
         
         await assertThrowsError({
             _ = try await client.createChatMessage(

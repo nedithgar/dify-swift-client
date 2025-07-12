@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import DifySwiftClient
 
-@Suite("CompletionClient Tests", .serialized)
+@Suite("CompletionClient Tests")
 final class CompletionClientTests: DifyTestCase {
     
     @Test("Client Initialization")
@@ -14,14 +14,14 @@ final class CompletionClientTests: DifyTestCase {
     
     @Test("Create Completion Message")
     func testCreateCompletionMessage() async throws {
+        let (client, mockSession) = TestUtilities.createTestCompletionClientWithMockSession()
+        
         // Register mock response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/completion-messages",
             response: MockResponse.json(MockDataProvider.completionResponse)
         )
-        
-        let client = TestUtilities.createTestCompletionClient()
         
         let response = try await client.createCompletionMessage(
             inputs: ["query": "What is the capital of France?"],
@@ -35,6 +35,7 @@ final class CompletionClientTests: DifyTestCase {
         
         // Verify request was made correctly
         TestUtilities.assertRequestCaptured(
+            in: mockSession,
             method: "POST",
             urlPattern: "/completion-messages",
             headers: ["Authorization": "Bearer test-api-key"]
@@ -43,14 +44,14 @@ final class CompletionClientTests: DifyTestCase {
     
     @Test("Create Completion Message with Files")
     func testCreateCompletionMessageWithFiles() async throws {
+        let (client, mockSession) = TestUtilities.createTestCompletionClientWithMockSession()
+        
         // Register mock response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/completion-messages",
             response: MockResponse.json(MockDataProvider.completionResponse)
         )
-        
-        let client = TestUtilities.createTestCompletionClient()
         
         let files = [
             APIFile(
@@ -69,7 +70,7 @@ final class CompletionClientTests: DifyTestCase {
         #expect(!response.messageId.isEmpty)
         
         // Verify request body contains files
-        let capturedRequests = MockURLProtocol.getCapturedRequests()
+        let capturedRequests = mockSession.getCapturedRequests()
         let request = capturedRequests.first { $0.url?.absoluteString.contains("/completion-messages") ?? false }
         #expect(request != nil)
         
@@ -97,14 +98,14 @@ final class CompletionClientTests: DifyTestCase {
             #"data: {"event": "message_end", "task_id": "task-123", "message_id": "msg-123", "metadata": {"usage": {"prompt_tokens": 10, "completion_tokens": 8, "total_tokens": 18}}}"#
         ]
         
-        MockURLProtocol.register(
+        let (client, mockSession) = TestUtilities.createTestCompletionClientWithMockSession()
+        
+        mockSession.register(
             method: "POST",
             urlPattern: "/completion-messages",
             bodyPattern: "\"response_mode\":\"streaming\"",
             response: MockResponse.streaming(streamingEvents)
         )
-        
-        let client = TestUtilities.createTestCompletionClient()
         
         let stream = try await client.createStreamingCompletionMessage(
             inputs: ["query": "What is the capital of France?"],
@@ -143,14 +144,14 @@ final class CompletionClientTests: DifyTestCase {
     
     @Test("Stop Completion Message")
     func testStopCompletionMessage() async throws {
+        let (client, mockSession) = TestUtilities.createTestCompletionClientWithMockSession()
+        
         // Register mock response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/completion-messages/task-123/stop",
             response: MockResponse.json(["result": "success"])
         )
-        
-        let client = TestUtilities.createTestCompletionClient()
         
         let response = try await client.stopCompletionMessage(
             taskId: "task-123",
@@ -161,6 +162,7 @@ final class CompletionClientTests: DifyTestCase {
         
         // Verify request was made correctly
         TestUtilities.assertRequestCaptured(
+            in: mockSession,
             method: "POST",
             urlPattern: "/completion-messages/task-123/stop"
         )
@@ -168,14 +170,14 @@ final class CompletionClientTests: DifyTestCase {
     
     @Test("Upload File")
     func testUploadFile() async throws {
+        let (client, mockSession) = TestUtilities.createTestCompletionClientWithMockSession()
+        
         // Register mock response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/files/upload",
             response: MockResponse.json(MockDataProvider.fileUploadResponse)
         )
-        
-        let client = TestUtilities.createTestCompletionClient()
         
         let imageData = TestUtilities.createTestImageData()
         let response = try await client.uploadFile(
@@ -193,14 +195,14 @@ final class CompletionClientTests: DifyTestCase {
     
     @Test("Upload File with Custom MIME Type")
     func testUploadFileWithCustomMimeType() async throws {
+        let (client, mockSession) = TestUtilities.createTestCompletionClientWithMockSession()
+        
         // Register mock response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/files/upload",
             response: MockResponse.json(MockDataProvider.fileUploadResponse)
         )
-        
-        let client = TestUtilities.createTestCompletionClient()
         
         let imageData = TestUtilities.createTestImageData()
         let response = try await client.uploadFile(
@@ -213,7 +215,7 @@ final class CompletionClientTests: DifyTestCase {
         #expect(response.id == "72fa9618-8f89-4a37-9b33-7e1178a24a67")
         
         // Verify the correct MIME type was sent
-        let capturedRequests = MockURLProtocol.getCapturedRequests()
+        let capturedRequests = mockSession.getCapturedRequests()
         let request = capturedRequests.first { $0.url?.absoluteString.contains("/files/upload") ?? false }
         #expect(request != nil)
         
@@ -225,8 +227,10 @@ final class CompletionClientTests: DifyTestCase {
     
     @Test("Error Handling - Invalid Input")
     func testErrorHandlingInvalidInput() async throws {
+        let (client, mockSession) = TestUtilities.createTestCompletionClientWithMockSession()
+        
         // Register error response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/completion-messages",
             response: MockResponse.error(
@@ -235,8 +239,6 @@ final class CompletionClientTests: DifyTestCase {
                 message: "Input parameter is required"
             )
         )
-        
-        let client = TestUtilities.createTestCompletionClient()
         
         await assertThrowsError({
             _ = try await client.createCompletionMessage(
@@ -248,8 +250,10 @@ final class CompletionClientTests: DifyTestCase {
     
     @Test("Error Handling - Rate Limit")
     func testErrorHandlingRateLimit() async throws {
+        let (client, mockSession) = TestUtilities.createTestCompletionClientWithMockSession()
+        
         // Register rate limit error
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/completion-messages",
             response: MockResponse.error(
@@ -258,8 +262,6 @@ final class CompletionClientTests: DifyTestCase {
                 message: "Rate limit exceeded"
             )
         )
-        
-        let client = TestUtilities.createTestCompletionClient()
         
         await assertThrowsError({
             _ = try await client.createCompletionMessage(
@@ -271,8 +273,10 @@ final class CompletionClientTests: DifyTestCase {
     
     @Test("Error Handling - File Too Large")
     func testErrorHandlingFileTooLarge() async throws {
+        let (client, mockSession) = TestUtilities.createTestCompletionClientWithMockSession()
+        
         // Register error response
-        MockURLProtocol.register(
+        mockSession.register(
             method: "POST",
             urlPattern: "/files/upload",
             response: MockResponse.error(
@@ -281,8 +285,6 @@ final class CompletionClientTests: DifyTestCase {
                 message: "File size exceeds limit"
             )
         )
-        
-        let client = TestUtilities.createTestCompletionClient()
         
         await assertThrowsError({
             _ = try await client.uploadFile(
