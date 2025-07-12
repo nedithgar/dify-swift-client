@@ -24,7 +24,8 @@
   - [x] All 10 tests passing including file upload
 - [x] Create tests for WorkflowClient
   - [x] All 12 tests passing including streaming support
-- [ ] Create tests for KnowledgeBaseClient
+- [x] Create tests for KnowledgeBaseClient
+  - [x] All 12 tests passing including dataset and document management
 - [ ] Add performance benchmarks
 - [ ] Create integration test suite (with test server)
 - [ ] Add stress tests for streaming responses
@@ -261,13 +262,19 @@
 ## 📊 Progress Tracking
 
 - Total Tasks: ~150
-- Completed: ~29 (19%)
-- In Progress: 1 (KnowledgeBaseClient tests)
+- Completed: ~30 (20%)
+- In Progress: 0
 - Blocked: 0
 
 Last Updated: 2025-07-12
 
 ### Recent Completions
+- Created tests for KnowledgeBaseClient (2025-07-12)
+  - All 12 tests passing covering dataset and document operations
+  - Tests include list, create, delete operations for datasets
+  - Tests include list, create, delete operations for documents
+  - Comprehensive error handling tests for all operations
+  - Fixed mock data to include all required fields for DatasetResponse
 - Updated test infrastructure documentation (2025-07-12)
   - Verified all test suites already use .serialized trait
   - Updated CLAUDE.md to recommend --no-parallel for reliable test execution

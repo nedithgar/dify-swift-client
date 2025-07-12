@@ -180,8 +180,13 @@ enum MockDataProvider {
                 "id": "b5829712-b2fb-4e47-bc0b-5f6f29c08162",
                 "name": "Product Documentation",
                 "description": "Company product documentation and guides",
+                "permission": "private",
+                "data_source_type": "upload_file",
+                "indexing_technique": "economy",
+                "app_count": 3,
                 "document_count": 42,
                 "word_count": 125000,
+                "created_by": "user-123",
                 "created_at": 1695065710,
                 "updated_at": 1695065710
             ]
