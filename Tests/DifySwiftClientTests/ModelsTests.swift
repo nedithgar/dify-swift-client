@@ -999,6 +999,21 @@ struct AnyCodableTests {
             _ = try JSONEncoder.difyEncoder.encode(value)
         }
     }
+    
+    @Test func testAnyCodableFloatingPointOnly() throws {
+        // Test with a floating point number that cannot be represented as an integer
+        // This ensures the Double branch in the decoder is tested
+        let jsonString = "3.14159265359"
+        let jsonData = jsonString.data(using: .utf8)!
+        
+        let decoded = try JSONDecoder.difyDecoder.decode(AnyCodable.self, from: jsonData)
+        #expect(decoded.value as? Double == 3.14159265359)
+        
+        // Also test with scientific notation
+        let scientificJson = "1.23e-10".data(using: .utf8)!
+        let scientificDecoded = try JSONDecoder.difyDecoder.decode(AnyCodable.self, from: scientificJson)
+        #expect(scientificDecoded.value as? Double == 1.23e-10)
+    }
 }
 
 // MARK: - Additional Model Tests
