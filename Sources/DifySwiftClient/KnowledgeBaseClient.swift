@@ -73,7 +73,7 @@ public final class KnowledgeBaseClient: DifyClient, @unchecked Sendable {
         multipart.addFileField(named: "file", fileName: fileName, data: fileData, mimeType: "application/octet-stream")
         
         let request = try createURLRequest(method: .POST, endpoint: "/datasets/\(datasetId)/documents/upload", multipart: multipart)
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, _) = try await session.data(for: request)
         return try decode(data, to: DocumentResponse.self)
     }
     

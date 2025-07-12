@@ -109,8 +109,7 @@ public final class CompletionClient: DifyClient, @unchecked Sendable {
         
         multipart.addFileField(named: "file", fileName: fileName, data: fileData, mimeType: detectedMimeType)
 
-        let urlRequest = try createURLRequest(method: .POST, endpoint: "/files/upload", multipart: multipart)
-        let (data, _) = try await URLSession.shared.data(for: urlRequest)
+        let data = try await sendMultipartRequest(method: .POST, endpoint: "/files/upload", multipart: multipart)
         return try decode(data, to: FileUploadResponse.self)
     }
 
