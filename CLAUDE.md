@@ -31,6 +31,9 @@ When needing Swift documentation or migration guidance, use these Context7 libra
 - `/swiftlang/swift` - For Swift language documentation and APIs
 - `/swiftlang/swift-migration-guide` - For Swift 6 migration guidance, common errors and best practices
 
+**IMPORTANT: Swift 6 Error Handling Principle**
+When creating tests or implementing new features, proactively seek assistance from Context7's Swift migration guide (`/swiftlang/swift-migration-guide`) if you encounter Swift 6 related errors. This ensures compatibility with Swift 6's strict concurrency checking and helps avoid common migration pitfalls.
+
 ## Architecture
 
 ### Core Client Structure
