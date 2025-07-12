@@ -6,6 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Swift SDK for Dify AI that provides a complete interface to the Dify Service API. The SDK is built with modern Swift practices, using async/await concurrency and comprehensive error handling.
 
+### SDK Purpose
+- Provides a complete Swift interface to all Dify AI Service API endpoints
+- Supports chat completions, workflows, knowledge base management, and more
+- Built for iOS, macOS, tvOS, watchOS, and Linux platforms
+- Designed for both synchronous and streaming API interactions
+
 ## Development Rules
 
 ### **TODO Management**
@@ -142,3 +148,70 @@ swift test --parallel
 - **Platforms**: macOS 13.0+, iOS 16.0+, tvOS 16.0+, watchOS 9.0+
 - **Dependencies**: Foundation, FoundationNetworking (Linux)
 - **Package Manager**: Swift Package Manager
+
+## Code Style Guidelines
+
+### Swift Best Practices
+- Use descriptive variable and function names following Swift naming conventions
+- Prefer value types (structs) over reference types (classes) where appropriate
+- Use `guard` statements for early returns and validation
+- Leverage Swift's type system with proper error handling
+- Document all public APIs with clear doc comments
+
+### Async/Await Patterns
+- All network operations use async/await
+- Proper error propagation through throws
+- No completion handlers or callbacks
+- Structured concurrency where applicable
+
+### Testing Philosophy
+- Every public API method must have corresponding tests
+- Tests should be independent and not rely on external services
+- Mock all network interactions for predictable test results
+- Test both success and failure scenarios
+- Include edge cases and error conditions
+
+## Common Tasks
+
+### Adding a New API Method
+1. Define request/response models in `Models.swift`
+2. Add the method to the appropriate client class
+3. Use `sendRequest()` for standard requests or `sendRequestWithFiles()` for file uploads
+4. Add comprehensive test coverage with mocks in the corresponding test file
+5. Update `MockDataProvider.swift` with appropriate mock responses
+6. Add usage example to `Examples/main.swift` if significant
+7. Update `DOCUMENTATION.md` with the new functionality
+
+### Debugging Tips
+- Check `DifyError` cases for specific error handling
+- Use `print(request.debugDescription)` to inspect outgoing requests
+- Verify JSON encoding/decoding with custom coders
+- Test streaming responses with mock SSE data
+- Validate authorization headers in request construction
+
+### Performance Considerations
+- Streaming responses use minimal memory through AsyncSequence
+- File uploads support both memory and disk-based approaches
+- JSON parsing is optimized with custom decoders
+- URLSession configuration is shared across client instances
+
+## API Coverage Status
+
+The SDK currently implements:
+- ✅ Chat completions (streaming and non-streaming)
+- ✅ Workflow execution and streaming
+- ✅ Knowledge base management (datasets, documents, segments)
+- ✅ Completion API
+- ✅ Message feedback and annotations
+- ✅ File upload support
+- ✅ Conversation management
+- ✅ Application information retrieval
+- ✅ Error handling and retry logic
+
+## Important Reminders
+
+- **Always run tests** before committing changes: `swift test`
+- **Update TODO.md** when discovering new tasks or completing existing ones
+- **Follow existing patterns** - consistency is key
+- **Document breaking changes** in commit messages
+- **Test on multiple platforms** if making platform-specific changes
