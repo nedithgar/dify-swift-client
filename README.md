@@ -3,7 +3,7 @@
 [![Test](https://github.com/nedithgar/dify-swift-client/actions/workflows/test.yml/badge.svg)](https://github.com/nedithgar/dify-swift-client/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Swift Version](https://img.shields.io/badge/Swift-6.1+-orange.svg)](https://swift.org)
-[![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS-lightgrey.svg)](https://github.com/nedithgar/dify-swift-client)
+[![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20Linux-lightgrey.svg)](https://github.com/nedithgar/dify-swift-client)
 
 A Swift SDK for Dify AI that provides a complete interface to the Dify Service API. This SDK follows Swift best practices and provides native async/await support with comprehensive error handling.
 
@@ -12,7 +12,7 @@ A Swift SDK for Dify AI that provides a complete interface to the Dify Service A
 - **Complete API Coverage**: Supports all Dify API endpoints including chat, completion, workflows, knowledge base management, application info, feedbacks, and annotations
 - **Enhanced File Support**: Full support for documents, images, audio, video, and custom file types with both remote URL and local file upload
 - **Modern Swift**: Built with Swift 6.1+ using modern concurrency (async/await) and follows Swift best practices  
-- **Cross-Platform**: Works on macOS, iOS, tvOS, and watchOS
+- **Cross-Platform**: Works on macOS, iOS, tvOS, watchOS, and Linux
 - **Advanced Streaming**: Built-in streaming response handling for real-time interactions including workflow events
 - **Type Safety**: Comprehensive Swift types for all API request/response models with proper snake_case to camelCase conversion
 - **Error Handling**: Detailed error types with localized descriptions
@@ -25,6 +25,7 @@ A Swift SDK for Dify AI that provides a complete interface to the Dify Service A
 
 - Swift 6.1+
 - macOS 13.0+ / iOS 16.0+ / tvOS 16.0+ / watchOS 9.0+
+- Linux (with Swift 6.1+) - See [Platform Support](#platform-support) for details
 
 ## Installation
 
@@ -585,6 +586,24 @@ swift test --no-parallel
 - **No External Dependencies**: Tests run offline and are completely deterministic
 - **Comprehensive Coverage**: Includes unit tests for all API endpoints, streaming responses, error scenarios, and edge cases
 - **Swift Testing Framework**: Built with the modern Swift Testing framework introduced at WWDC 2024
+
+## Platform Support
+
+### Darwin Platforms (Full Support)
+- macOS 13.0+
+- iOS 16.0+
+- tvOS 16.0+
+- watchOS 9.0+
+
+### Linux Support
+The SDK compiles and runs on Linux with Swift 6.1+. However, please note:
+
+⚠️ **Linux Testing Limitations**: Due to differences in URLSession implementations between Darwin and Linux platforms, our comprehensive test suite currently runs only on Darwin platforms. Linux support is validated through:
+- Successful compilation on Linux
+- API compatibility analysis
+- Community feedback and issue reports
+
+Linux users are encouraged to report any compatibility issues they encounter. While we cannot guarantee the same level of testing coverage as Darwin platforms, we are committed to addressing Linux-specific issues as they arise.
 
 ## Contributing
 
