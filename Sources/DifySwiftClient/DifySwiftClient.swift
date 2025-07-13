@@ -108,12 +108,19 @@ open class DifyClient: @unchecked Sendable {
             // Use data task approach for compatibility with URLProtocol
             return try await createStreamingResponseUsingDataTask(for: request)
         } else {
-            // Use the modern bytes API for production
+            // Use the appropriate streaming method based on platform
+            #if canImport(FoundationNetworking)
+            // Linux doesn't support URLSession.bytes, use data task approach
+            return try await createStreamingResponseUsingDataTask(for: request)
+            #else
+            // Use the modern bytes API for Apple platforms
             return try await createStreamingResponseUsingBytes(for: request)
+            #endif
         }
     }
     
-    /// Creates streaming response using URLSession.bytes (for production use)
+    #if !canImport(FoundationNetworking)
+    /// Creates streaming response using URLSession.bytes (for production use on Apple platforms)
     private func createStreamingResponseUsingBytes<T: Decodable>(for request: URLRequest) async throws -> AsyncThrowingStream<T, Error> {
         let (bytes, response) = try await session.bytes(for: request)
         
@@ -159,8 +166,9 @@ open class DifyClient: @unchecked Sendable {
             }
         }
     }
+    #endif
     
-    /// Creates streaming response using data task (for test compatibility with URLProtocol)
+    /// Creates streaming response using data task (for test compatibility with URLProtocol and Linux support)
     private func createStreamingResponseUsingDataTask<T: Decodable>(for request: URLRequest) async throws -> AsyncThrowingStream<T, Error> {
         // First perform the request to get the data
         let (data, response) = try await session.data(for: request)
