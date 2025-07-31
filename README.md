@@ -93,7 +93,6 @@ let completionClient = try CompletionClient(apiKey: "your_api_key")
 
 let response = try await completionClient.createCompletionMessage(
     inputs: ["query": "What's the weather like today?"],
-    responseMode: .blocking,
     user: "user_123"
 )
 
@@ -147,12 +146,13 @@ let response = try await chatClient.createChatMessage(
     files: [documentFile, audioFile, imageFile]
 )
 
-// Upload and use local file
+// Upload and use local file (only available in CompletionClient)
+let completionClient = try CompletionClient(apiKey: "your_api_key")
 let fileData = Data() // Your file data
-let uploadResponse = try await client.uploadFile(
-    user: "user_123",
+let uploadResponse = try await completionClient.uploadFile(
     fileData: fileData,
-    filename: "document.pdf",
+    fileName: "document.pdf",
+    user: "user_123",
     mimeType: "application/pdf"
 )
 
@@ -176,9 +176,8 @@ let responseWithLocalFile = try await chatClient.createChatMessage(
 let workflowClient = try WorkflowClient(apiKey: "your_api_key")
 
 // Run a workflow
-let workflowResponse = try await workflowClient.run(
+let workflowResponse = try await workflowClient.runWorkflow(
     inputs: ["input_key": "input_value"],
-    responseMode: .blocking,
     user: "user_123"
 )
 
@@ -186,57 +185,44 @@ print("Workflow status: \(workflowResponse.data.status)")
 print("Outputs: \(workflowResponse.data.outputs)")
 
 // Get workflow result
-let result = try await workflowClient.getResult(
-    workflowRunId: workflowResponse.workflowRunId
+let result = try await workflowClient.getWorkflowRunDetail(
+    workflowId: workflowResponse.workflowRunId
 )
 ```
 
 ### Knowledge Base Client
 
 ```swift
-let knowledgeBaseClient = try KnowledgeBaseClient(
-    apiKey: "your_api_key",
-    datasetId: "your_dataset_id"
-)
+// Create a new knowledge base client
+let knowledgeBaseClient = try KnowledgeBaseClient(apiKey: "your_api_key")
 
 // Create a new dataset
-let newKBClient = try KnowledgeBaseClient(apiKey: "your_api_key")
-let dataset = try await newKBClient.createDataset(name: "My Knowledge Base")
+let dataset = try await knowledgeBaseClient.createDataset(name: "My Knowledge Base")
 
-// Create client with the new dataset
-let kbClient = try KnowledgeBaseClient(
-    apiKey: "your_api_key",
-    datasetId: dataset.id
-)
-
-// Add document by text
-let documentResponse = try await kbClient.createDocumentByText(
-    name: "Sample Document",
-    text: "This is the content of my document."
-)
-
-// Add document by file
+// Create document by uploading a file
 let fileData = Data() // Your document data
-let fileDocumentResponse = try await kbClient.createDocumentByFile(
-    fileData: fileData,
-    filename: "document.pdf",
-    mimeType: "application/pdf"
+let processRule = ProcessRule(
+    mode: "automatic",
+    rules: ProcessRuleRules(
+        preProcessingRules: [
+            PreProcessingRule(id: "remove_extra_spaces", enabled: true)
+        ],
+        segmentation: Segmentation(separator: "\n", maxTokens: 500)
+    )
 )
 
-// List documents
-let documents = try await kbClient.listDocuments()
+let documentResponse = try await knowledgeBaseClient.createDocument(
+    datasetId: dataset.id,
+    fileData: fileData,
+    fileName: "document.pdf",
+    processRule: processRule
+)
+
+// List documents in the dataset
+let documents = try await knowledgeBaseClient.listDocuments(datasetId: dataset.id)
 for document in documents.data {
     print("Document: \(document.name)")
 }
-
-// Add segments to a document
-let segments = [
-    SegmentData(content: "This is a segment", keywords: ["keyword1", "keyword2"])
-]
-let segmentResponse = try await kbClient.addSegments(
-    documentId: documentResponse.document.id,
-    segments: segments
-)
 ```
 
 ### Conversation Management
@@ -252,8 +238,8 @@ for conversation in conversations.data {
 
 // Get messages from a conversation
 let messages = try await chatClient.getConversationMessages(
-    user: "user_123",
-    conversationId: "conversation_id"
+    conversationId: "conversation_id",
+    user: "user_123"
 )
 
 // Rename a conversation
@@ -302,18 +288,18 @@ do {
 ### Audio Support
 
 ```swift
-// Convert text to audio
-let audioResponse = try await client.textToAudio(
+let chatClient = try ChatClient(apiKey: "your_api_key")
+
+// Convert text to audio (only available in ChatClient)
+let audioResponse = try await chatClient.textToAudio(
     text: "Hello, this is a test message",
-    user: "user_123",
-    streaming: false
+    user: "user_123"
 )
 
 // Convert audio to text
 let audioData = Data() // Your audio file data
 let textResponse = try await chatClient.audioToText(
-    audioData: audioData,
-    filename: "audio.mp3",
+    audioFile: audioData,
     user: "user_123"
 )
 ```
@@ -325,32 +311,21 @@ let textResponse = try await chatClient.audioToText(
 Get comprehensive application details and configuration:
 
 ```swift
-// Get basic application information
-let appInfo = try await client.getApplicationInfo()
+// Get basic application information (available in multiple clients)
+let chatClient = try ChatClient(apiKey: "your_api_key")
+let appInfo = try await chatClient.getApplicationInfo()
 print("App: \(appInfo.name) - \(appInfo.description)")
 print("Mode: \(appInfo.mode), Author: \(appInfo.authorName)")
 
-// Get detailed application parameters and settings
-let params = try await client.getEnhancedApplicationParameters(user: "user_123")
-print("Opening statement: \(params.openingStatement ?? "None")")
-print("Speech-to-text enabled: \(params.speechToText?.enabled ?? false)")
-print("File upload supported: \(params.fileUpload?.image?.enabled ?? false)")
+// Get application meta information (available in ChatClient)
+let meta = try await chatClient.getApplicationMeta()
+// Note: Check actual response structure for available properties
 
-// Get application meta information (tool icons)
-let meta = try await client.getApplicationMeta()
-for (toolName, icon) in meta.toolIcons {
-    switch icon {
-    case .url(let urlString):
-        print("\(toolName): \(urlString)")
-    case .icon(let iconObj):
-        print("\(toolName): \(iconObj.content) (\(iconObj.background))")
-    }
-}
-
-// Get site/webapp settings
-let site = try await client.getApplicationSite()
+// Get site/webapp settings (available in CompletionClient)
+let completionClient = try CompletionClient(apiKey: "your_api_key")
+let site = try await completionClient.getApplicationSiteSettings()
 print("Title: \(site.title ?? "N/A")")
-print("Theme: \(site.chatColorTheme ?? "Default")")
+// Note: Check actual response structure for available properties
 ```
 
 ### Enhanced Feedback & Annotations
@@ -358,48 +333,31 @@ print("Theme: \(site.chatColorTheme ?? "Default")")
 Manage feedback and annotations with rich content support:
 
 ```swift
-// Send detailed feedback with content
-try await client.sendEnhancedMessageFeedback(
-    messageId: "msg_123",
-    rating: "like",
-    user: "user_123",
-    content: "This response was very helpful and accurate!"
-)
+let chatClient = try ChatClient(apiKey: "your_api_key")
 
-// Get application feedbacks
-let feedbacks = try await client.getApplicationFeedbacks(page: 1, limit: 20)
+// Get application feedbacks (available in ChatClient)
+let feedbacks = try await chatClient.getApplicationFeedbacks(page: 1, limit: 20)
 for feedback in feedbacks.data {
     print("Feedback: \(feedback.rating) - \(feedback.content ?? "No content")")
 }
 
-// Manage annotations
-let annotations = try await client.getAnnotations(page: 1, limit: 20)
+// Manage annotations (available in ChatClient)
+let annotations = try await chatClient.getAnnotations(page: 1, limit: 20)
 print("Total annotations: \(annotations.total)")
 
 // Create new annotation
-let newAnnotation = try await client.createAnnotation(
-    request: AnnotationRequest(
-        question: "What is artificial intelligence?",
-        answer: "AI is a branch of computer science focused on creating systems that can perform tasks typically requiring human intelligence."
-    )
+let newAnnotation = try await chatClient.createAnnotation(
+    question: "What is artificial intelligence?",
+    answer: "AI is a branch of computer science focused on creating systems that can perform tasks typically requiring human intelligence."
 )
 
 // Configure annotation reply settings
-let settingsResponse = try await client.configureAnnotationReplySettings(
+let settingsResponse = try await chatClient.configureAnnotationReply(
     action: "enable",
-    request: AnnotationReplySettingsRequest(
-        scoreThreshold: 0.8,
-        embeddingProviderName: "openai",
-        embeddingModelName: "text-embedding-ada-002"
-    )
+    embeddingModelProvider: "openai",
+    embeddingModel: "text-embedding-ada-002",
+    scoreThreshold: 0.8
 )
-
-// Check job status
-let jobStatus = try await client.getAnnotationReplyJobStatus(
-    action: "enable",
-    jobId: settingsResponse.jobId
-)
-print("Job status: \(jobStatus.jobStatus)")
 ```
 
 ### Conversation Variables
@@ -431,7 +389,6 @@ let response = try await chatClient.createChatMessage(
     inputs: ["context": "customer support"],
     query: "I need help with my order",
     user: "user_123",
-    responseMode: .blocking,
     conversationId: nil,
     files: nil,
     autoGenerateName: false // Disable automatic title generation
@@ -543,15 +500,13 @@ let processRule = ProcessRule(
     )
 )
 
-let response = try await kbClient.createDocumentByText(
-    name: "Custom Document",
-    text: "Document content",
-    extraParams: [
-        "indexing_technique": "high_quality",
-        "process_rule": try JSONSerialization.jsonObject(
-            with: JSONEncoder().encode(processRule)
-        )
-    ]
+// Use createDocument method with file data
+let fileData = Data("Document content".utf8)
+let response = try await knowledgeBaseClient.createDocument(
+    datasetId: "dataset_id",
+    fileData: fileData,
+    fileName: "Custom Document.txt",
+    processRule: processRule
 )
 ```
 
