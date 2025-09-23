@@ -3,7 +3,7 @@ import Testing
 @testable import DifySwiftClient
 
 @Suite("CompletionClient Tests")
-final class CompletionClientTests: DifyTestCase {
+final class CompletionClientTests: DifyTestCase, @unchecked Sendable {
     
     @Test("Client Initialization")
     func testCompletionClientInitialization() async throws {

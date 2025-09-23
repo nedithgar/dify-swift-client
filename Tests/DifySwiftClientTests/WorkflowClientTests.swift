@@ -3,7 +3,7 @@ import Testing
 @testable import DifySwiftClient
 
 @Suite("WorkflowClient Tests")
-final class WorkflowClientTests: DifyTestCase {
+final class WorkflowClientTests: DifyTestCase, @unchecked Sendable {
     
     // MARK: - Run Workflow Tests
     
@@ -256,8 +256,8 @@ final class WorkflowClientTests: DifyTestCase {
             response: MockResponse.json(mockDetail)
         )
         
-        // Get workflow run detail
-        let response = try await client.getWorkflowRunDetail(workflowId: workflowId)
+    // Get workflow run detail
+    let response = try await client.getWorkflowRunDetail(workflowRunId: workflowId)
         
         // Verify response
         #expect(response.id == workflowId)

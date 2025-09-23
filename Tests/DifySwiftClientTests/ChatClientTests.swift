@@ -3,7 +3,7 @@ import Testing
 @testable import DifySwiftClient
 
 @Suite("ChatClient Tests")
-final class ChatClientTests: DifyTestCase {
+final class ChatClientTests: DifyTestCase, @unchecked Sendable {
     
     @Test("Client Initialization")
     func testChatClientInitialization() async throws {

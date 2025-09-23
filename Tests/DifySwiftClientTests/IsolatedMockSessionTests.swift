@@ -3,7 +3,7 @@ import Testing
 @testable import DifySwiftClient
 
 @Suite("Isolated Mock Session Tests")
-final class IsolatedMockSessionTests {
+final class IsolatedMockSessionTests: @unchecked Sendable {
     
     @Test("Parallel Isolation Test")
     func testParallelIsolation() async throws {
