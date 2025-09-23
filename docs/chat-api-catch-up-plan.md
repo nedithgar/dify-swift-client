@@ -16,6 +16,7 @@ Key changes in the new docs (compared to old):
 - New endpoint: GET /files/:file_id/preview (supports as_attachment)
 - Conversation Variables
   - New: PUT /conversations/:conversation_id/variables/:variable_id to update a variable value
+  - GET supports optional variable_name filter for narrowing results
 - Messages GET response
   - message_files.url clarified as File Preview URL
 - Parameters GET response
@@ -31,6 +32,7 @@ Key changes in the new docs (compared to old):
 - Endpoints
   - File preview is implemented in CompletionClient.previewFile(fileId:asAttachment:) only
   - Conversation variable update endpoint not implemented
+  - Get conversation variables does not expose variable_name filter
 - Streaming models
   - AgentThoughtStreamEvent is a stub (only event field)
 - Parameters model
@@ -45,6 +47,8 @@ Key changes in the new docs (compared to old):
 - Flesh out AgentThoughtStreamEvent with documented fields
 - Expose file preview helper in ChatClient (keep CompletionClient method; optionally refactor later into a Files helper)
 - No changes needed to models for file categories or parameters
+ - ConversationVariable value type should support non-string values (number/object) per docs; migrate value: String -> AnyCodable for flexibility
+ - Add optional variableName filter to getConversationVariables API
 
 ## Deliverables
 
@@ -53,9 +57,11 @@ Key changes in the new docs (compared to old):
     - createChatMessage(..., workflowId: String? = nil, traceId: String? = nil)
     - createStreamingChatMessage(..., workflowId: String? = nil, traceId: String? = nil)
     - updateConversationVariable(conversationId: String, variableId: String, value: AnyCodable, user: String)
+    - getConversationVariables(conversationId:user:lastId:limit:variableName:) // add optional variableName
     - previewFile(fileId: String, asAttachment: Bool = false)  // convenience
   - Models
     - AgentThoughtStreamEvent with full fields (id, taskId, messageId, position, thought, observation, tool, toolInput, createdAt, messageFiles, conversationId)
+    - ConversationVariable.value type changed to AnyCodable
 
 - Documentation & Examples
   - README usage snippets for new parameters (workflowId, traceId)
@@ -81,6 +87,12 @@ Key changes in the new docs (compared to old):
   - Body: { value, user }
   - Return: ConversationVariable (or the doc’s updated variable shape)
 
+2.1) Conversation variables GET filtering
+- Add optional variableName parameter to ChatClient.getConversationVariables and pass as query parameter `variable_name`
+
+2.2) ConversationVariable model value type
+- Change ConversationVariable.value from String to AnyCodable to support string/number/object values
+
 3) Agent thought streaming model
 - Replace AgentThoughtStreamEvent stub with full struct per docs:
   - event, id, task_id, message_id, position, thought, observation, tool, tool_input, created_at, message_files[file_id], conversation_id
@@ -97,8 +109,11 @@ Key changes in the new docs (compared to old):
     - testCreateStreamingChatMessage_encodesWorkflowAndTraceIds
     - testUpdateConversationVariable_success
     - testUpdateConversationVariable_typeMismatchError
+    - testGetConversationVariables_withVariableNameFilter
     - testAgentThoughtStreamEvent_decoding
     - testPreviewFile_viaChatClient
+  - ModelsTests
+    - testConversationVariable_AllValueTypesDecoding (string, number, object)
 
 6) Documentation
 - Update README and docs snippets (usage of workflowId/traceId, updating variables, file preview)
@@ -108,6 +123,7 @@ Key changes in the new docs (compared to old):
 - Creating chat messages accepts workflowId and traceId and encodes as workflow_id and trace_id
 - Streaming and blocking chat requests still function with existing tests green
 - Updating conversation variables works for string/number/object values and returns updated variable
+- Conversation variables GET supports optional variable_name filter
 - AgentThoughtStreamEvent decodes correctly for doc sample payload
 - File preview via ChatClient returns mocked bytes; supports as_attachment
 - No breaking changes to existing public APIs; semantic version bump is minor (e.g., 0.x minor or 1.x minor)
