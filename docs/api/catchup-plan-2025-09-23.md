@@ -15,6 +15,7 @@ This plan aligns the Swift client with the latest Completion App API documentati
 - Parameters endpoint expanded:
   - `file_upload` now documents per-category configs for `document`, `image`, `audio`, `video`, `custom` (each with `enabled`, `number_limits`, `transfer_methods`).
 - Other endpoints (completion-messages, stop, feedbacks, text-to-audio, info, site) keep the same request/response shape in ways that affect our client.
+  - Note: The new template shows `metadata` present on `message_end` (some examples elide inner fields for brevity). Our client and tests already expect `metadata`; no change needed. If a future server variant ever omits the `metadata` object entirely, we can make `MessageEndStreamEvent.metadata` optional at that time.
 
 ## Current client capability check (mapping)
 - File support in requests: OK
@@ -42,7 +43,7 @@ No immediate changes are required for Completion request/response or streaming p
 
 ## Implementation details
 - Add file preview support
-  - Where: Prefer a small helper in `CompletionClient` for parity with upload; alternatively introduce a `FilesClient` later if more file endpoints appear.
+  - Where: Prefer a small helper in `CompletionClient` for parity with upload; alternatively introduce a `FilesClient` later if more file endpoints appear. Since the endpoint is app-agnostic, promoting it to `DifyClient` is also viable in a future pass.
   - Signature:
     - `public func previewFile(fileId: String, asAttachment: Bool = false) async throws -> Data`
   - Behavior:
@@ -82,6 +83,8 @@ No immediate changes are required for Completion request/response or streaming p
   - Mitigation: Don’t change `uploadFile` behavior or MIME inference beyond images until the upstream explicitly supports more types.
 - Risk: Server variations for `file_upload` categories
   - Mitigation: Keep properties optional; decoding remains tolerant.
+- Risk: Streaming `message_end` may omit `metadata` in some server implementations or future docs examples.
+  - Mitigation: If encountered, make `MessageEndStreamEvent.metadata` optional and adjust tests; no wire format changes required.
 
 ## Timeline & ownership
 - Est. effort: ~0.5–1 day
