@@ -10,7 +10,7 @@ A Swift SDK for Dify AI that provides a complete interface to the Dify Service A
 ## Features
 
 - **Complete API Coverage**: Supports all Dify API endpoints including chat, completion, workflows, knowledge base management, application info, feedbacks, and annotations
-- **Enhanced File Support**: Full support for documents, images, audio, video, and custom file types with both remote URL and local file upload
+- **Enhanced File Support**: Full support for documents, images, audio, video, and custom file types via remote URLs; local upload endpoint currently supports images only (png/jpg/jpeg/webp/gif)
 - **Modern Swift**: Built with Swift 6.1+ using modern concurrency (async/await) and follows Swift best practices  
 - **Cross-Platform**: Works on macOS, iOS, tvOS, watchOS, and Linux
 - **Advanced Streaming**: Built-in streaming response handling for real-time interactions including workflow events
@@ -78,10 +78,18 @@ let streamingResponse = try await chatClient.createStreamingChatMessage(
     user: "user_123"
 )
 
-for try await chunk in streamingResponse {
-    // Process streaming data chunks
-    if let jsonString = String(data: chunk, encoding: .utf8) {
-        print("Received: \(jsonString)")
+for try await event in streamingResponse {
+    switch event {
+    case .message(let m):
+        // incremental text chunks
+        print(m.answer, terminator: "")
+    case .messageEnd(let end):
+        print("\n[done] total tokens: \(end.metadata.usage?.totalTokens ?? 0)")
+    case .error(let e):
+        print("\n[error] \(e.code): \(e.message)")
+    default:
+        // handle other events as needed (tts_message, ping, etc.)
+        break
     }
 }
 ```
@@ -104,11 +112,11 @@ print("Completion: \(response.answer)")
 The SDK now supports comprehensive file handling for all Dify-supported formats:
 
 ```swift
-// Document files: TXT, MD, PDF, DOCX, XLSX, etc.
+// Document files: TXT, MD, PDF, DOCX, XLSX, etc. (use remote URL)
 let documentFile = APIFile(
     type: .document,
-    transferMethod: .localFile,
-    uploadFileId: uploadResponse.id
+    transferMethod: .remoteUrl,
+    url: "https://example.com/document.pdf"
 )
 
 // Audio files: MP3, WAV, M4A, etc.
@@ -118,18 +126,18 @@ let audioFile = APIFile(
     url: "https://example.com/audio.mp3"
 )
 
-// Video files: MP4, MOV, etc.
+// Video files: MP4, MOV, etc. (use remote URL)
 let videoFile = APIFile(
     type: .video,
-    transferMethod: .localFile,
-    uploadFileId: videoUploadResponse.id
+    transferMethod: .remoteUrl,
+    url: "https://example.com/sample.mp4"
 )
 
-// Custom file types
+// Custom file types (use remote URL)
 let customFile = APIFile(
     type: .custom,
-    transferMethod: .localFile,
-    uploadFileId: customUploadResponse.id
+    transferMethod: .remoteUrl,
+    url: "https://example.com/other.xyz"
 )
 
 // Using remote image URL
@@ -146,28 +154,45 @@ let response = try await chatClient.createChatMessage(
     files: [documentFile, audioFile, imageFile]
 )
 
-// Upload and use local file (only available in CompletionClient)
+// Upload and use local image file (upload endpoint currently supports images only)
 let completionClient = try CompletionClient(apiKey: "your_api_key")
-let fileData = Data() // Your file data
+let fileData = Data() // Your image data
 let uploadResponse = try await completionClient.uploadFile(
     fileData: fileData,
-    fileName: "document.pdf",
+    fileName: "picture.png",
     user: "user_123",
-    mimeType: "application/pdf"
+    mimeType: "image/png"
 )
 
 let localFiles = [APIFile(
-    type: .document,
+    type: .image,
     transferMethod: .localFile,
     uploadFileId: uploadResponse.id
 )]
 
 let responseWithLocalFile = try await chatClient.createChatMessage(
     inputs: [:],
-    query: "Summarize this document",
+    query: "Describe this image",
     user: "user_123",
     files: localFiles
 )
+```
+
+#### Preview uploaded files
+
+You can preview or download previously uploaded files by file ID:
+
+```swift
+let completionClient = try CompletionClient(apiKey: "your_api_key")
+
+// Inline preview (returns file bytes)
+let data = try await completionClient.previewFile(fileId: uploadResponse.id)
+
+// Force download (server will set Content-Disposition to attachment)
+let downloadData = try await completionClient.previewFile(fileId: uploadResponse.id, asAttachment: true)
+
+// Optionally write to disk
+try downloadData.write(to: URL(fileURLWithPath: "/tmp/downloaded.png"))
 ```
 
 ### Workflow Client
@@ -290,7 +315,7 @@ do {
 ```swift
 let chatClient = try ChatClient(apiKey: "your_api_key")
 
-// Convert text to audio (only available in ChatClient)
+// Convert text to audio (available in ChatClient and CompletionClient)
 let audioResponse = try await chatClient.textToAudio(
     text: "Hello, this is a test message",
     user: "user_123"
@@ -300,6 +325,13 @@ let audioResponse = try await chatClient.textToAudio(
 let audioData = Data() // Your audio file data
 let textResponse = try await chatClient.audioToText(
     audioFile: audioData,
+    user: "user_123"
+)
+
+// Alternatively, using CompletionClient for text-to-audio
+let completionClient = try CompletionClient(apiKey: "your_api_key")
+let ttsData = try await completionClient.getTextToAudio(
+    text: "Hello from completion app",
     user: "user_123"
 )
 ```
