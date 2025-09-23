@@ -98,7 +98,7 @@ open class DifyClient: @unchecked Sendable {
     }
 
     /// Creates an `AsyncThrowingStream` for a streaming API endpoint.
-    internal func createStreamingResponse<T: Decodable>(for request: URLRequest) async throws -> AsyncThrowingStream<T, Error> {
+    internal func createStreamingResponse<T: Decodable & Sendable>(for request: URLRequest) async throws -> AsyncThrowingStream<T, Error> {
         // Check if we're running in a test environment with MockURLProtocol
         let isTestEnvironment = session.configuration.protocolClasses?.contains { protocolClass in
             NSStringFromClass(protocolClass) == "DifySwiftClientTests.MockURLProtocol"
@@ -121,7 +121,7 @@ open class DifyClient: @unchecked Sendable {
     
     #if !canImport(FoundationNetworking)
     /// Creates streaming response using URLSession.bytes (for production use on Apple platforms)
-    private func createStreamingResponseUsingBytes<T: Decodable>(for request: URLRequest) async throws -> AsyncThrowingStream<T, Error> {
+    private func createStreamingResponseUsingBytes<T: Decodable & Sendable>(for request: URLRequest) async throws -> AsyncThrowingStream<T, Error> {
         let (bytes, response) = try await session.bytes(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -169,7 +169,7 @@ open class DifyClient: @unchecked Sendable {
     #endif
     
     /// Creates streaming response using data task (for test compatibility with URLProtocol and Linux support)
-    private func createStreamingResponseUsingDataTask<T: Decodable>(for request: URLRequest) async throws -> AsyncThrowingStream<T, Error> {
+    private func createStreamingResponseUsingDataTask<T: Decodable & Sendable>(for request: URLRequest) async throws -> AsyncThrowingStream<T, Error> {
         // First perform the request to get the data
         let (data, response) = try await session.data(for: request)
         
