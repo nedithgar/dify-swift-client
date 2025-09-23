@@ -13,9 +13,11 @@ public final class WorkflowClient: DifyClient, @unchecked Sendable {
     /// - Parameters:
     ///   - inputs: A dictionary of input variables for the workflow.
     ///   - user: A unique identifier for the end-user.
+    ///   - files: Optional array of files to include with the workflow run.
+    ///   - traceId: Optional trace identifier to correlate requests.
     /// - Returns: A `WorkflowResponse` object containing the final result of the workflow execution.
-    public func runWorkflow(inputs: [String: Any], user: String) async throws -> WorkflowResponse {
-        let requestBody = WorkflowRequestBody(inputs: inputs, responseMode: .blocking, user: user)
+    public func runWorkflow(inputs: [String: Any], user: String, files: [APIFile]? = nil, traceId: String? = nil) async throws -> WorkflowResponse {
+        let requestBody = WorkflowRequestBody(inputs: inputs, responseMode: .blocking, user: user, files: files, traceId: traceId)
         let data = try await sendRequest(method: .POST, endpoint: "/workflows/run", body: requestBody)
         return try decode(data, to: WorkflowResponse.self)
     }
@@ -24,10 +26,40 @@ public final class WorkflowClient: DifyClient, @unchecked Sendable {
     /// - Parameters:
     ///   - inputs: A dictionary of input variables for the workflow.
     ///   - user: A unique identifier for the end-user.
+    ///   - files: Optional array of files to include with the workflow run.
+    ///   - traceId: Optional trace identifier to correlate requests.
     /// - Returns: An `AsyncThrowingStream` of `StreamingWorkflowResponse` events.
-    public func runStreamingWorkflow(inputs: [String: Any], user: String) async throws -> AsyncThrowingStream<StreamingWorkflowResponse, Error> {
-        let requestBody = WorkflowRequestBody(inputs: inputs, responseMode: .streaming, user: user)
+    public func runStreamingWorkflow(inputs: [String: Any], user: String, files: [APIFile]? = nil, traceId: String? = nil) async throws -> AsyncThrowingStream<StreamingWorkflowResponse, Error> {
+        let requestBody = WorkflowRequestBody(inputs: inputs, responseMode: .streaming, user: user, files: files, traceId: traceId)
         let request = try createURLRequest(method: .POST, endpoint: "/workflows/run", body: requestBody)
+        return try await createStreamingResponse(for: request)
+    }
+
+    /// Runs a specific workflow version by ID and waits for the complete result.
+    /// - Parameters:
+    ///   - workflowId: The ID of the workflow to execute.
+    ///   - inputs: A dictionary of input variables for the workflow.
+    ///   - user: A unique identifier for the end-user.
+    ///   - files: Optional array of files to include with the workflow run.
+    ///   - traceId: Optional trace identifier to correlate requests.
+    /// - Returns: A `WorkflowResponse` object containing the final result of the workflow execution.
+    public func runWorkflow(workflowId: String, inputs: [String: Any], user: String, files: [APIFile]? = nil, traceId: String? = nil) async throws -> WorkflowResponse {
+        let requestBody = WorkflowRequestBody(inputs: inputs, responseMode: .blocking, user: user, files: files, traceId: traceId)
+        let data = try await sendRequest(method: .POST, endpoint: "/workflows/\(workflowId)/run", body: requestBody)
+        return try decode(data, to: WorkflowResponse.self)
+    }
+
+    /// Runs a specific workflow version by ID and streams the events.
+    /// - Parameters:
+    ///   - workflowId: The ID of the workflow to execute.
+    ///   - inputs: A dictionary of input variables for the workflow.
+    ///   - user: A unique identifier for the end-user.
+    ///   - files: Optional array of files to include with the workflow run.
+    ///   - traceId: Optional trace identifier to correlate requests.
+    /// - Returns: An `AsyncThrowingStream` of `StreamingWorkflowResponse` events.
+    public func runStreamingWorkflow(workflowId: String, inputs: [String: Any], user: String, files: [APIFile]? = nil, traceId: String? = nil) async throws -> AsyncThrowingStream<StreamingWorkflowResponse, Error> {
+        let requestBody = WorkflowRequestBody(inputs: inputs, responseMode: .streaming, user: user, files: files, traceId: traceId)
+        let request = try createURLRequest(method: .POST, endpoint: "/workflows/\(workflowId)/run", body: requestBody)
         return try await createStreamingResponse(for: request)
     }
     
@@ -43,11 +75,17 @@ public final class WorkflowClient: DifyClient, @unchecked Sendable {
     }
     
     /// Gets the current execution results of a workflow task based on the workflow execution ID.
-    /// - Parameter workflowId: The workflow execution ID.
+    /// - Parameter workflowRunId: The workflow execution ID.
     /// - Returns: A `WorkflowRunDetailResponse` containing the execution details.
-    public func getWorkflowRunDetail(workflowId: String) async throws -> WorkflowRunDetailResponse {
-        let data = try await sendRequest(method: .GET, endpoint: "/workflows/run/\(workflowId)")
+    public func getWorkflowRunDetail(workflowRunId: String) async throws -> WorkflowRunDetailResponse {
+        let data = try await sendRequest(method: .GET, endpoint: "/workflows/run/\(workflowRunId)")
         return try decode(data, to: WorkflowRunDetailResponse.self)
+    }
+
+    /// Deprecated: use getWorkflowRunDetail(workflowRunId:) instead.
+    @available(*, deprecated, renamed: "getWorkflowRunDetail(workflowRunId:)")
+    public func getWorkflowRunDetail(workflowId: String) async throws -> WorkflowRunDetailResponse {
+        return try await getWorkflowRunDetail(workflowRunId: workflowId)
     }
     
     /// Gets workflow logs with pagination and filtering options.
@@ -116,16 +154,21 @@ public final class WorkflowClient: DifyClient, @unchecked Sendable {
         let inputs: [String: AnyCodable]
         let responseMode: ResponseMode
         let user: String
-        
-        init(inputs: [String: Any], responseMode: ResponseMode, user: String) {
+        let files: [APIFile]?
+        let traceId: String?
+
+        init(inputs: [String: Any], responseMode: ResponseMode, user: String, files: [APIFile]?, traceId: String?) {
             self.inputs = inputs.mapValues { AnyCodable($0) }
             self.responseMode = responseMode
             self.user = user
+            self.files = files
+            self.traceId = traceId
         }
-        
+
         private enum CodingKeys: String, CodingKey {
-            case inputs, user
+            case inputs, user, files
             case responseMode = "response_mode"
+            case traceId = "trace_id"
         }
     }
 }

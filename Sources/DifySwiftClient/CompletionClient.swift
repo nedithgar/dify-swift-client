@@ -83,8 +83,9 @@ public final class CompletionClient: DifyClient, @unchecked Sendable {
 
     // MARK: - File Upload
 
-    /// Uploads a file (currently only images are supported) for use in messages.
-    /// Supports png, jpg, jpeg, webp, gif formats.
+    /// Uploads a file for use in messages and workflows.
+    /// The server validates supported formats; images (png, jpg, jpeg, webp, gif) are common,
+    /// and other formats may be accepted depending on your workflow and server configuration.
     /// - Parameters:
     ///   - fileData: The raw data of the file to upload.
     ///   - fileName: The name of the file.
@@ -103,7 +104,7 @@ public final class CompletionClient: DifyClient, @unchecked Sendable {
             case "jpg", "jpeg": return "image/jpeg"
             case "webp": return "image/webp"
             case "gif": return "image/gif"
-            default: return "image/png"
+            default: return "application/octet-stream"
             }
         }()
         

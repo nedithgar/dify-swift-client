@@ -755,11 +755,13 @@ public struct WorkflowStartedEvent: Codable, Sendable {
 public struct NodeStartedEvent: Codable, Sendable {
     public let event: String
     public let taskId: String
+    public let workflowRunId: String?
     public let data: NodeExecutionData
     
     private enum CodingKeys: String, CodingKey {
         case event
         case taskId = "task_id"
+        case workflowRunId = "workflow_run_id"
         case data
     }
 }
@@ -767,11 +769,13 @@ public struct NodeStartedEvent: Codable, Sendable {
 public struct NodeFinishedEvent: Codable, Sendable {
     public let event: String
     public let taskId: String
+    public let workflowRunId: String?
     public let data: NodeExecutionData
     
     private enum CodingKeys: String, CodingKey {
         case event
         case taskId = "task_id"
+        case workflowRunId = "workflow_run_id"
         case data
     }
 }

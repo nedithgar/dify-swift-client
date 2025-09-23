@@ -224,18 +224,55 @@ let bytes = try await chatClient.previewFile(fileId: uploadResponse.id, asAttach
 ```swift
 let workflowClient = try WorkflowClient(apiKey: "your_api_key")
 
-// Run a workflow
+// Run the default workflow (blocking)
 let workflowResponse = try await workflowClient.runWorkflow(
     inputs: ["input_key": "input_value"],
     user: "user_123"
 )
 
 print("Workflow status: \(workflowResponse.data.status)")
-print("Outputs: \(workflowResponse.data.outputs)")
+print("Outputs: \(String(describing: workflowResponse.data.outputs))")
 
-// Get workflow result
-let result = try await workflowClient.getWorkflowRunDetail(
-    workflowId: workflowResponse.workflowRunId
+// Run a specific workflow version by ID (blocking)
+let responseById = try await workflowClient.runWorkflow(
+    workflowId: "wf_123",
+    inputs: ["topic": "swift"],
+    user: "user_123",
+    files: [
+        APIFile(type: .document, transferMethod: .remoteUrl, url: "https://example.com/doc.pdf")
+    ],
+    traceId: "trace_abc"
+)
+
+// Streaming run (default workflow)
+let stream = try await workflowClient.runStreamingWorkflow(
+    inputs: ["query": "analyze"],
+    user: "user_123",
+    traceId: "trace_xyz"
+)
+
+for try await event in stream {
+    switch event {
+    case .workflowStarted(let e):
+        print("Started: \(e.workflowRunId)")
+    case .textChunk(let t):
+        print(t.data.text, terminator: "")
+    case .workflowFinished(let e):
+        print("\nDone: \(e.data.status)")
+    default: break
+    }
+}
+
+// Streaming run for a specific workflow id
+let streamById = try await workflowClient.runStreamingWorkflow(
+    workflowId: "wf_123",
+    inputs: ["query": "hello"],
+    user: "user_123"
+)
+
+// Get workflow run detail (use workflowRunId)
+let detail = try await workflowClient.getWorkflowRunDetail(
+    workflowRunId: workflowResponse.workflowRunId
 )
 ```
 
