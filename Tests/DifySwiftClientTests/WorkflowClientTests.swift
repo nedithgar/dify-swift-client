@@ -3,7 +3,7 @@ import Testing
 @testable import DifySwiftClient
 
 @Suite("WorkflowClient Tests")
-final class WorkflowClientTests: DifyTestCase {
+final class WorkflowClientTests: DifyTestCase, @unchecked Sendable {
     
     // MARK: - Run Workflow Tests
     
@@ -11,10 +11,12 @@ final class WorkflowClientTests: DifyTestCase {
     func testRunWorkflow() async throws {
         let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
         
-        // Register workflow run mock
+        // Register workflow run mock and ensure body contains trace_id and files
         mockSession.register(
             method: "POST",
             urlPattern: "/workflows/run",
+            headers: nil,
+            bodyPattern: "\"trace_id\":\"trace-123\"",
             response: MockResponse.json(MockDataProvider.workflowResponse)
         )
         
@@ -105,6 +107,95 @@ final class WorkflowClientTests: DifyTestCase {
             Issue.record("Expected workflow_finished event")
         }
     }
+
+    @Test("Run Workflow - Blocking Mode with Files and TraceId")
+    func testRunWorkflowWithFilesAndTraceId() async throws {
+        let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
+
+        // Register workflow run mock
+        mockSession.register(
+            method: "POST",
+            urlPattern: "/workflows/run",
+            response: MockResponse.json(MockDataProvider.workflowResponse)
+        )
+
+        let files = [
+            APIFile(type: .image, transferMethod: .remoteUrl, url: "https://example.com/img.png")
+        ]
+        let traceId = "trace-123"
+
+        // Run workflow
+        let inputs = ["query": "Test input"]
+        let response = try await client.runWorkflow(inputs: inputs, user: "test-user", files: files, traceId: traceId)
+
+        // Verify response basic fields
+        #expect(!response.workflowRunId.isEmpty)
+
+        // Verify request captured
+        TestUtilities.assertRequestCaptured(
+            in: mockSession,
+            method: "POST",
+            urlPattern: "/workflows/run",
+            headers: ["Authorization": "Bearer \(apiKey)"]
+        )
+    }
+
+    @Test("Run Workflow by ID - Blocking Mode")
+    func testRunWorkflowByIdBlocking() async throws {
+        let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
+
+        let workflowId = "workflow-abc"
+        mockSession.register(
+            method: "POST",
+            urlPattern: "/workflows/\(workflowId)/run",
+            response: MockResponse.json(MockDataProvider.workflowResponse)
+        )
+
+        let response = try await client.runWorkflow(workflowId: workflowId, inputs: ["query": "hi"], user: "user-1")
+
+        #expect(!response.workflowRunId.isEmpty)
+
+        // Verify request URL
+        TestUtilities.assertRequestCaptured(
+            in: mockSession,
+            method: "POST",
+            urlPattern: "/workflows/\(workflowId)/run",
+            headers: ["Authorization": "Bearer \(apiKey)"]
+        )
+    }
+
+    @Test("Run Workflow by ID - Streaming Mode")
+    func testRunWorkflowByIdStreaming() async throws {
+        let (client, mockSession) = TestUtilities.createTestWorkflowClientWithMockSession()
+
+        let workflowId = "workflow-xyz"
+        mockSession.register(
+            method: "POST",
+            urlPattern: "/workflows/\(workflowId)/run",
+            headers: nil,
+            bodyPattern: "\"response_mode\":\"streaming\"",
+            response: MockResponse.streaming(MockDataProvider.streamingWorkflowEvents)
+        )
+
+        let stream = try await client.runStreamingWorkflow(workflowId: workflowId, inputs: ["query": "stream"], user: "user-2")
+
+        var events: [StreamingWorkflowResponse] = []
+        for try await event in stream {
+            events.append(event)
+            if events.count >= 4 { break }
+        }
+
+        #expect(events.count == 4)
+
+        // Verify workflow_run_id exposure on node events
+        if case .nodeStarted(let nodeStart) = events[1] {
+            #expect(nodeStart.workflowRunId == "5ad498-f0c7-4085-b384-88cbe6290")
+        } else { Issue.record("Expected node_started event with workflow_run_id") }
+
+        if case .nodeFinished(let nodeFinish) = events[2] {
+            #expect(nodeFinish.workflowRunId == "5ad498-f0c7-4085-b384-88cbe6290")
+        } else { Issue.record("Expected node_finished event with workflow_run_id") }
+    }
     
     // MARK: - Stop Workflow Tests
     
@@ -165,8 +256,8 @@ final class WorkflowClientTests: DifyTestCase {
             response: MockResponse.json(mockDetail)
         )
         
-        // Get workflow run detail
-        let response = try await client.getWorkflowRunDetail(workflowId: workflowId)
+    // Get workflow run detail
+    let response = try await client.getWorkflowRunDetail(workflowRunId: workflowId)
         
         // Verify response
         #expect(response.id == workflowId)

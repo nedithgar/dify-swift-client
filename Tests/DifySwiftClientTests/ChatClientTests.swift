@@ -3,7 +3,7 @@ import Testing
 @testable import DifySwiftClient
 
 @Suite("ChatClient Tests")
-final class ChatClientTests: DifyTestCase {
+final class ChatClientTests: DifyTestCase, @unchecked Sendable {
     
     @Test("Client Initialization")
     func testChatClientInitialization() async throws {
@@ -332,8 +332,150 @@ final class ChatClientTests: DifyTestCase {
         
         #expect(response.data.count == 2)
         #expect(response.data[0].name == "user_name")
-        #expect(response.data[0].value == "Alice")
+        #expect(response.data[0].value.value as? String == "Alice")
         #expect(response.hasMore == false)
+    }
+
+    @Test("Create Chat Message encodes workflow_id and trace_id")
+    func testCreateChatMessage_encodesWorkflowAndTraceIds() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        mockSession.register(method: "POST", urlPattern: "/chat-messages", response: MockResponse.json(MockDataProvider.chatMessageResponse))
+        _ = try await client.createChatMessage(
+            inputs: ["name": "Alice"],
+            query: "Hello",
+            user: "user-123",
+            workflowId: "wf-001",
+            traceId: "trace-abc"
+        )
+        let req = mockSession.getCapturedRequests().first { $0.url?.absoluteString.contains("/chat-messages") ?? false }
+        #expect(req != nil)
+        if let req = req, let body = req.httpBody,
+           let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any] {
+            #expect(json["workflow_id"] as? String == "wf-001")
+            #expect(json["trace_id"] as? String == "trace-abc")
+        }
+    }
+
+    @Test("Create Streaming Chat Message encodes workflow_id and trace_id")
+    func testCreateStreamingChatMessage_encodesWorkflowAndTraceIds() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        mockSession.register(
+            method: "POST",
+            urlPattern: "/chat-messages",
+            bodyPattern: "\"response_mode\":\"streaming\"",
+            response: MockResponse.streaming(MockDataProvider.streamingChatEvents)
+        )
+        _ = try await client.createStreamingChatMessage(
+            inputs: [:],
+            query: "Hello",
+            user: "user-123",
+            workflowId: "wf-002",
+            traceId: "trace-def"
+        )
+        let req = mockSession.getCapturedRequests().first { $0.url?.absoluteString.contains("/chat-messages") ?? false }
+        #expect(req != nil)
+        if let req = req, let body = req.httpBody,
+           let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any] {
+            #expect(json["workflow_id"] as? String == "wf-002")
+            #expect(json["trace_id"] as? String == "trace-def")
+        }
+    }
+
+    @Test("Update Conversation Variable - success")
+    func testUpdateConversationVariable_success() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        let mockResponse: [String: Any] = [
+            "id": "var-1",
+            "name": "user_name",
+            "value_type": "string",
+            "value": "Bob",
+            "description": "User's name",
+            "created_at": 1234567890,
+            "updated_at": 1234567891
+        ]
+        mockSession.register(method: "PUT", urlPattern: "/conversations/conv-1/variables/var-1", response: MockResponse.json(mockResponse))
+        let updated = try await client.updateConversationVariable(conversationId: "conv-1", variableId: "var-1", value: AnyCodable("Bob"), user: "user-123")
+        #expect(updated.id == "var-1")
+        #expect(updated.value.value as? String == "Bob")
+        // Verify body
+        let req = mockSession.getCapturedRequests().first { $0.httpMethod == "PUT" && ($0.url?.absoluteString.contains("/conversations/conv-1/variables/var-1") ?? false) }
+        #expect(req != nil)
+        if let req = req, let body = req.httpBody,
+           let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any] {
+            #expect(json["value"] as? String == "Bob")
+            #expect(json["user"] as? String == "user-123")
+        }
+    }
+
+    @Test("Update Conversation Variable - type mismatch error")
+    func testUpdateConversationVariable_typeMismatchError() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        mockSession.register(
+            method: "PUT",
+            urlPattern: "/conversations/conv-1/variables/var-2",
+            response: MockResponse.error(statusCode: 400, code: "invalid_variable_type", message: "Value type mismatch")
+        )
+        await assertThrowsError({
+            _ = try await client.updateConversationVariable(conversationId: "conv-1", variableId: "var-2", value: AnyCodable(["x": 1]), user: "user-123")
+        }, expectedError: DifyError.httpError(400, "Value type mismatch"))
+    }
+
+    @Test("Get Conversation Variables with variable_name filter")
+    func testGetConversationVariables_withVariableNameFilter() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        let mockResponse: [String: Any] = [
+            "data": [],
+            "has_more": false,
+            "limit": 20
+        ]
+        mockSession.register(method: "GET", urlPattern: "/conversations/conv-2/variables", response: MockResponse.json(mockResponse))
+        _ = try await client.getConversationVariables(conversationId: "conv-2", user: "user-123", variableName: "user_name")
+        let req = mockSession.getCapturedRequests().first { $0.url?.absoluteString.contains("/conversations/conv-2/variables") ?? false }
+        if let url = req?.url, let components = URLComponents(url: url, resolvingAgainstBaseURL: false), let items = components.queryItems {
+            #expect(items.contains { $0.name == "variable_name" && $0.value == "user_name" })
+        }
+    }
+
+    @Test("AgentThoughtStreamEvent decoding")
+    func testAgentThoughtStreamEvent_decoding() throws {
+        let json = """
+        {
+          "event": "agent_thought",
+          "id": "thought-1",
+          "task_id": "task-1",
+          "message_id": "msg-1",
+          "position": 1,
+          "thought": "Searching docs",
+          "observation": "Found 2 docs",
+          "tool": "search",
+          "tool_input": "keyword=swift",
+          "created_at": 1700000000,
+          "message_files": ["file-1", "file-2"],
+          "conversation_id": "conv-1"
+        }
+        """.data(using: .utf8)!
+        let event = try JSONDecoder.difyDecoder.decode(StreamingChatMessageResponse.self, from: json)
+        if case .agentThought(let e) = event {
+            #expect(e.id == "thought-1")
+            #expect(e.tool == "search")
+            #expect(e.messageFiles?.count == 2)
+        } else {
+            Issue.record("Expected agent_thought event")
+        }
+    }
+
+    @Test("Preview File via ChatClient")
+    func testPreviewFile_viaChatClient() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+        let bytes = Data([0x01, 0x02, 0x03])
+        mockSession.register(method: "GET", urlPattern: "/files/file-123/preview", response: MockResponse(statusCode: 200, headers: [:], data: bytes))
+        let data = try await client.previewFile(fileId: "file-123", asAttachment: true)
+        #expect(data == bytes)
+        // Verify as_attachment param present
+        let req = mockSession.getCapturedRequests().first { $0.url?.absoluteString.contains("/files/file-123/preview") ?? false }
+        if let url = req?.url, let components = URLComponents(url: url, resolvingAgainstBaseURL: false), let items = components.queryItems {
+            #expect(items.contains { $0.name == "as_attachment" && $0.value == "true" })
+        }
     }
     
     @Test("Audio to Text")

@@ -4,7 +4,7 @@ import Testing
 
 /// Base test case providing common setup and teardown for Dify SDK tests
 @Suite("Dify SDK Tests", .serialized)
-class DifyTestCase {
+class DifyTestCase: @unchecked Sendable {
     
     // MARK: - Properties
     

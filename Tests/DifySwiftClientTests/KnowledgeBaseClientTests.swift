@@ -3,7 +3,7 @@ import Testing
 @testable import DifySwiftClient
 
 @Suite("KnowledgeBaseClient Tests")
-final class KnowledgeBaseClientTests: DifyTestCase {
+final class KnowledgeBaseClientTests: DifyTestCase, @unchecked Sendable {
     
     // MARK: - Dataset Tests
     

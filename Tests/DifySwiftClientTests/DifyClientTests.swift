@@ -3,7 +3,7 @@ import Testing
 @testable import DifySwiftClient
 
 @Suite("DifyClient Tests")
-final class DifyClientTests: DifyTestCase {
+final class DifyClientTests: DifyTestCase, @unchecked Sendable {
     
     @Test("Client Initialization")
     func testClientInitialization() async throws {

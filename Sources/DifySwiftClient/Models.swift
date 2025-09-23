@@ -158,10 +158,20 @@ public struct Select: Codable, Sendable {
 }
 
 public struct FileUploadConfig: Codable, Sendable {
-    public let image: ImageUploadConfig?
+    /// Configuration for document uploads
+    public let document: UploadCategoryConfig?
+    /// Configuration for image uploads (backwards compatible alias retained below)
+    public let image: UploadCategoryConfig?
+    /// Configuration for audio uploads
+    public let audio: UploadCategoryConfig?
+    /// Configuration for video uploads
+    public let video: UploadCategoryConfig?
+    /// Configuration for custom uploads
+    public let custom: UploadCategoryConfig?
 }
 
-public struct ImageUploadConfig: Codable, Sendable {
+/// Generic upload category configuration used for all file categories.
+public struct UploadCategoryConfig: Codable, Sendable {
     public let enabled: Bool
     public let numberLimits: Int
     public let transferMethods: [String]
@@ -172,6 +182,9 @@ public struct ImageUploadConfig: Codable, Sendable {
         case transferMethods = "transfer_methods"
     }
 }
+
+/// Backwards compatibility: previous public type name
+public typealias ImageUploadConfig = UploadCategoryConfig
 
 public struct SystemParameters: Codable, Sendable {
     public let fileSizeLimit: Int?
@@ -586,8 +599,33 @@ public struct AgentMessageStreamEvent: Codable, Sendable {
 }
 
 public struct AgentThoughtStreamEvent: Codable, Sendable {
-    // Define properties based on API documentation for agent_thought event
     public let event: String
+    public let id: String?
+    public let taskId: String?
+    public let messageId: String?
+    public let position: Int?
+    public let thought: String?
+    public let observation: String?
+    public let tool: String?
+    public let toolInput: String?
+    public let createdAt: Int?
+    public let messageFiles: [String]? // array of file_id
+    public let conversationId: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case id
+        case taskId = "task_id"
+        case messageId = "message_id"
+        case position
+        case thought
+        case observation
+        case tool
+        case toolInput = "tool_input"
+        case createdAt = "created_at"
+        case messageFiles = "message_files"
+        case conversationId = "conversation_id"
+    }
 }
 
 public struct ConversationsResponse: Codable, Sendable {
@@ -717,11 +755,13 @@ public struct WorkflowStartedEvent: Codable, Sendable {
 public struct NodeStartedEvent: Codable, Sendable {
     public let event: String
     public let taskId: String
+    public let workflowRunId: String?
     public let data: NodeExecutionData
     
     private enum CodingKeys: String, CodingKey {
         case event
         case taskId = "task_id"
+        case workflowRunId = "workflow_run_id"
         case data
     }
 }
@@ -729,11 +769,13 @@ public struct NodeStartedEvent: Codable, Sendable {
 public struct NodeFinishedEvent: Codable, Sendable {
     public let event: String
     public let taskId: String
+    public let workflowRunId: String?
     public let data: NodeExecutionData
     
     private enum CodingKeys: String, CodingKey {
         case event
         case taskId = "task_id"
+        case workflowRunId = "workflow_run_id"
         case data
     }
 }
@@ -1265,7 +1307,7 @@ public struct ConversationVariable: Codable, Sendable {
     public let id: String
     public let name: String
     public let valueType: String
-    public let value: String
+    public let value: AnyCodable
     public let description: String
     public let createdAt: Int
     public let updatedAt: Int

@@ -25,7 +25,9 @@ public final class ChatClient: DifyClient, @unchecked Sendable {
         user: String,
         conversationId: String? = nil,
         files: [APIFile]? = nil,
-        autoGenerateName: Bool? = nil
+        autoGenerateName: Bool? = nil,
+        workflowId: String? = nil,
+        traceId: String? = nil
     ) async throws -> ChatMessageResponse {
         let requestBody = ChatRequestBody(
             inputs: inputs,
@@ -34,7 +36,9 @@ public final class ChatClient: DifyClient, @unchecked Sendable {
             responseMode: .blocking,
             conversationId: conversationId,
             files: files,
-            autoGenerateName: autoGenerateName
+            autoGenerateName: autoGenerateName,
+            workflowId: workflowId,
+            traceId: traceId
         )
         let data = try await sendRequest(method: .POST, endpoint: "/chat-messages", body: requestBody)
         return try decode(data, to: ChatMessageResponse.self)
@@ -55,7 +59,9 @@ public final class ChatClient: DifyClient, @unchecked Sendable {
         user: String,
         conversationId: String? = nil,
         files: [APIFile]? = nil,
-        autoGenerateName: Bool? = nil
+        autoGenerateName: Bool? = nil,
+        workflowId: String? = nil,
+        traceId: String? = nil
     ) async throws -> AsyncThrowingStream<StreamingChatMessageResponse, Error> {
         let requestBody = ChatRequestBody(
             inputs: inputs,
@@ -64,7 +70,9 @@ public final class ChatClient: DifyClient, @unchecked Sendable {
             responseMode: .streaming,
             conversationId: conversationId,
             files: files,
-            autoGenerateName: autoGenerateName
+            autoGenerateName: autoGenerateName,
+            workflowId: workflowId,
+            traceId: traceId
         )
         let request = try createURLRequest(method: .POST, endpoint: "/chat-messages", body: requestBody)
         return try await createStreamingResponse(for: request)
@@ -165,14 +173,51 @@ public final class ChatClient: DifyClient, @unchecked Sendable {
         conversationId: String,
         user: String,
         lastId: String? = nil,
-        limit: Int? = nil
+        limit: Int? = nil,
+        variableName: String? = nil
     ) async throws -> ConversationVariablesResponse {
         var params: [String: String] = ["user": user]
         if let lastId { params["last_id"] = lastId }
         if let limit { params["limit"] = String(limit) }
+        if let variableName { params["variable_name"] = variableName }
         
         let data = try await sendRequest(method: .GET, endpoint: "/conversations/\(conversationId)/variables", params: params)
         return try decode(data, to: ConversationVariablesResponse.self)
+    }
+
+    /// Update a specific conversation variable's value.
+    /// - Parameters:
+    ///   - conversationId: The conversation ID containing the variable.
+    ///   - variableId: The variable ID to update.
+    ///   - value: The new value for the variable (supports string/number/object).
+    ///   - user: A unique identifier for the end-user.
+    /// - Returns: The updated `ConversationVariable`.
+    public func updateConversationVariable(
+        conversationId: String,
+        variableId: String,
+        value: AnyCodable,
+        user: String
+    ) async throws -> ConversationVariable {
+        struct Body: Codable {
+            let value: AnyCodable
+            let user: String
+        }
+        let body = Body(value: value, user: user)
+        let data = try await sendRequest(method: .PUT, endpoint: "/conversations/\(conversationId)/variables/\(variableId)", body: body)
+        return try decode(data, to: ConversationVariable.self)
+    }
+
+    // MARK: - File Preview
+
+    /// Retrieves a preview (or download) of a previously uploaded file. Convenience for Chat APIs.
+    /// - Parameters:
+    ///   - fileId: The ID of the file to preview.
+    ///   - asAttachment: If true, requests the file as an attachment (download). Defaults to false.
+    /// - Returns: Raw `Data` of the file bytes.
+    public func previewFile(fileId: String, asAttachment: Bool = false) async throws -> Data {
+        var params: [String: String]? = nil
+        if asAttachment { params = ["as_attachment": "true"] }
+        return try await sendRequest(method: .GET, endpoint: "/files/\(fileId)/preview", params: params)
     }
     
     // MARK: - Audio Processing
@@ -368,12 +413,16 @@ public final class ChatClient: DifyClient, @unchecked Sendable {
         let conversationId: String?
         let files: [APIFile]?
         let autoGenerateName: Bool?
+        let workflowId: String?
+        let traceId: String?
         
         private enum CodingKeys: String, CodingKey {
             case inputs, query, user, files
             case responseMode = "response_mode"
             case conversationId = "conversation_id"
             case autoGenerateName = "auto_generate_name"
+            case workflowId = "workflow_id"
+            case traceId = "trace_id"
         }
     }
     

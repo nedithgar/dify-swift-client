@@ -3,7 +3,7 @@ import Testing
 @testable import DifySwiftClient
 
 @Suite("CompletionClient Tests")
-final class CompletionClientTests: DifyTestCase {
+final class CompletionClientTests: DifyTestCase, @unchecked Sendable {
     
     @Test("Client Initialization")
     func testCompletionClientInitialization() async throws {
@@ -360,6 +360,50 @@ final class CompletionClientTests: DifyTestCase {
         )
         
         #expect(response.id == "72fa9618-8f89-4a37-9b33-7e1178a24a67")
+    }
+
+    @Test("Preview File - Inline")
+    func testPreviewFileInline() async throws {
+        let (client, mockSession) = TestUtilities.createTestCompletionClientWithMockSession()
+
+        let fileBytes = Data([0x00, 0x01, 0x02, 0x03])
+        mockSession.register(
+            method: "GET",
+            urlPattern: "/files/file-abc/preview",
+            response: MockResponse(statusCode: 200, headers: [:], data: fileBytes)
+        )
+
+        let data = try await client.previewFile(fileId: "file-abc")
+        #expect(data == fileBytes)
+
+        // Verify request without as_attachment param
+        let req = mockSession.getCapturedRequests().first { $0.url?.absoluteString.contains("/files/file-abc/preview") ?? false }
+        #expect(req != nil)
+        if let url = req?.url?.absoluteString {
+            #expect(url.contains("as_attachment") == false)
+        }
+    }
+
+    @Test("Preview File - As Attachment")
+    func testPreviewFileAsAttachment() async throws {
+        let (client, mockSession) = TestUtilities.createTestCompletionClientWithMockSession()
+
+        let fileBytes = Data([0xAA, 0xBB, 0xCC])
+        mockSession.register(
+            method: "GET",
+            urlPattern: "/files/file-xyz/preview",
+            response: MockResponse(statusCode: 200, headers: [:], data: fileBytes)
+        )
+
+        let data = try await client.previewFile(fileId: "file-xyz", asAttachment: true)
+        #expect(data == fileBytes)
+
+        // Verify request has as_attachment=true
+        let req = mockSession.getCapturedRequests().first { $0.url?.absoluteString.contains("/files/file-xyz/preview") ?? false }
+        #expect(req != nil)
+        if let url = req?.url?.absoluteString {
+            #expect(url.contains("as_attachment=true"))
+        }
     }
     
     @Test("Upload File - Case Insensitive Extension")

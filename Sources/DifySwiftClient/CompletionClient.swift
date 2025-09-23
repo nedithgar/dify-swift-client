@@ -83,8 +83,9 @@ public final class CompletionClient: DifyClient, @unchecked Sendable {
 
     // MARK: - File Upload
 
-    /// Uploads a file (currently only images are supported) for use in messages.
-    /// Supports png, jpg, jpeg, webp, gif formats.
+    /// Uploads a file for use in messages and workflows.
+    /// The server validates supported formats; images (png, jpg, jpeg, webp, gif) are common,
+    /// and other formats may be accepted depending on your workflow and server configuration.
     /// - Parameters:
     ///   - fileData: The raw data of the file to upload.
     ///   - fileName: The name of the file.
@@ -103,7 +104,7 @@ public final class CompletionClient: DifyClient, @unchecked Sendable {
             case "jpg", "jpeg": return "image/jpeg"
             case "webp": return "image/webp"
             case "gif": return "image/gif"
-            default: return "image/png"
+            default: return "application/octet-stream"
             }
         }()
         
@@ -126,6 +127,21 @@ public final class CompletionClient: DifyClient, @unchecked Sendable {
         let request = MessageFeedbackRequest(rating: rating, user: user, content: content)
         let data = try await sendRequest(method: .POST, endpoint: "/messages/\(messageId)/feedbacks", body: request)
         return try decode(data, to: MessageFeedbackResponse.self)
+    }
+
+    // MARK: - Files
+
+    /// Retrieves a preview (or download) of a previously uploaded file.
+    /// - Parameters:
+    ///   - fileId: The ID of the file to preview.
+    ///   - asAttachment: If true, requests the file as an attachment (download). Defaults to false.
+    /// - Returns: Raw `Data` of the file bytes.
+    public func previewFile(fileId: String, asAttachment: Bool = false) async throws -> Data {
+        var params: [String: String]? = nil
+        if asAttachment {
+            params = ["as_attachment": "true"]
+        }
+        return try await sendRequest(method: .GET, endpoint: "/files/\(fileId)/preview", params: params)
     }
 
     /// Retrieves feedbacks for the application.
