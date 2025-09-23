@@ -5,7 +5,7 @@ import FoundationNetworking
 
 /// MockURLProtocol intercepts all HTTP requests during tests and returns mock responses
 /// This allows us to test without any real network calls
-final class MockURLProtocol: URLProtocol, @unchecked Sendable {
+final class MockURLProtocol: URLProtocol {
     
     /// Storage for mock responses keyed by request
     private nonisolated(unsafe) static var mockResponses: [MockRequest: MockResponse] = [:]

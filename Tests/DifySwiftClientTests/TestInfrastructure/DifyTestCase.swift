@@ -206,7 +206,7 @@ extension DifyTestCase {
     }
     
     /// Test streaming response
-    func testStreamingResponse<T: Decodable, B: Codable>(
+    func testStreamingResponse<T: Decodable & Sendable, B: Codable>(
         client: DifyClient,
         endpoint: String,
         method: HTTPMethod = .POST,
