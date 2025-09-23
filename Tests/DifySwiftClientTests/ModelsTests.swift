@@ -1063,7 +1063,29 @@ struct AdditionalModelTests {
         #expect(response.data.count == 1)
         #expect(response.data[0].name == "user_name")
         #expect(response.data[0].valueType == "string")
-        #expect(response.data[0].value == "John Doe")
+        #expect(response.data[0].value.value as? String == "John Doe")
+    }
+
+    @Test func testConversationVariable_AllValueTypesDecoding() throws {
+        let json = """
+        {
+            "limit": 20,
+            "has_more": false,
+            "data": [
+                {"id":"v1","name":"s","value_type":"string","value":"hello","description":"","created_at":1,"updated_at":1},
+                {"id":"v2","name":"n","value_type":"number","value":42,"description":"","created_at":1,"updated_at":1},
+                {"id":"v3","name":"o","value_type":"object","value":{"a":1},"description":"","created_at":1,"updated_at":1}
+            ]
+        }
+        """.data(using: .utf8)!
+        let response = try JSONDecoder.difyDecoder.decode(ConversationVariablesResponse.self, from: json)
+        #expect(response.data[0].value.value as? String == "hello")
+        #expect(response.data[1].value.value as? Int == 42)
+        if let dict = response.data[2].value.value as? [String: Any] {
+            #expect(dict["a"] as? Int == 1)
+        } else {
+            Issue.record("Expected object for v3")
+        }
     }
     
     @Test func testAnnotationsListResponse() throws {
@@ -2120,7 +2142,7 @@ struct ConversationVariableTests {
         #expect(variable.id == "var123")
         #expect(variable.name == "user_preference")
         #expect(variable.valueType == "string")
-        #expect(variable.value == "dark_mode")
+    #expect(variable.value.value as? String == "dark_mode")
         #expect(variable.description == "User's theme preference")
         #expect(variable.createdAt == 1704067200)
         #expect(variable.updatedAt == 1704067300)

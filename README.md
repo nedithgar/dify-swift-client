@@ -153,8 +153,11 @@ let response = try await chatClient.createChatMessage(
     user: "user_123",
     files: [documentFile, audioFile, imageFile]
 )
+```
 
-// Upload and use local image file (upload endpoint currently supports images only)
+Upload and use a local image file (upload endpoint currently supports images only):
+
+```swift
 let completionClient = try CompletionClient(apiKey: "your_api_key")
 let fileData = Data() // Your image data
 let uploadResponse = try await completionClient.uploadFile(
@@ -178,14 +181,29 @@ let responseWithLocalFile = try await chatClient.createChatMessage(
 )
 ```
 
-#### Preview uploaded files
+You can optionally include workflowId and traceId in both blocking and streaming chat requests:
+
+```swift
+let blocking = try await chatClient.createChatMessage(
+    inputs: [:],
+    query: "Hello",
+    user: "user_123",
+    workflowId: "wf_123",
+    traceId: "trace_abc"
+)
+
+let stream = try await chatClient.createStreamingChatMessage(
+    inputs: [:],
+    query: "Tell me a story",
+    user: "user_123",
+    workflowId: "wf_123",
+    traceId: "trace_def"
+)
+```
 
 You can preview or download previously uploaded files by file ID:
 
 ```swift
-let completionClient = try CompletionClient(apiKey: "your_api_key")
-
-// Inline preview (returns file bytes)
 let data = try await completionClient.previewFile(fileId: uploadResponse.id)
 
 // Force download (server will set Content-Disposition to attachment)
@@ -195,6 +213,12 @@ let downloadData = try await completionClient.previewFile(fileId: uploadResponse
 try downloadData.write(to: URL(fileURLWithPath: "/tmp/downloaded.png"))
 ```
 
+You can also preview files via `ChatClient`:
+
+```swift
+let chatClient = try ChatClient(apiKey: "your_api_key")
+let bytes = try await chatClient.previewFile(fileId: uploadResponse.id, asAttachment: true)
+```
 ### Workflow Client
 
 ```swift
@@ -406,9 +430,24 @@ let variables = try await chatClient.getConversationVariables(
 
 for variable in variables.data {
     print("Variable: \(variable.name) (\(variable.valueType))")
-    print("Value: \(variable.value)")
+    print("Value: \(variable.value.value)")
     print("Description: \(variable.description ?? "No description")")
 }
+
+// Update variable value (supports string/number/object)
+let updated = try await chatClient.updateConversationVariable(
+    conversationId: "conv_123",
+    variableId: "var_123",
+    value: AnyCodable(["enabled": true]),
+    user: "user_123"
+)
+
+// Filter variables by name
+let filtered = try await chatClient.getConversationVariables(
+    conversationId: "conv_123",
+    user: "user_123",
+    variableName: "user_name"
+)
 ```
 
 ### Enhanced Chat Features
@@ -423,7 +462,9 @@ let response = try await chatClient.createChatMessage(
     user: "user_123",
     conversationId: nil,
     files: nil,
-    autoGenerateName: false // Disable automatic title generation
+    autoGenerateName: false, // Disable automatic title generation
+    workflowId: "wf_123",
+    traceId: "trace_abc"
 )
 
 // Get workflow logs (for workflow-enabled apps)

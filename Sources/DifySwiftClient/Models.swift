@@ -599,8 +599,33 @@ public struct AgentMessageStreamEvent: Codable, Sendable {
 }
 
 public struct AgentThoughtStreamEvent: Codable, Sendable {
-    // Define properties based on API documentation for agent_thought event
     public let event: String
+    public let id: String?
+    public let taskId: String?
+    public let messageId: String?
+    public let position: Int?
+    public let thought: String?
+    public let observation: String?
+    public let tool: String?
+    public let toolInput: String?
+    public let createdAt: Int?
+    public let messageFiles: [String]? // array of file_id
+    public let conversationId: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case event
+        case id
+        case taskId = "task_id"
+        case messageId = "message_id"
+        case position
+        case thought
+        case observation
+        case tool
+        case toolInput = "tool_input"
+        case createdAt = "created_at"
+        case messageFiles = "message_files"
+        case conversationId = "conversation_id"
+    }
 }
 
 public struct ConversationsResponse: Codable, Sendable {
@@ -1278,7 +1303,7 @@ public struct ConversationVariable: Codable, Sendable {
     public let id: String
     public let name: String
     public let valueType: String
-    public let value: String
+    public let value: AnyCodable
     public let description: String
     public let createdAt: Int
     public let updatedAt: Int

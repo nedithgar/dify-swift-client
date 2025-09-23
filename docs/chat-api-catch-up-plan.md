@@ -167,12 +167,12 @@ Key changes in the new docs (compared to old):
 
 ## Requirements Coverage
 
-- Add workflow_id to Chat: Done (planned change)
-- Add trace_id to Chat: Done (planned change)
-- Add file preview helper in Chat: Done (planned change)
-- Implement PUT conversation variable update: Done (planned change)
-- Expand agent_thought event model: Done (planned change)
-- Maintain backward compatibility: Done (planned change)
+- Add workflow_id to Chat: Done (implemented)
+- Add trace_id to Chat: Done (implemented)
+- Add file preview helper in Chat: Done (implemented)
+- Implement PUT conversation variable update: Done (implemented)
+- Expand agent_thought event model: Done (implemented)
+- Maintain backward compatibility: Done (implemented)
 
 ## Next Steps
 
@@ -181,9 +181,8 @@ Key changes in the new docs (compared to old):
 
 ## PR Checklist
 
-- [ ] Code changes implemented
-- [ ] New unit tests added and passing
-- [ ] README updated (usage + examples)
+- [x] Code changes implemented
+- [x] New unit tests added and passing
+- [x] README updated (usage + examples)
 - [ ] CHANGELOG updated
-- [ ] API docs cross-checked with examples (fields, endpoints)
-- [ ] Version bumped
+- [x] API docs cross-checked with examples (fields, endpoints)
