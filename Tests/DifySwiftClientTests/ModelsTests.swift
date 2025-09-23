@@ -168,11 +168,11 @@ struct ApplicationInfoTests {
                 }
             ],
             "file_upload": {
-                "image": {
-                    "enabled": true,
-                    "number_limits": 5,
-                    "transfer_methods": ["remote_url", "local_file"]
-                }
+                "document": {"enabled": true, "number_limits": 2, "transfer_methods": ["remote_url"]},
+                "image": {"enabled": true, "number_limits": 5, "transfer_methods": ["remote_url", "local_file"]},
+                "audio": {"enabled": false, "number_limits": 0, "transfer_methods": []},
+                "video": {"enabled": true, "number_limits": 1, "transfer_methods": ["local_file"]},
+                "custom": {"enabled": false, "number_limits": 0, "transfer_methods": []}
             },
             "system_parameters": {
                 "file_size_limit": 10485760,
@@ -203,8 +203,12 @@ struct ApplicationInfoTests {
         #expect(response.userInputForm?[1].select?.options == ["US", "UK", "CA"])
         
         // Test file upload
-        #expect(response.fileUpload?.image?.enabled == true)
-        #expect(response.fileUpload?.image?.numberLimits == 5)
+    #expect(response.fileUpload?.document?.enabled == true)
+    #expect(response.fileUpload?.document?.numberLimits == 2)
+    #expect(response.fileUpload?.image?.enabled == true)
+    #expect(response.fileUpload?.image?.numberLimits == 5)
+    #expect(response.fileUpload?.audio?.enabled == false)
+    #expect(response.fileUpload?.video?.enabled == true)
         
         // Test system parameters
         #expect(response.systemParameters?.fileSizeLimit == 10485760)

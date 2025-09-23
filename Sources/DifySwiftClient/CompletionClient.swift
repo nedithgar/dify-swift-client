@@ -128,6 +128,21 @@ public final class CompletionClient: DifyClient, @unchecked Sendable {
         return try decode(data, to: MessageFeedbackResponse.self)
     }
 
+    // MARK: - Files
+
+    /// Retrieves a preview (or download) of a previously uploaded file.
+    /// - Parameters:
+    ///   - fileId: The ID of the file to preview.
+    ///   - asAttachment: If true, requests the file as an attachment (download). Defaults to false.
+    /// - Returns: Raw `Data` of the file bytes.
+    public func previewFile(fileId: String, asAttachment: Bool = false) async throws -> Data {
+        var params: [String: String]? = nil
+        if asAttachment {
+            params = ["as_attachment": "true"]
+        }
+        return try await sendRequest(method: .GET, endpoint: "/files/\(fileId)/preview", params: params)
+    }
+
     /// Retrieves feedbacks for the application.
     /// - Parameters:
     ///   - page: The page number for pagination (default: 1).

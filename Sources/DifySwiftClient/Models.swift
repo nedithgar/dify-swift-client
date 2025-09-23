@@ -158,10 +158,20 @@ public struct Select: Codable, Sendable {
 }
 
 public struct FileUploadConfig: Codable, Sendable {
-    public let image: ImageUploadConfig?
+    /// Configuration for document uploads
+    public let document: UploadCategoryConfig?
+    /// Configuration for image uploads (backwards compatible alias retained below)
+    public let image: UploadCategoryConfig?
+    /// Configuration for audio uploads
+    public let audio: UploadCategoryConfig?
+    /// Configuration for video uploads
+    public let video: UploadCategoryConfig?
+    /// Configuration for custom uploads
+    public let custom: UploadCategoryConfig?
 }
 
-public struct ImageUploadConfig: Codable, Sendable {
+/// Generic upload category configuration used for all file categories.
+public struct UploadCategoryConfig: Codable, Sendable {
     public let enabled: Bool
     public let numberLimits: Int
     public let transferMethods: [String]
@@ -172,6 +182,9 @@ public struct ImageUploadConfig: Codable, Sendable {
         case transferMethods = "transfer_methods"
     }
 }
+
+/// Backwards compatibility: previous public type name
+public typealias ImageUploadConfig = UploadCategoryConfig
 
 public struct SystemParameters: Codable, Sendable {
     public let fileSizeLimit: Int?
