@@ -99,12 +99,30 @@ for try await event in streamingResponse {
 ```swift
 let completionClient = try CompletionClient(apiKey: "your_api_key")
 
-let response = try await completionClient.createCompletionMessage(
-    inputs: ["query": "What's the weather like today?"],
+// Send a completion request
+let completion = try await completionClient.createCompletionMessage(
+    inputs: ["query": "Write a haiku about Swift"],
+    user: "user_123"
+)
+print("Completion: \(completion.answer)")
+
+// Streaming completion
+let completionStream = try await completionClient.createStreamingCompletionMessage(
+    inputs: ["query": "List 3 facts about the macOS kernel"],
     user: "user_123"
 )
 
-print("Completion: \(response.answer)")
+for try await event in completionStream {
+    switch event {
+    case .message(let m):
+        print(m.answer, terminator: "")
+    case .messageEnd(let end):
+        print("\n[done] total tokens: \(end.metadata.usage?.totalTokens ?? 0)")
+    case .error(let e):
+        print("\n[error] \(e.code): \(e.message)")
+    default: break
+    }
+}
 ```
 
 ### Working with Files (Enhanced Multi-Format Support)
@@ -289,12 +307,11 @@ let dataset = try await knowledgeBaseClient.createDataset(name: "My Knowledge Ba
 let fileData = Data() // Your document data
 let processRule = ProcessRule(
     mode: "automatic",
-    rules: ProcessRuleRules(
-        preProcessingRules: [
-            PreProcessingRule(id: "remove_extra_spaces", enabled: true)
-        ],
-        segmentation: Segmentation(separator: "\n", maxTokens: 500)
-    )
+    rules: [
+        "remove_extra_spaces": "true",
+        "segmentation_separator": "\n",
+        "max_tokens": "500"
+    ]
 )
 
 let documentResponse = try await knowledgeBaseClient.createDocument(
@@ -468,7 +485,7 @@ let variables = try await chatClient.getConversationVariables(
 for variable in variables.data {
     print("Variable: \(variable.name) (\(variable.valueType))")
     print("Value: \(variable.value.value)")
-    print("Description: \(variable.description ?? "No description")")
+    print("Description: \(variable.description)")
 }
 
 // Update variable value (supports string/number/object)
@@ -546,16 +563,16 @@ All API responses are strongly typed with Swift structs and include comprehensiv
 
 #### Application Information Models
 - `ApplicationInfoResponse` - Basic app information
-- `EnhancedApplicationParametersResponse` - Detailed app parameters and configuration
+ - `ApplicationParametersResponse` - Detailed app parameters and configuration
 - `ApplicationMetaResponse` - Application metadata and tool icons
 - `ApplicationSiteResponse` - Site/webapp settings
 
 #### Enhanced Feedback & Annotation Models
-- `EnhancedMessageFeedbackRequest` - Feedback with content support
+- `MessageFeedbackRequest` - Feedback with content support
 - `ApplicationFeedbacksResponse` - Application feedback listings
-- `AnnotationListResponse` - Annotation management
-- `AnnotationReplySettingsResponse` - Annotation configuration
-- `AnnotationJobStatusResponse` - Annotation job tracking
+ - `AnnotationsListResponse` - Annotation management
+ - `AnnotationReplyJobResponse` - Annotation configuration
+ - `AnnotationReplyJobStatusResponse` - Annotation job tracking
 
 #### Conversation & Workflow Models
 - `ConversationVariablesResponse` - Structured conversation data
@@ -567,7 +584,7 @@ All API responses are strongly typed with Swift structs and include comprehensiv
 
 ### Error Types
 
-- `DifyError.invalidURL(_:)`
+ - `DifyError.invalidURL()`
 - `DifyError.invalidAPIKey`
 - `DifyError.httpError(_:_:)`
 - `DifyError.networkError(_:)`
@@ -601,13 +618,12 @@ let client = try DifyClient(
 ```swift
 let processRule = ProcessRule(
     mode: "custom",
-    rules: ProcessRuleRules(
-        preProcessingRules: [
-            PreProcessingRule(id: "remove_extra_spaces", enabled: true),
-            PreProcessingRule(id: "remove_urls_emails", enabled: true)
-        ],
-        segmentation: Segmentation(separator: "\n", maxTokens: 500)
-    )
+    rules: [
+        "remove_extra_spaces": "true",
+        "remove_urls_emails": "true",
+        "segmentation_separator": "\n",
+        "max_tokens": "500"
+    ]
 )
 
 // Use createDocument method with file data
