@@ -371,18 +371,11 @@ do {
     )
     print("Success: \(response.answer)")
 } catch let error as DifyError {
-    switch error {
-    case .invalidAPIKey:
-        print("Invalid API key provided")
-    case .httpError(let code, let message):
-        print("HTTP error \(code): \(message ?? "Unknown")")
-    case .networkError(let underlyingError):
-        print("Network error: \(underlyingError)")
-    case .decodingError(let underlyingError):
-        print("Failed to decode response: \(underlyingError)")
-    default:
-        print("Other error: \(error.localizedDescription)")
-    }
+    // DifyError is a struct; inspect fields for details
+    let status = error.status.map(String.init) ?? "N/A"
+    let code = error.code ?? "N/A"
+    let message = error.message ?? error.localizedDescription
+    print("Dify error [status=\(status), code=\(code)]: \(message)")
 } catch {
     print("Unexpected error: \(error)")
 }
