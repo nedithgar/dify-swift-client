@@ -441,7 +441,7 @@ let chatClient = try ChatClient(apiKey: "your_api_key")
 // Get application feedbacks (available in ChatClient)
 let feedbacks = try await chatClient.getApplicationFeedbacks(page: 1, limit: 20)
 for feedback in feedbacks.data {
-    print("Feedback: \(feedback.rating) - \(feedback.content ?? "No content")")
+    print("Feedback: \(feedback.rating) - \(feedback.content)")
 }
 
 // Manage annotations (available in ChatClient)
