@@ -13,13 +13,7 @@
   - [x] Built MockDataProvider with comprehensive mock responses
   - [x] Implemented TestUtilities with helper functions
   - [x] Created DifyTestCase base class for common functionality
-  - [x] **Migrated to isolated mock sessions for parallel test execution (2025-07-12)**
-    - [x] Created IsolatedMockSession class with instance-based mocking
-    - [x] Updated TestUtilities with isolated session factory methods
-    - [x] Migrated all test files to use isolated mock sessions
-    - [x] Removed .serialized trait from all test suites
-    - [x] Fixed URLSession.shared usage in KnowledgeBaseClient
-    - [x] All 60 tests now pass in parallel execution (~0.25s)
+  - [x] Introduced IsolatedMockSession and factory helpers, migrated all tests off shared state
 - [x] Create tests for DifyClient base functionality
   - [x] **Significantly improved test coverage from 66% to 71.59% (2025-07-12)**
   - [x] Added 42 comprehensive tests covering all testable code paths
