@@ -117,7 +117,6 @@
 ### API Documentation
 - [ ] Complete API reference documentation
 - [ ] Add code examples for each endpoint
-- [ ] Create video tutorials
 - [ ] Write best practices guide
 - [ ] Add FAQ section
 - [ ] Create glossary of terms
