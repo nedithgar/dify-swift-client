@@ -8,12 +8,7 @@
 - [ ] Add troubleshooting guide for common issues
 
 ### Testing Infrastructure
-- [x] Rebuild mock-based testing framework
-  - [x] Created MockURLProtocol for intercepting HTTP requests
-  - [x] Built MockDataProvider with comprehensive mock responses
-  - [x] Implemented TestUtilities with helper functions
-  - [x] Created DifyTestCase base class for common functionality
-  - [x] Introduced IsolatedMockSession and factory helpers, migrated all tests off shared state
+- [x] Rebuilt mock-based testing framework (MockURLProtocol, MockDataProvider, TestUtilities, DifyTestCase, IsolatedMockSession + factory helpers eliminating shared state)
 - [x] Create tests for DifyClient base functionality
   - [x] **Significantly improved test coverage from 66% to 71.59% (2025-07-12)**
   - [x] Added 42 comprehensive tests covering all testable code paths
