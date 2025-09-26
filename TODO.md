@@ -28,14 +28,10 @@
 - [x] Create tests for KnowledgeBaseClient
 - [x] Create comprehensive tests for Models.swift
 - [x] Create comprehensive tests for Utilities.swift
-- [ ] Add performance benchmarks
 - [ ] Create integration test suite (with test server)
   - [ ] **Required for 100% DifyClient coverage - test URLSession.bytes streaming path**
   - [ ] Set up local SSE-capable HTTP server for streaming tests
   - [ ] Test production streaming path without URLProtocol limitations
-- [ ] Add stress tests for streaming responses
-- [ ] Implement property-based testing for models
-- [ ] Add memory leak tests
 
 ### Error Handling Improvements
 - [x] Comprehensive DifyError enum
