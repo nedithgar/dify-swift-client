@@ -73,14 +73,6 @@
 - [ ] Automatic file compression options
 - [ ] Batch file upload support
 
-### Streaming Enhancements
-- [x] Basic SSE streaming support
-- [ ] Add WebSocket support if available
-- [ ] Implement stream reconnection logic
-- [ ] Add stream buffering options
-- [ ] Create stream transformation utilities
-- [ ] Add stream recording/replay functionality
-
 ## 🛠️ Phase 3: Developer Experience
 
 ### Swift Package Improvements
