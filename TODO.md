@@ -81,15 +81,6 @@
 - [ ] Create release automation
 - [ ] Add changelog generation
 
-## 📱 Phase 4: Platform-Specific Features
-
-### Linux Support
-- [ ] Ensure FoundationNetworking compatibility
-- [ ] Add Linux-specific optimizations
-- [ ] Create Docker examples
-- [ ] Add server-side Swift examples
-- [ ] Implement Vapor integration
-
 ## 🐛 Known Issues
 
 ### Current Bugs
