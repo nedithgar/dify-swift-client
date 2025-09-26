@@ -101,10 +101,6 @@
 ## 🐛 Known Issues
 
 ### Current Bugs
-- [x] ~~Fix URLSession.bytes compatibility with MockURLProtocol for streaming tests~~
-- [x] ~~Fix race condition in concurrent requests~~ (Fixed with isolated mock sessions)
-- [x] ~~Fix "'is' test is always true" warnings in test assertions~~ (Fixed 2025-07-12)
-- [x] ~~Fix CodeQL workflow failing due to Swift version mismatch~~ (Fixed 2025-07-12)
 - [ ] Investigate memory usage in long-running streams
 - [ ] Address timeout handling in slow networks
 - [ ] Resolve JSON decoding edge cases
@@ -115,7 +111,6 @@
 - [ ] Consolidate duplicate code in client classes
 - [ ] Improve test mock data organization
 - [ ] Update deprecated API usage
-- [ ] Optimize model encoding/decoding
 
 ## 📚 Documentation Tasks
 
