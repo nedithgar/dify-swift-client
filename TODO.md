@@ -77,20 +77,6 @@
 - [ ] Create release automation
 - [ ] Add changelog generation
 
-## 🐛 Known Issues
-
-### Current Bugs
-- [ ] Investigate memory usage in long-running streams
-- [ ] Address timeout handling in slow networks
-- [ ] Resolve JSON decoding edge cases
-- [ ] Fix file upload memory spikes
-
-### Technical Debt
-- [ ] Refactor error handling to use Result type consistently
-- [ ] Consolidate duplicate code in client classes
-- [ ] Improve test mock data organization
-- [ ] Update deprecated API usage
-
 ## 📚 Documentation Tasks
 
 ### API Documentation
