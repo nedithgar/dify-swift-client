@@ -3,100 +3,142 @@ import Foundation
 import FoundationNetworking
 #endif
 
-/// A client for executing and managing workflows in the Dify API.
+/// A client for executing and managing Workflow applications in the Dify API.
+///
+/// This client provides both blocking ("final response") and streaming interfaces for running
+/// generic workflow apps or a specific workflow version (by ID). It also exposes helper
+/// endpoints for inspecting run details, retrieving logs, stopping tasks mid‑execution, and
+/// fetching application metadata (info / parameters / WebApp settings).
+///
+/// Thread-safety: Instances are intended to be used from concurrent contexts (the class is
+/// marked `Sendable`), but callers are responsible for ensuring they don't mutate shared
+/// state in captured inputs while a request is in flight.
+///
+/// Error handling: All async APIs `throw` if network transport fails, if the server returns a
+/// non-success status code translated by `sendRequest`, or if decoding into the expected model
+/// type fails.
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 public final class WorkflowClient: DifyClient, @unchecked Sendable {
     
     // MARK: - Workflow Execution
     
-    /// Runs a workflow and waits for the complete result.
+    /// Runs a workflow (generic workflow application context) and waits for the complete result.
+    ///
+    /// Use this when you have a *workflow application* endpoint (no explicit workflow version / id)
+    /// and you want the final aggregated response instead of a stream of intermediate events.
+    ///
     /// - Parameters:
-    ///   - inputs: A dictionary of input variables for the workflow.
-    ///   - user: A unique identifier for the end-user.
-    ///   - files: Optional array of files to include with the workflow run.
-    ///   - traceId: Optional trace identifier to correlate requests.
-    /// - Returns: A `WorkflowResponse` object containing the final result of the workflow execution.
+    ///   - inputs: Dictionary of workflow input variables (primitive JSON-compatible values).
+    ///   - user: Stable unique identifier of the end-user invoking the workflow.
+    ///   - files: Optional list of files to upload / associate with this run.
+    ///   - traceId: Optional external correlation / trace identifier for observability.
+    /// - Returns: The final decoded `WorkflowResponse` once execution completes.
+    /// - Throws: Network / transport errors, server-side errors (as surfaced by `sendRequest`), or decoding errors.
     public func runWorkflow(inputs: [String: Any], user: String, files: [APIFile]? = nil, traceId: String? = nil) async throws -> WorkflowResponse {
         let requestBody = WorkflowRequestBody(inputs: inputs, responseMode: .blocking, user: user, files: files, traceId: traceId)
         let data = try await sendRequest(method: .POST, endpoint: "/workflows/run", body: requestBody)
         return try decode(data, to: WorkflowResponse.self)
     }
     
-    /// Runs a workflow and streams the events.
+    /// Runs a workflow and returns a stream of intermediate events (nodes output, logs, final result).
+    ///
+    /// Use this to build responsive UIs that reflect real-time progress. The returned
+    /// `AsyncThrowingStream` ends when a terminal event is received or an error occurs.
+    ///
     /// - Parameters:
-    ///   - inputs: A dictionary of input variables for the workflow.
-    ///   - user: A unique identifier for the end-user.
-    ///   - files: Optional array of files to include with the workflow run.
-    ///   - traceId: Optional trace identifier to correlate requests.
-    /// - Returns: An `AsyncThrowingStream` of `StreamingWorkflowResponse` events.
+    ///   - inputs: Dictionary of workflow input variables.
+    ///   - user: Stable unique identifier of the end-user.
+    ///   - files: Optional list of files to upload for this run.
+    ///   - traceId: Optional external correlation / trace identifier.
+    /// - Returns: An asynchronous stream yielding `StreamingWorkflowResponse` events.
+    /// - Throws: If the request cannot be created, the network connection fails, the server returns an error, or the streaming parser encounters invalid data.
     public func runStreamingWorkflow(inputs: [String: Any], user: String, files: [APIFile]? = nil, traceId: String? = nil) async throws -> AsyncThrowingStream<StreamingWorkflowResponse, Error> {
         let requestBody = WorkflowRequestBody(inputs: inputs, responseMode: .streaming, user: user, files: files, traceId: traceId)
         let request = try createURLRequest(method: .POST, endpoint: "/workflows/run", body: requestBody)
         return try await createStreamingResponse(for: request)
     }
 
-    /// Runs a specific workflow version by ID and waits for the complete result.
+    /// Runs a specific workflow version by its ID and waits for the complete result.
+    ///
+    /// Use this variant when you need explicit control over the workflow version rather than the
+    /// generic application endpoint.
+    ///
     /// - Parameters:
-    ///   - workflowId: The ID of the workflow to execute.
-    ///   - inputs: A dictionary of input variables for the workflow.
-    ///   - user: A unique identifier for the end-user.
-    ///   - files: Optional array of files to include with the workflow run.
-    ///   - traceId: Optional trace identifier to correlate requests.
-    /// - Returns: A `WorkflowResponse` object containing the final result of the workflow execution.
+    ///   - workflowId: The identifier of the workflow version to execute.
+    ///   - inputs: Dictionary of workflow input variables.
+    ///   - user: Stable unique identifier of the end-user.
+    ///   - files: Optional list of files to upload for this run.
+    ///   - traceId: Optional external correlation / trace identifier.
+    /// - Returns: The final `WorkflowResponse` when execution completes.
+    /// - Throws: Network / transport errors, server-side errors, or decoding errors.
     public func runWorkflow(workflowId: String, inputs: [String: Any], user: String, files: [APIFile]? = nil, traceId: String? = nil) async throws -> WorkflowResponse {
         let requestBody = WorkflowRequestBody(inputs: inputs, responseMode: .blocking, user: user, files: files, traceId: traceId)
         let data = try await sendRequest(method: .POST, endpoint: "/workflows/\(workflowId)/run", body: requestBody)
         return try decode(data, to: WorkflowResponse.self)
     }
 
-    /// Runs a specific workflow version by ID and streams the events.
+    /// Runs a specific workflow version by its ID and streams intermediate events.
+    ///
     /// - Parameters:
-    ///   - workflowId: The ID of the workflow to execute.
-    ///   - inputs: A dictionary of input variables for the workflow.
-    ///   - user: A unique identifier for the end-user.
-    ///   - files: Optional array of files to include with the workflow run.
-    ///   - traceId: Optional trace identifier to correlate requests.
-    /// - Returns: An `AsyncThrowingStream` of `StreamingWorkflowResponse` events.
+    ///   - workflowId: Identifier of the workflow version to execute.
+    ///   - inputs: Dictionary of workflow input variables.
+    ///   - user: Stable unique identifier of the end-user.
+    ///   - files: Optional list of files to upload for this run.
+    ///   - traceId: Optional external correlation / trace identifier.
+    /// - Returns: An `AsyncThrowingStream` yielding `StreamingWorkflowResponse` events.
+    /// - Throws: If creating the request fails, networking fails, server returns an error, or parsing streaming events fails.
     public func runStreamingWorkflow(workflowId: String, inputs: [String: Any], user: String, files: [APIFile]? = nil, traceId: String? = nil) async throws -> AsyncThrowingStream<StreamingWorkflowResponse, Error> {
         let requestBody = WorkflowRequestBody(inputs: inputs, responseMode: .streaming, user: user, files: files, traceId: traceId)
         let request = try createURLRequest(method: .POST, endpoint: "/workflows/\(workflowId)/run", body: requestBody)
         return try await createStreamingResponse(for: request)
     }
     
-    /// Stops a running workflow task.
+    /// Stops a running workflow task (best-effort cancellation of in-progress node execution).
+    ///
+    /// The `taskId` is typically obtained from a streaming event that exposes cancellable task
+    /// identifiers. The server may respond that the task has already completed.
+    ///
     /// - Parameters:
-    ///   - taskId: The ID of the task to stop, obtained from a streaming event.
-    ///   - user: The user identifier.
-    /// - Returns: A `BaseResponse` indicating the result of the operation.
+    ///   - taskId: Identifier of the running task to stop.
+    ///   - user: Stable unique identifier of the end-user.
+    /// - Returns: A `BaseResponse` describing the cancellation result.
+    /// - Throws: Network / server / decoding errors.
     public func stopWorkflowTask(taskId: String, user: String) async throws -> BaseResponse {
         let requestBody = ["user": user]
         let data = try await sendRequest(method: .POST, endpoint: "/workflows/tasks/\(taskId)/stop", body: requestBody)
         return try decode(data, to: BaseResponse.self)
     }
     
-    /// Gets the current execution results of a workflow task based on the workflow execution ID.
-    /// - Parameter workflowRunId: The workflow execution ID.
-    /// - Returns: A `WorkflowRunDetailResponse` containing the execution details.
+    /// Retrieves the (possibly in-progress) execution detail for a workflow run.
+    ///
+    /// Use this to poll for state if you are not using the streaming API or want to reload
+    /// state after a client restart.
+    ///
+    /// - Parameter workflowRunId: The unique run/execution identifier.
+    /// - Returns: A `WorkflowRunDetailResponse` containing current execution details.
+    /// - Throws: Network / server / decoding errors.
     public func getWorkflowRunDetail(workflowRunId: String) async throws -> WorkflowRunDetailResponse {
         let data = try await sendRequest(method: .GET, endpoint: "/workflows/run/\(workflowRunId)")
         return try decode(data, to: WorkflowRunDetailResponse.self)
     }
 
-    /// Deprecated: use getWorkflowRunDetail(workflowRunId:) instead.
+    /// Deprecated: Use ``getWorkflowRunDetail(workflowRunId:)`` instead.
     @available(*, deprecated, renamed: "getWorkflowRunDetail(workflowRunId:)")
     public func getWorkflowRunDetail(workflowId: String) async throws -> WorkflowRunDetailResponse {
         return try await getWorkflowRunDetail(workflowRunId: workflowId)
     }
     
-    /// Gets workflow logs with pagination and filtering options.
+    /// Retrieves workflow execution logs (historical runs) with optional filters.
+    ///
     /// - Parameters:
-    ///   - keyword: Optional keyword to search.
-    ///   - status: Optional status filter (succeeded/failed/stopped).
-    ///   - page: Current page number (default: 1).
-    ///   - limit: Number of items per page (default: 20).
-    ///   - createdByEndUserSessionId: Optional filter by end user session ID.
-    ///   - createdByAccount: Optional filter by account email.
-    /// - Returns: A `WorkflowLogsResponse` containing the paginated logs.
+    ///   - keyword: Full-text search keyword applied to log entries or run metadata.
+    ///   - status: Filter by run status (e.g. `succeeded`, `failed`, `stopped`).
+    ///   - page: 1-based page index (default 1).
+    ///   - limit: Page size (default 20).
+    ///   - createdByEndUserSessionId: Filter by originating end-user session ID.
+    ///   - createdByAccount: Filter by account email (for administrative contexts).
+    /// - Returns: A `WorkflowLogsResponse` containing paginated log items.
+    /// - Throws: Network / server / decoding errors.
     public func getWorkflowLogs(
         keyword: String? = nil,
         status: String? = nil,
@@ -127,22 +169,28 @@ public final class WorkflowClient: DifyClient, @unchecked Sendable {
         return try decode(data, to: WorkflowLogsResponse.self)
     }
     
-    /// Gets basic information about the workflow application.
-    /// - Returns: An `ApplicationInfoResponse` containing the application details.
+    /// Fetches basic application information / metadata for the workflow app.
+    ///
+    /// - Returns: An `ApplicationInfoResponse` describing the application.
+    /// - Throws: Network / server / decoding errors.
     public func getApplicationInfo() async throws -> ApplicationInfoResponse {
         let data = try await sendRequest(method: .GET, endpoint: "/info")
         return try decode(data, to: ApplicationInfoResponse.self)
     }
     
-    /// Gets application parameters information including input forms and file upload configurations.
-    /// - Returns: An `ApplicationParametersResponse` containing the parameter details.
+    /// Fetches application parameters (input schema / UI form config / file upload settings).
+    ///
+    /// - Returns: An `ApplicationParametersResponse` with parameter configuration.
+    /// - Throws: Network / server / decoding errors.
     public func getApplicationParameters() async throws -> ApplicationParametersResponse {
         let data = try await sendRequest(method: .GET, endpoint: "/parameters")
         return try decode(data, to: ApplicationParametersResponse.self)
     }
     
-    /// Gets the WebApp settings of the application.
-    /// - Returns: An `ApplicationWebAppSettingsResponse` containing the WebApp settings.
+    /// Fetches WebApp (site) settings for the workflow application.
+    ///
+    /// - Returns: An `ApplicationWebAppSettingsResponse` with WebApp UI settings.
+    /// - Throws: Network / server / decoding errors.
     public func getApplicationWebAppSettings() async throws -> ApplicationWebAppSettingsResponse {
         let data = try await sendRequest(method: .GET, endpoint: "/site")
         return try decode(data, to: ApplicationWebAppSettingsResponse.self)
@@ -150,6 +198,11 @@ public final class WorkflowClient: DifyClient, @unchecked Sendable {
     
     // MARK: - Private Helpers
     
+    /// Internal request body wrapper for workflow executions.
+    ///
+    /// Converts a user-supplied `[String: Any]` input map into `[String: AnyCodable]` for
+    /// JSON encoding while also surfacing response mode, user identity, file attachments,
+    /// and an optional trace identifier.
     private struct WorkflowRequestBody: Codable {
         let inputs: [String: AnyCodable]
         let responseMode: ResponseMode
