@@ -5,20 +5,35 @@ import FoundationNetworking
 #endif
 
 /// A client for handling chat-based interactions with the Dify API.
+///
+/// Provides high-level async methods for:
+/// - Creating standard (blocking) and streaming chat messages
+/// - Managing conversations (list / rename / delete / variables)
+/// - Accessing message history, suggestions and submitting feedback
+/// - Working with annotations & annotation reply configuration
+/// - Audio utilities (speech-to-text & text-to-speech)
+/// - Fetching application metadata, parameters, site settings
+/// - Previewing previously uploaded files
+///
+/// All calls are asynchronous (Swift Concurrency) and throw on transport or decoding failures.
+/// Always supply a stable unique `user` id to scope data and apply server-side policies.
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 public final class ChatClient: DifyClient, @unchecked Sendable {
     
     // MARK: - Chat Messages
     
-    /// Creates a new chat message.
+    /// Creates a new chat message (blocking response mode returning the full reply at once).
     /// - Parameters:
-    ///   - inputs: A dictionary of input variables for the chat.
-    ///   - query: The user's query or message.
-    ///   - user: A unique identifier for the end-user.
-    ///   - conversationId: An optional ID to continue an existing conversation.
-    ///   - files: An optional list of files to include with the message.
-    ///   - autoGenerateName: Auto-generate title, default is true.
-    /// - Returns: A `ChatMessageResponse` object with the chat completion details.
+    ///   - inputs: Prompt / template variables for the chat application.
+    ///   - query: The end-user's message content.
+    ///   - user: A unique identifier for the end-user (isolation and analytics context).
+    ///   - conversationId: Provide to append to an existing conversation; omit to start a new one.
+    ///   - files: Optional file attachments (e.g. uploaded documents / images) used for grounding.
+    ///   - autoGenerateName: Whether the server should auto-generate a conversation title (only applies when starting a new conversation). Default true if omitted server-side.
+    ///   - workflowId: Optional workflow to invoke instead of the default app flow.
+    ///   - traceId: Optional external correlation / tracing id for observability.
+    /// - Returns: A fully aggregated `ChatMessageResponse` containing the assistant reply and metadata.
+    /// - Note: For incremental token events prefer `createStreamingChatMessage`.
     public func createChatMessage(
         inputs: [String: String],
         query: String,
@@ -44,15 +59,18 @@ public final class ChatClient: DifyClient, @unchecked Sendable {
         return try decode(data, to: ChatMessageResponse.self)
     }
     
-    /// Creates a new chat message and streams the response.
+    /// Creates a new chat message and streams incremental response events.
     /// - Parameters:
-    ///   - inputs: A dictionary of input variables for the chat.
-    ///   - query: The user's query or message.
-    ///   - user: A unique identifier for the end-user.
-    ///   - conversationId: An optional ID to continue an existing conversation.
-    ///   - files: An optional list of files to include with the message.
-    ///   - autoGenerateName: Auto-generate title, default is true.
-    /// - Returns: An `AsyncThrowingStream` of `StreamingChatMessageResponse` events.
+    ///   - inputs: Prompt / template variables for the chat application.
+    ///   - query: The end-user's message content.
+    ///   - user: Unique identifier for the end-user.
+    ///   - conversationId: Existing conversation id to continue; omit to start a new one.
+    ///   - files: Optional file attachments.
+    ///   - autoGenerateName: Auto-generate a conversation title if this creates a new conversation.
+    ///   - workflowId: Optional workflow id to run inside.
+    ///   - traceId: Optional external trace / correlation id.
+    /// - Returns: An `AsyncThrowingStream<StreamingChatMessageResponse, Error>` yielding token / state / completion events.
+    /// - Important: Iterate the entire stream to receive final usage & message metadata.
     public func createStreamingChatMessage(
         inputs: [String: String],
         query: String,
@@ -91,7 +109,7 @@ public final class ChatClient: DifyClient, @unchecked Sendable {
     
     // MARK: - Message History
     
-    /// Get conversation history messages.
+    /// Get conversation history messages (paged, reverse chronological by default).
     /// - Parameters:
     ///   - conversationId: The conversation ID.
     ///   - user: A unique identifier for the end-user.
@@ -168,6 +186,7 @@ public final class ChatClient: DifyClient, @unchecked Sendable {
     ///   - user: A unique identifier for the end-user.
     ///   - lastId: The ID of the last record on the current page.
     ///   - limit: How many records to return in one request.
+    ///   - variableName: Optionally filter to a single variable by name (exact match).
     /// - Returns: A `ConversationVariablesResponse` containing variables.
     public func getConversationVariables(
         conversationId: String,
@@ -189,7 +208,7 @@ public final class ChatClient: DifyClient, @unchecked Sendable {
     /// - Parameters:
     ///   - conversationId: The conversation ID containing the variable.
     ///   - variableId: The variable ID to update.
-    ///   - value: The new value for the variable (supports string/number/object).
+    ///   - value: The new value for the variable. Supports primitives or JSON object/array via `AnyCodable`.
     ///   - user: A unique identifier for the end-user.
     /// - Returns: The updated `ConversationVariable`.
     public func updateConversationVariable(
@@ -238,10 +257,11 @@ public final class ChatClient: DifyClient, @unchecked Sendable {
     
     /// Convert text to audio using text-to-speech.
     /// - Parameters:
-    ///   - messageId: For text messages generated by Dify, pass the message-id directly.
-    ///   - text: Speech generated content (used if messageId is not provided).
+    ///   - messageId: For an existing assistant message, supply its id to synthesize that content.
+    ///   - text: Raw text to synthesize (used if `messageId` is not provided).
     ///   - user: A unique identifier for the end-user.
-    /// - Returns: Raw audio data.
+    /// - Returns: Raw audio data (binary) suitable for playback or persistence.
+    /// - Important: Provide either `messageId` OR `text`. If both are present server behavior may prioritize `messageId`.
     public func textToAudio(messageId: String? = nil, text: String? = nil, user: String) async throws -> Data {
         let requestBody = TextToAudioRequestBody(messageId: messageId, text: text, user: user)
         return try await sendRequest(method: .POST, endpoint: "/text-to-audio", body: requestBody)
@@ -330,11 +350,12 @@ public final class ChatClient: DifyClient, @unchecked Sendable {
     
     /// Configure annotation reply settings.
     /// - Parameters:
-    ///   - action: Action, can only be "enable" or "disable".
-    ///   - embeddingModelProvider: Specified embedding model provider.
-    ///   - embeddingModel: Specified embedding model.
-    ///   - scoreThreshold: The similarity threshold for matching annotated replies.
-    /// - Returns: An `AnnotationReplyJobResponse` with job information.
+    ///   - action: Action, must be "enable" or "disable".
+    ///   - embeddingModelProvider: Embedding model provider (usually required when enabling).
+    ///   - embeddingModel: Embedding model name (required when enabling depending on server config).
+    ///   - scoreThreshold: Similarity threshold used when matching annotated replies.
+    /// - Returns: An `AnnotationReplyJobResponse` describing the async configuration job.
+    /// - Note: Model fields may be ignored when disabling.
     public func configureAnnotationReply(
         action: String,
         embeddingModelProvider: String? = nil,
