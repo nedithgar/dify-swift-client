@@ -1,20 +1,32 @@
 import Foundation
 
+// This file declares the public data models exposed by the Dify Swift Client.
+// The goal of the inline documentation is to make the semantics of every model
+// and important property clear to SDK consumers while keeping the code surface
+// lightweight. All models are intentionally simple value types (struct / enum)
+// to facilitate decoding from the Dify HTTP/Streaming APIs.
+
 // MARK: - Response Models
 
-/// Response mode for API requests
+/// Response mode for API requests returned by the server or specified in a request.
+///
+/// - blocking: The server will perform the entire operation and return a single JSON payload.
+/// - streaming: The server will stream a sequence of SSE (Server Sent Event) JSON objects.
 public enum ResponseMode: String, Codable, Sendable {
     case blocking
     case streaming
 }
 
-/// File transfer method
+/// File transfer method indicating how an accompanying file is provided.
+///
+/// - remoteUrl: Provide a publicly accessible URL that the server can fetch.
+/// - localFile: Provide a previously uploaded file reference (e.g. via file upload endpoint).
 public enum FileTransferMethod: String, Codable, Sendable {
     case remoteUrl = "remote_url"
     case localFile = "local_file"
 }
 
-/// File type
+/// File type accepted by the API. Used for validation / routing of processing logic.
 public enum FileType: String, Codable, Sendable {
     case document
     case image
@@ -23,11 +35,15 @@ public enum FileType: String, Codable, Sendable {
     case custom
 }
 
-/// API file representation
+/// API file representation used when attaching supplemental user-provided files.
 public struct APIFile: Codable, Sendable {
+    /// The general file category (e.g. `image`).
     public let type: FileType
+    /// How the file is transferred (remote URL vs uploaded file id).
     public let transferMethod: FileTransferMethod
+    /// Publicly reachable URL when `transferMethod == .remoteUrl`.
     public let url: String?
+    /// Identifier returned from an earlier upload when `transferMethod == .localFile`.
     public let uploadFileId: String?
     
     private enum CodingKeys: String, CodingKey {
@@ -45,24 +61,24 @@ public struct APIFile: Codable, Sendable {
     }
 }
 
-/// Base response structure
+/// Base response structure returned by certain simple endpoints carrying only a result status.
 public struct BaseResponse: Codable, Sendable {
     public let result: String?
 }
 
-/// Message feedback response
+/// Message feedback response (e.g. acknowledging a like/dislike submission).
 public struct MessageFeedbackResponse: Codable, Sendable {
     public let result: String
 }
 
-/// Stop completion response
+/// Stop completion response acknowledging a streaming termination request.
 public struct StopCompletionResponse: Codable, Sendable {
     public let result: String
 }
 
 // MARK: - Application Info Models
 
-/// Application basic information response
+/// Application basic information response describing metadata defined in Dify Studio.
 public struct ApplicationInfoResponse: Codable, Sendable {
     public let name: String
     public let description: String
@@ -79,7 +95,7 @@ public struct ApplicationInfoResponse: Codable, Sendable {
     }
 }
 
-/// Application parameters response
+/// Application parameters response describing runtime / UX behaviour configuration.
 public struct ApplicationParametersResponse: Codable, Sendable {
     public let openingStatement: String?
     public let suggestedQuestions: [String]?
@@ -105,24 +121,31 @@ public struct ApplicationParametersResponse: Codable, Sendable {
 }
 
 public struct SuggestedQuestionsConfig: Codable, Sendable {
+    /// True if suggested follow-up questions are enabled.
     public let enabled: Bool
 }
 
 public struct SpeechToTextConfig: Codable, Sendable {
+    /// True if user audio input (STT) is enabled.
     public let enabled: Bool
 }
 
 public struct RetrieverResourceConfig: Codable, Sendable {
+    /// True if retrieval augmented generation (RAG) resources are enabled.
     public let enabled: Bool
 }
 
 public struct AnnotationReplyConfig: Codable, Sendable {
+    /// True if automatic annotation reply drafting is enabled.
     public let enabled: Bool
 }
 
 public struct UserInputFormItem: Codable, Sendable {
+    /// Paragraph long-form input configuration (if present).
     public let paragraph: FormInput?
+    /// Single line text input configuration (if present).
     public let textInput: FormInput?
+    /// Select (drop‑down) configuration (if present).
     public let select: Select?
 
     private enum CodingKeys: String, CodingKey {
@@ -133,9 +156,13 @@ public struct UserInputFormItem: Codable, Sendable {
 }
 
 public struct FormInput: Codable, Sendable {
+    /// Display label presented to the end-user.
     public let label: String
+    /// Template variable name accessible in prompts.
     public let variable: String
+    /// Whether this field must be supplied.
     public let required: Bool
+    /// Default value used when user omits input.
     public let defaultValue: String
 
     private enum CodingKeys: String, CodingKey {
@@ -145,10 +172,15 @@ public struct FormInput: Codable, Sendable {
 }
 
 public struct Select: Codable, Sendable {
+    /// Display label presented to the end-user.
     public let label: String
+    /// Template variable name accessible in prompts.
     public let variable: String
+    /// Whether this field must be supplied.
     public let required: Bool
+    /// Default selected option.
     public let defaultValue: String
+    /// Available options for selection.
     public let options: [String]
 
     private enum CodingKeys: String, CodingKey {
@@ -172,8 +204,11 @@ public struct FileUploadConfig: Codable, Sendable {
 
 /// Generic upload category configuration used for all file categories.
 public struct UploadCategoryConfig: Codable, Sendable {
+    /// Whether this file category is allowed.
     public let enabled: Bool
+    /// Maximum number of files allowed per request.
     public let numberLimits: Int
+    /// Allowed transfer methods (e.g. ["remote_url", "local_file"]).
     public let transferMethods: [String]
 
     private enum CodingKeys: String, CodingKey {
@@ -187,9 +222,13 @@ public struct UploadCategoryConfig: Codable, Sendable {
 public typealias ImageUploadConfig = UploadCategoryConfig
 
 public struct SystemParameters: Codable, Sendable {
+    /// Global file size limit (bytes) for uploads.
     public let fileSizeLimit: Int?
+    /// Size limit for image uploads (bytes).
     public let imageFileSizeLimit: Int?
+    /// Size limit for audio uploads (bytes).
     public let audioFileSizeLimit: Int?
+    /// Size limit for video uploads (bytes).
     public let videoFileSizeLimit: Int?
 
     private enum CodingKeys: String, CodingKey {
@@ -200,7 +239,7 @@ public struct SystemParameters: Codable, Sendable {
     }
 }
 
-/// Application site/webapp settings response
+/// Application site/webapp settings response controlling UI branding & behaviour.
 public struct ApplicationSiteResponse: Codable, Sendable {
     public let title: String?
     public let chatColorTheme: String?
@@ -235,7 +274,7 @@ public struct ApplicationSiteResponse: Codable, Sendable {
     }
 }
 
-/// File upload response
+/// File upload response returned after successfully uploading a file.
 public struct FileUploadResponse: Codable, Sendable {
     public let id: String
     public let name: String
@@ -258,7 +297,7 @@ public struct FileUploadResponse: Codable, Sendable {
 
 // MARK: - Completion Models
 
-/// Completion message response (for blocking mode)
+/// Completion message response (for blocking mode) returning the final answer in one payload.
 public struct CompletionMessageResponse: Codable, Sendable {
     public let event: String
     public let messageId: String
@@ -278,7 +317,9 @@ public struct CompletionMessageResponse: Codable, Sendable {
 }
 
 public struct Metadata: Codable, Sendable {
+    /// Token/price usage information.
     public let usage: Usage?
+    /// Retrieval hits used to ground the answer (if RAG enabled).
     public let retrieverResources: [RetrieverResource]?
 
     private enum CodingKeys: String, CodingKey {
@@ -288,9 +329,13 @@ public struct Metadata: Codable, Sendable {
 }
 
 public struct Usage: Codable, Sendable {
+    /// Number of tokens in the prompt.
     public let promptTokens: Int
+    /// Number of tokens generated in the completion.
     public let completionTokens: Int
+    /// Total tokens (prompt + completion).
     public let totalTokens: Int
+    /// Raw unit price for prompt tokens (string to preserve formatting/currency style).
     public let promptUnitPrice: String?
     public let promptPriceUnit: String?
     public let promptPrice: String?
@@ -318,6 +363,7 @@ public struct Usage: Codable, Sendable {
 }
 
 public struct RetrieverResource: Codable, Sendable {
+    /// Position (rank) of the retrieved segment.
     public let position: Int?
     public let datasetId: String?
     public let datasetName: String?
@@ -341,13 +387,21 @@ public struct RetrieverResource: Codable, Sendable {
 
 // MARK: - Streaming Completion Response Models
 
+/// Streaming completion SSE events emitted in `ResponseMode.streaming`.
 public enum StreamingCompletionResponse: Decodable, Sendable {
+    /// Partial text delta for the assistant answer.
     case message(MessageStreamEvent)
+    /// Finalization event containing usage metadata.
     case messageEnd(MessageEndStreamEvent)
+    /// Text-to-Speech audio chunk (Base64) for the answer.
     case ttsMessage(TTSMessageStreamEvent)
+    /// Indicates TTS stream ended (empty audio string).
     case ttsMessageEnd(TTSMessageEndStreamEvent)
+    /// Replacement of previously emitted content (e.g. when agent rewrites answer).
     case messageReplace(MessageReplaceStreamEvent)
+    /// Error describing an abnormal termination.
     case error(ErrorStreamEvent)
+    /// Keep-alive heartbeat.
     case ping
 
     private enum CodingKeys: String, CodingKey {
@@ -383,6 +437,7 @@ public struct MessageStreamEvent: Codable, Sendable {
     public let event: String
     public let taskId: String
     public let messageId: String
+    /// Text chunk appended to the cumulative answer.
     public let answer: String
     public let createdAt: Int
 
@@ -399,6 +454,7 @@ public struct MessageEndStreamEvent: Codable, Sendable {
     public let event: String
     public let taskId: String
     public let messageId: String
+    /// Final usage / retrieval metadata for the completed answer.
     public let metadata: Metadata
 
     private enum CodingKeys: String, CodingKey {
@@ -413,6 +469,7 @@ public struct TTSMessageStreamEvent: Codable, Sendable {
     public let event: String
     public let taskId: String
     public let messageId: String
+    /// Base64 encoded audio frame.
     public let audio: String // Base64 encoded
     public let createdAt: Int
 
@@ -429,6 +486,7 @@ public struct TTSMessageEndStreamEvent: Codable, Sendable {
     public let event: String
     public let taskId: String
     public let messageId: String
+    /// Always empty; indicates TTS stream completion.
     public let audio: String // Empty string
     public let createdAt: Int
 
@@ -446,6 +504,7 @@ public struct MessageReplaceStreamEvent: Codable, Sendable {
     public let taskId: String
     public let messageId: String
     public let conversationId: String
+    /// Replacement answer text.
     public let answer: String
     public let createdAt: Int
 
@@ -483,6 +542,7 @@ public struct ErrorStreamEvent: Codable, Sendable {
     public let messageId: String
     public let status: Int
     public let code: String
+    /// Human-readable error message.
     public let message: String
 
     private enum CodingKeys: String, CodingKey {
@@ -521,20 +581,35 @@ public struct ChatMessageResponse: Codable, Sendable {
     }
 }
 
+/// Streaming chat SSE events capturing agent reasoning, files, workflow progress and answer content.
 public enum StreamingChatMessageResponse: Decodable, Sendable {
+    /// Partial answer text.
     case message(MessageStreamEvent)
+    /// Final answer & usage metadata.
     case messageEnd(MessageEndStreamEvent)
+    /// Agent produced an intermediate user-visible message.
     case agentMessage(AgentMessageStreamEvent)
+    /// Agent internal reasoning / tool invocation state.
     case agentThought(AgentThoughtStreamEvent)
+    /// Text-to-Speech audio chunk for chat answer.
     case ttsMessage(TTSMessageStreamEvent)
+    /// TTS finished marker.
     case ttsMessageEnd(TTSMessageEndStreamEvent)
+    /// A file associated with this message became available.
     case messageFile(MessageFileStreamEvent)
+    /// Answer replacement (e.g. editing / re-generation).
     case messageReplace(MessageReplaceStreamEvent)
+    /// Workflow started (when chat triggers a workflow).
     case workflowStarted(WorkflowStartedEvent)
+    /// A workflow node started executing.
     case nodeStarted(NodeStartedEvent)
+    /// A workflow node finished executing.
     case nodeFinished(NodeFinishedEvent)
+    /// Workflow run finished.
     case workflowFinished(WorkflowFinishedEvent)
+    /// Error event.
     case error(ErrorStreamEvent)
+    /// Keep-alive heartbeat.
     case ping
 
     private enum CodingKeys: String, CodingKey {
@@ -604,6 +679,7 @@ public struct AgentThoughtStreamEvent: Codable, Sendable {
     public let taskId: String?
     public let messageId: String?
     public let position: Int?
+    /// Agent internal reasoning text (not always exposed to end-user UI by default).
     public let thought: String?
     public let observation: String?
     public let tool: String?
@@ -645,6 +721,7 @@ public struct Conversation: Codable, Sendable {
     public let name: String
     public let inputs: [String: String]?
     public let status: String
+    /// Short introduction / system prompt context.
     public let introduction: String?
     public let createdAt: Int
     
@@ -694,15 +771,25 @@ public struct WorkflowData: Codable, Sendable {
     }
 }
 
+/// Streaming workflow SSE events representing progression of a workflow run.
 public enum StreamingWorkflowResponse: Decodable, Sendable {
+    /// Workflow execution has begun.
     case workflowStarted(WorkflowStartedEvent)
+    /// A node (step) started executing.
     case nodeStarted(NodeStartedEvent)
+    /// A node finished executing.
     case nodeFinished(NodeFinishedEvent)
+    /// Workflow has finished (success or error contained in data).
     case workflowFinished(WorkflowFinishedEvent)
+    /// Incremental text output generated by a running node.
     case textChunk(TextChunkEvent)
+    /// TTS audio chunk produced during workflow.
     case ttsMessage(TTSMessageStreamEvent)
+    /// TTS finished marker.
     case ttsMessageEnd(TTSMessageEndStreamEvent)
+    /// Error event.
     case error(ErrorStreamEvent)
+    /// Keep-alive heartbeat.
     case ping
 
     private enum CodingKeys: String, CodingKey {
@@ -1012,6 +1099,10 @@ public struct TextToAudioRequest: Codable, Sendable {
 
 // MARK: - AnyCodable Helper
 
+/// Type-erased Codable wrapper allowing heterogeneous JSON structures without
+/// needing to predeclare a strongly typed model. Use ONLY when structure is
+/// unknowable ahead of time (e.g. workflow node inputs/outputs) as it foregoes
+/// most compile-time safety.
 public struct AnyCodable: Codable, @unchecked Sendable {
     public let value: Any
 
@@ -1061,6 +1152,7 @@ public struct AnyCodable: Codable, @unchecked Sendable {
 // MARK: - Additional Workflow Models (from template_workflow.en.mdx)
 
 /// Workflow run detail response
+/// Detailed workflow run response with full inputs / outputs.
 public struct WorkflowRunDetailResponse: Codable, Sendable {
     public let id: String
     public let workflowId: String
@@ -1090,6 +1182,7 @@ public struct WorkflowRunDetailResponse: Codable, Sendable {
 }
 
 /// Workflow logs response
+/// Paginated workflow logs response.
 public struct WorkflowLogsResponse: Codable, Sendable {
     public let page: Int
     public let limit: Int
@@ -1107,6 +1200,7 @@ public struct WorkflowLogsResponse: Codable, Sendable {
 }
 
 /// Workflow log entry
+/// Individual workflow log entry summarizing a run.
 public struct WorkflowLogEntry: Codable, Sendable {
     public let id: String
     public let workflowRun: WorkflowRunInfo
@@ -1128,6 +1222,7 @@ public struct WorkflowLogEntry: Codable, Sendable {
 }
 
 /// Workflow run info
+/// Lightweight workflow run info used in log listings.
 public struct WorkflowRunInfo: Codable, Sendable {
     public let id: String
     public let version: String
@@ -1153,6 +1248,7 @@ public struct WorkflowRunInfo: Codable, Sendable {
 }
 
 /// End user info
+/// Identifies the end-user that triggered a workflow/chat (for audit / analytics).
 public struct EndUserInfo: Codable, Sendable {
     public let id: String
     public let type: String
@@ -1168,6 +1264,7 @@ public struct EndUserInfo: Codable, Sendable {
 }
 
 /// Application WebApp settings response
+/// WebApp specific branding & legal settings (legacy variant of `ApplicationSiteResponse`).
 public struct ApplicationWebAppSettingsResponse: Codable, Sendable {
     public let title: String
     public let iconType: String
@@ -1199,6 +1296,7 @@ public struct ApplicationWebAppSettingsResponse: Codable, Sendable {
 // MARK: - Chat API Models (from template_chat.en.mdx)
 
 /// Message history response
+/// Paginated message history for a conversation.
 public struct MessageHistoryResponse: Codable, Sendable {
     public let data: [ChatMessage]
     public let hasMore: Bool
@@ -1212,6 +1310,7 @@ public struct MessageHistoryResponse: Codable, Sendable {
 }
 
 /// Chat message model with full details
+/// Full chat message including agent reasoning & file attachments.
 public struct ChatMessage: Codable, Sendable {
     public let id: String
     public let conversationId: String
@@ -1239,6 +1338,7 @@ public struct ChatMessage: Codable, Sendable {
 }
 
 /// Message file details
+/// Metadata describing a file attached to / produced by a message.
 public struct MessageFile: Codable, Sendable {
     public let id: String
     public let type: String
@@ -1254,6 +1354,7 @@ public struct MessageFile: Codable, Sendable {
 }
 
 /// Agent thought details
+/// Agent internal reasoning element linking tool execution results.
 public struct AgentThought: Codable, Sendable {
     public let id: String
     public let messageId: String
@@ -1279,17 +1380,20 @@ public struct AgentThought: Codable, Sendable {
 }
 
 /// Message feedback details
+/// User feedback (like / dislike) applied to a message.
 public struct MessageFeedback: Codable, Sendable {
     public let rating: String
 }
 
 /// Suggested questions response
+/// Suggested follow-up questions returned after an answer.
 public struct SuggestedQuestionsResponse: Codable, Sendable {
     public let result: String
     public let data: [String]
 }
 
 /// Conversation variables response
+/// Paginated response for conversation variables.
 public struct ConversationVariablesResponse: Codable, Sendable {
     public let limit: Int
     public let hasMore: Bool
@@ -1303,6 +1407,7 @@ public struct ConversationVariablesResponse: Codable, Sendable {
 }
 
 /// Conversation variable details
+/// Dynamic variable stored on a conversation scope.
 public struct ConversationVariable: Codable, Sendable {
     public let id: String
     public let name: String
@@ -1324,11 +1429,13 @@ public struct ConversationVariable: Codable, Sendable {
 }
 
 /// Audio to text response
+/// Response for audio transcription containing extracted text.
 public struct AudioToTextResponse: Codable, Sendable {
     public let text: String
 }
 
 /// Chat Application feedbacks response
+/// Paginated list of feedback items across chat application messages.
 public struct ChatApplicationFeedbacksResponse: Codable, Sendable {
     public let data: [ApplicationFeedback]
     
@@ -1338,6 +1445,7 @@ public struct ChatApplicationFeedbacksResponse: Codable, Sendable {
 }
 
 /// Application feedback details
+/// Individual feedback record applied to a chat message.
 public struct ApplicationFeedback: Codable, Sendable {
     public let id: String
     public let appId: String
@@ -1367,6 +1475,7 @@ public struct ApplicationFeedback: Codable, Sendable {
 }
 
 /// Annotation response
+/// Annotation QA pair with knowledge base hit statistics.
 public struct AnnotationResponse: Codable, Sendable {
     public let id: String
     public let question: String
@@ -1384,6 +1493,7 @@ public struct AnnotationResponse: Codable, Sendable {
 }
 
 /// Annotations list response
+/// Paginated list of annotation responses.
 public struct AnnotationsListResponse: Codable, Sendable {
     public let data: [AnnotationResponse]
     public let hasMore: Bool
@@ -1401,6 +1511,7 @@ public struct AnnotationsListResponse: Codable, Sendable {
 }
 
 /// Annotation reply settings job response
+/// Response when initiating an annotation reply generation job.
 public struct AnnotationReplyJobResponse: Codable, Sendable {
     public let jobId: String
     public let jobStatus: String
@@ -1412,6 +1523,7 @@ public struct AnnotationReplyJobResponse: Codable, Sendable {
 }
 
 /// Annotation reply job status response
+/// Status response for an annotation reply background job.
 public struct AnnotationReplyJobStatusResponse: Codable, Sendable {
     public let jobId: String
     public let jobStatus: String
@@ -1425,6 +1537,7 @@ public struct AnnotationReplyJobStatusResponse: Codable, Sendable {
 }
 
 /// Application meta information response
+/// Application meta information including tool icon registry.
 public struct ApplicationMetaResponse: Codable, Sendable {
     public let toolIcons: [String: ToolIcon]
     
@@ -1434,6 +1547,7 @@ public struct ApplicationMetaResponse: Codable, Sendable {
 }
 
 /// Tool icon representation
+/// Tool icon which might be a direct URL string or an emoji descriptor.
 public enum ToolIcon: Codable, Sendable {
     case url(String)
     case emoji(ToolIconEmoji)
@@ -1459,6 +1573,7 @@ public enum ToolIcon: Codable, Sendable {
 }
 
 /// Tool icon emoji details
+/// Emoji-based tool icon specifying background and glyph.
 public struct ToolIconEmoji: Codable, Sendable {
     public let background: String
     public let content: String
