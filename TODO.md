@@ -4,8 +4,7 @@
 
 ### Documentation & Examples
 - [x] Create comprehensive README.md with quick start guide
-- [ ] Add inline documentation for all public APIs
-- [ ] Add troubleshooting guide for common issues
+- [x] Add inline documentation for all public APIs
 
 ### Testing Infrastructure
 - [x] Rebuilt mock-based testing framework (MockURLProtocol, MockDataProvider, TestUtilities, DifyTestCase, IsolatedMockSession + factory helpers eliminating shared state)
