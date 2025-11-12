@@ -1122,6 +1122,12 @@ public struct KBRetrievalModel: Codable, Sendable {
         public let rerankingProviderName: String?
         public let rerankingModelName: String?
 
+        public init(rerankingProviderName: String? = nil,
+                    rerankingModelName: String? = nil) {
+            self.rerankingProviderName = rerankingProviderName
+            self.rerankingModelName = rerankingModelName
+        }
+
         private enum CodingKeys: String, CodingKey {
             case rerankingProviderName = "reranking_provider_name"
             case rerankingModelName = "reranking_model_name"
@@ -1134,6 +1140,14 @@ public struct KBRetrievalModel: Codable, Sendable {
             public let comparisonOperator: String?
             public let value: AnyCodable?
 
+            public init(name: String? = nil,
+                        comparisonOperator: String? = nil,
+                        value: AnyCodable? = nil) {
+                self.name = name
+                self.comparisonOperator = comparisonOperator
+                self.value = value
+            }
+
             private enum CodingKeys: String, CodingKey {
                 case name
                 case comparisonOperator = "comparison_operator"
@@ -1143,6 +1157,12 @@ public struct KBRetrievalModel: Codable, Sendable {
 
         public let logicalOperator: String?
         public let conditions: [Condition]?
+
+        public init(logicalOperator: String? = nil,
+                    conditions: [Condition]? = nil) {
+            self.logicalOperator = logicalOperator
+            self.conditions = conditions
+        }
 
         private enum CodingKeys: String, CodingKey {
             case logicalOperator = "logical_operator"
@@ -1158,6 +1178,24 @@ public struct KBRetrievalModel: Codable, Sendable {
     public let scoreThreshold: Double?
     public let weights: Double?
     public let metadataFilteringConditions: MetadataFilteringConditions?
+
+    public init(searchMethod: String? = nil,
+                rerankingEnable: Bool? = nil,
+                rerankingMode: RerankingMode? = nil,
+                topK: Int? = nil,
+                scoreThresholdEnabled: Bool? = nil,
+                scoreThreshold: Double? = nil,
+                weights: Double? = nil,
+                metadataFilteringConditions: MetadataFilteringConditions? = nil) {
+        self.searchMethod = searchMethod
+        self.rerankingEnable = rerankingEnable
+        self.rerankingMode = rerankingMode
+        self.topK = topK
+        self.scoreThresholdEnabled = scoreThresholdEnabled
+        self.scoreThreshold = scoreThreshold
+        self.weights = weights
+        self.metadataFilteringConditions = metadataFilteringConditions
+    }
 
     private enum CodingKeys: String, CodingKey {
         case searchMethod = "search_method"
@@ -1261,6 +1299,12 @@ public struct KBUpdateDatasetRequest: Codable, Sendable {
 public struct KBProcessRule: Codable, Sendable {
     public let mode: String?
     public let rules: [String: AnyCodable]?
+
+    public init(mode: String? = nil,
+                rules: [String: AnyCodable]? = nil) {
+        self.mode = mode
+        self.rules = rules
+    }
 }
 
 // MARK: Documents (OpenAPI)
@@ -1274,6 +1318,24 @@ public struct KBCreateDocumentByFileData: Codable, Sendable {
     public let retrievalModel: KBRetrievalModel?
     public let embeddingModel: String?
     public let embeddingModelProvider: String?
+
+    public init(originalDocumentId: String? = nil,
+                indexingTechnique: String? = nil,
+                docForm: String? = nil,
+                docLanguage: String? = nil,
+                processRule: KBProcessRule? = nil,
+                retrievalModel: KBRetrievalModel? = nil,
+                embeddingModel: String? = nil,
+                embeddingModelProvider: String? = nil) {
+        self.originalDocumentId = originalDocumentId
+        self.indexingTechnique = indexingTechnique
+        self.docForm = docForm
+        self.docLanguage = docLanguage
+        self.processRule = processRule
+        self.retrievalModel = retrievalModel
+        self.embeddingModel = embeddingModel
+        self.embeddingModelProvider = embeddingModelProvider
+    }
 
     private enum CodingKeys: String, CodingKey {
         case originalDocumentId = "original_document_id"
@@ -1298,6 +1360,26 @@ public struct KBCreateDocumentByTextRequest: Codable, Sendable {
     public let embeddingModel: String?
     public let embeddingModelProvider: String?
 
+    public init(name: String,
+                text: String,
+                indexingTechnique: String? = nil,
+                docForm: String? = nil,
+                docLanguage: String? = nil,
+                processRule: KBProcessRule? = nil,
+                retrievalModel: KBRetrievalModel? = nil,
+                embeddingModel: String? = nil,
+                embeddingModelProvider: String? = nil) {
+        self.name = name
+        self.text = text
+        self.indexingTechnique = indexingTechnique
+        self.docForm = docForm
+        self.docLanguage = docLanguage
+        self.processRule = processRule
+        self.retrievalModel = retrievalModel
+        self.embeddingModel = embeddingModel
+        self.embeddingModelProvider = embeddingModelProvider
+    }
+
     private enum CodingKeys: String, CodingKey {
         case name, text
         case indexingTechnique = "indexing_technique"
@@ -1315,6 +1397,14 @@ public struct KBUpdateDocumentByTextRequest: Codable, Sendable {
     public let text: String?
     public let processRule: KBProcessRule?
 
+    public init(name: String? = nil,
+                text: String? = nil,
+                processRule: KBProcessRule? = nil) {
+        self.name = name
+        self.text = text
+        self.processRule = processRule
+    }
+
     private enum CodingKeys: String, CodingKey {
         case name, text
         case processRule = "process_rule"
@@ -1324,6 +1414,12 @@ public struct KBUpdateDocumentByTextRequest: Codable, Sendable {
 public struct KBUpdateDocumentByFileData: Codable, Sendable {
     public let name: String?
     public let processRule: KBProcessRule?
+
+    public init(name: String? = nil,
+                processRule: KBProcessRule? = nil) {
+        self.name = name
+        self.processRule = processRule
+    }
 
     private enum CodingKeys: String, CodingKey {
         case name
@@ -1536,8 +1632,20 @@ public struct KBCreateSegmentsRequest: Codable, Sendable {
         public let content: String
         public let answer: String?
         public let keywords: [String]?
+
+        public init(content: String,
+                    answer: String? = nil,
+                    keywords: [String]? = nil) {
+            self.content = content
+            self.answer = answer
+            self.keywords = keywords
+        }
     }
     public let segments: [SegmentItem]
+
+    public init(segments: [SegmentItem]) {
+        self.segments = segments
+    }
 }
 
 public struct KBUpdateSegmentRequest: Codable, Sendable {
@@ -1548,12 +1656,28 @@ public struct KBUpdateSegmentRequest: Codable, Sendable {
         public let enabled: Bool?
         public let regenerateChildChunks: Bool?
 
+        public init(content: String,
+                    answer: String? = nil,
+                    keywords: [String]? = nil,
+                    enabled: Bool? = nil,
+                    regenerateChildChunks: Bool? = nil) {
+            self.content = content
+            self.answer = answer
+            self.keywords = keywords
+            self.enabled = enabled
+            self.regenerateChildChunks = regenerateChildChunks
+        }
+
         private enum CodingKeys: String, CodingKey {
             case content, answer, keywords, enabled
             case regenerateChildChunks = "regenerate_child_chunks"
         }
     }
     public let segment: SegmentFields
+
+    public init(segment: SegmentFields) {
+        self.segment = segment
+    }
 }
 
 public struct KBChildChunk: Codable, Sendable {
@@ -1610,10 +1734,18 @@ public struct KBChildChunkListResponse: Codable, Sendable {
 
 public struct KBCreateChildChunkRequest: Codable, Sendable {
     public let content: String
+
+    public init(content: String) {
+        self.content = content
+    }
 }
 
 public struct KBUpdateChildChunkRequest: Codable, Sendable {
     public let content: String
+
+    public init(content: String) {
+        self.content = content
+    }
 }
 
 // MARK: Retrieve
@@ -1621,6 +1753,12 @@ public struct KBUpdateChildChunkRequest: Codable, Sendable {
 public struct KBRetrieveRequest: Codable, Sendable {
     public let query: String
     public let retrievalModel: KBRetrievalModel?
+
+    public init(query: String,
+                retrievalModel: KBRetrievalModel? = nil) {
+        self.query = query
+        self.retrievalModel = retrievalModel
+    }
 
     private enum CodingKeys: String, CodingKey {
         case query
