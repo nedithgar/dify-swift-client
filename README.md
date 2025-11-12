@@ -328,6 +328,102 @@ for document in documents.data {
 }
 ```
 
+#### Knowledge Base: Advanced Endpoints
+
+```swift
+// Filters when listing datasets
+let datasets = try await knowledgeBaseClient.listDatasets(
+  keyword: "docs",
+  tagIds: ["t1","t2"],
+  includeAll: false,
+  page: 1,
+  limit: 20
+)
+
+// Get and update dataset detail
+let detail = try await knowledgeBaseClient.getDatasetDetail(datasetId: dataset.id)
+let updated = try await knowledgeBaseClient.updateDataset(
+  datasetId: detail.id,
+  KBUpdateDatasetRequest(name: "Renamed KB", indexingTechnique: "economy")
+)
+
+// Create document from text
+let createdFromText = try await knowledgeBaseClient.createDocumentFromText(
+  datasetId: dataset.id,
+  KBCreateDocumentByTextRequest(
+    name: "intro.txt",
+    text: "Welcome to our docs!",
+    indexingTechnique: "high_quality",
+    docForm: "text_model",
+    docLanguage: "English",
+    processRule: KBProcessRule(mode: "automatic", rules: nil)
+  )
+)
+
+// Create document from file (multipart + JSON data field)
+let createdFromFile = try await knowledgeBaseClient.createDocumentFromFile(
+  datasetId: dataset.id,
+  fileName: "guide.pdf",
+  fileData: Data(/* file bytes */),
+  data: KBCreateDocumentByFileData(
+    originalDocumentId: nil,
+    indexingTechnique: "high_quality",
+    docForm: "text_model",
+    docLanguage: "English",
+    processRule: KBProcessRule(mode: "automatic", rules: nil)
+  )
+)
+
+// Document detail and indexing status
+let docDetail = try await knowledgeBaseClient.getDocumentDetail(
+  datasetId: dataset.id,
+  documentId: createdFromText.id
+)
+let statuses = try await knowledgeBaseClient.getDocumentIndexingStatus(
+  datasetId: dataset.id,
+  batch: "batch-001"
+)
+
+// Segments (chunks)
+let segList = try await knowledgeBaseClient.listSegments(datasetId: dataset.id, documentId: createdFromText.id)
+let segPage = try await knowledgeBaseClient.createSegments(
+  datasetId: dataset.id,
+  documentId: createdFromText.id,
+  KBCreateSegmentsRequest(segments: [.init(content: "FAQ", answer: nil, keywords: ["faq"])])
+)
+let segId = segPage.data.first!.id
+let segDetail = try await knowledgeBaseClient.getSegmentDetail(datasetId: dataset.id, documentId: createdFromText.id, segmentId: segId)
+let segUpdated = try await knowledgeBaseClient.updateSegment(
+  datasetId: dataset.id,
+  documentId: createdFromText.id,
+  segmentId: segId,
+  KBUpdateSegmentRequest(segment: .init(content: "FAQ updated", answer: nil, keywords: ["faq"], enabled: true, regenerateChildChunks: false))
+)
+
+// Child chunks (hierarchical mode)
+let childList = try await knowledgeBaseClient.listChildChunks(datasetId: dataset.id, documentId: createdFromText.id, segmentId: segId)
+let child = try await knowledgeBaseClient.createChildChunk(datasetId: dataset.id, documentId: createdFromText.id, segmentId: segId, KBCreateChildChunkRequest(content: "Sub-section"))
+let childUpdated = try await knowledgeBaseClient.updateChildChunk(datasetId: dataset.id, documentId: createdFromText.id, segmentId: segId, childChunkId: child.data.id, KBUpdateChildChunkRequest(content: "Sub-section v2"))
+try await knowledgeBaseClient.deleteChildChunk(datasetId: dataset.id, documentId: createdFromText.id, segmentId: segId, childChunkId: child.data.id)
+
+// Retrieval
+let retrieve = try await knowledgeBaseClient.retrieve(
+  datasetId: dataset.id,
+  KBRetrieveRequest(query: "What is onboarding?", retrievalModel: nil)
+)
+
+// Embedding models (grouped by provider)
+let providers = try await knowledgeBaseClient.getAvailableEmbeddingModels()
+
+// Tags
+let tag = try await knowledgeBaseClient.createKnowledgeTag(name: "docs")
+let tags = try await knowledgeBaseClient.getKnowledgeTags()
+_ = try await knowledgeBaseClient.updateKnowledgeTag(tagId: tag.id, name: "guides")
+_ = try await knowledgeBaseClient.bindTagsToDataset(datasetId: dataset.id, tagIds: [tag.id])
+_ = try await knowledgeBaseClient.unbindTagFromDataset(datasetId: dataset.id, tagId: tag.id)
+let bound = try await knowledgeBaseClient.queryDatasetTags(datasetId: dataset.id)
+```
+
 ### Conversation Management
 
 ```swift

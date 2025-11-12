@@ -174,13 +174,15 @@ public final class KnowledgeBaseClient: DifyClient, @unchecked Sendable {
         }
         multipart.addFileField(named: "file", fileName: fileName, data: fileData, mimeType: "application/octet-stream")
         let data = try await sendMultipartRequest(method: .POST, endpoint: "/datasets/\(datasetId)/document/create-by-file", multipart: multipart)
-        return try decode(data, to: DocumentResponse.self)
+        let wrapper = try decode(data, to: KBDocumentCreationResponse.self)
+        return wrapper.document
     }
 
     /// Create a document from raw text.
     public func createDocumentFromText(datasetId: String, _ request: KBCreateDocumentByTextRequest) async throws -> DocumentResponse {
         let data = try await sendRequest(method: .POST, endpoint: "/datasets/\(datasetId)/document/create-by-text", body: request)
-        return try decode(data, to: DocumentResponse.self)
+        let wrapper = try decode(data, to: KBDocumentCreationResponse.self)
+        return wrapper.document
     }
 
     /// Get document detail.
@@ -193,7 +195,8 @@ public final class KnowledgeBaseClient: DifyClient, @unchecked Sendable {
     /// Update a document by text payload.
     public func updateDocumentByText(datasetId: String, documentId: String, _ request: KBUpdateDocumentByTextRequest) async throws -> DocumentResponse {
         let data = try await sendRequest(method: .POST, endpoint: "/datasets/\(datasetId)/documents/\(documentId)/update-by-text", body: request)
-        return try decode(data, to: DocumentResponse.self)
+        let wrapper = try decode(data, to: KBDocumentCreationResponse.self)
+        return wrapper.document
     }
 
     /// Update a document by re-uploading a file.
@@ -204,7 +207,8 @@ public final class KnowledgeBaseClient: DifyClient, @unchecked Sendable {
         }
         multipart.addFileField(named: "file", fileName: fileName, data: fileData, mimeType: "application/octet-stream")
         let data = try await sendMultipartRequest(method: .POST, endpoint: "/datasets/\(datasetId)/documents/\(documentId)/update-by-file", multipart: multipart)
-        return try decode(data, to: DocumentResponse.self)
+        let wrapper = try decode(data, to: KBDocumentCreationResponse.self)
+        return wrapper.document
     }
     
     /// Deletes a single document from a dataset.

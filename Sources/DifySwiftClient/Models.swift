@@ -1387,6 +1387,12 @@ public struct KBDocumentDetail: Codable, Sendable {
     }
 }
 
+/// Wrapper for creation/update responses that include batch id
+public struct KBDocumentCreationResponse: Codable, Sendable {
+    public let document: DocumentResponse
+    public let batch: String
+}
+
 public struct KBDocumentProcessRule: Codable, Sendable {
     public let id: String?
     public let datasetId: String?

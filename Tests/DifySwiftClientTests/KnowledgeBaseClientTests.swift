@@ -390,4 +390,229 @@ final class KnowledgeBaseClientTests: DifyTestCase, @unchecked Sendable {
         #expect(response.hasMore == false)
         #expect(response.data.isEmpty)
     }
+
+    // MARK: - Dataset Detail & Update
+
+    @Test("Get and Update Dataset Detail")
+    func testDatasetDetailAndUpdate() async throws {
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
+
+        let datasetId = "b5829712-b2fb-4e47-bc0b-5f6f29c08162"
+
+        mockSession.register(method: "GET", urlPattern: "/datasets/\(datasetId)", response: MockResponse.json(MockDataProvider.datasetDetail))
+        mockSession.register(method: "PATCH", urlPattern: "/datasets/\(datasetId)", response: MockResponse.json(MockDataProvider.datasetDetail))
+
+        let detail = try await client.getDatasetDetail(datasetId: datasetId)
+        #expect(detail.name == "Product Documentation")
+        #expect(detail.retrievalModelDict?.topK == 5)
+        #expect(detail.docForm == "text_model")
+
+        let req = KBUpdateDatasetRequest(name: "New Name", indexingTechnique: "economy")
+        let updated = try await client.updateDataset(datasetId: datasetId, req)
+        #expect(updated.name == "Product Documentation")
+    }
+
+    // MARK: - Create/Update Documents via OpenAPI paths
+
+    @Test("Create Document From Text & Get Detail")
+    func testCreateDocumentFromTextAndDetail() async throws {
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
+        let datasetId = "ds-1"
+        let documentId = "c8b7e36e-0dca-443e-b5f5-2e865e6cbeb5"
+
+        mockSession.register(method: "POST", urlPattern: "/datasets/\(datasetId)/document/create-by-text", response: MockResponse.json(MockDataProvider.documentCreationResponse))
+        mockSession.register(method: "GET", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)", response: MockResponse.json(MockDataProvider.documentDetail))
+
+        let createReq = KBCreateDocumentByTextRequest(name: "test_document.txt", text: "Hello world", indexingTechnique: "economy", docForm: "text_model", docLanguage: "English", processRule: KBProcessRule(mode: "automatic", rules: nil), retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil)
+        let created = try await client.createDocumentFromText(datasetId: datasetId, createReq)
+        #expect(created.id == "new-doc-123")
+        #expect(created.indexingStatus == "indexing")
+
+        let detail = try await client.getDocumentDetail(datasetId: datasetId, documentId: documentId)
+        #expect(detail.indexingStatus == "completed")
+        #expect(detail.segmentCount == 10)
+    }
+
+    @Test("Create/Update Document From File & Indexing Status")
+    func testCreateUpdateDocumentFromFileAndIndexingStatus() async throws {
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
+        let datasetId = "ds-1"
+        let documentId = "new-doc-123"
+
+        mockSession.register(method: "POST", urlPattern: "/datasets/\(datasetId)/document/create-by-file", response: MockResponse.json(MockDataProvider.documentCreationResponse))
+        mockSession.register(method: "POST", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)/update-by-file", response: MockResponse.json(MockDataProvider.documentCreationResponse))
+        mockSession.register(method: "GET", urlPattern: "/datasets/\(datasetId)/documents/batch-001/indexing-status", response: MockResponse.json(MockDataProvider.indexingStatus))
+
+        let fileData = Data([0x00, 0x01])
+        let reqData = KBCreateDocumentByFileData(originalDocumentId: nil, indexingTechnique: "high_quality", docForm: "text_model", docLanguage: "English", processRule: KBProcessRule(mode: "automatic", rules: nil), retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil)
+        let created = try await client.createDocumentFromFile(datasetId: datasetId, fileName: "a.txt", fileData: fileData, data: reqData)
+        #expect(created.name == "test_document.txt")
+
+        let updData = KBUpdateDocumentByFileData(name: "a2.txt", processRule: KBProcessRule(mode: "automatic", rules: nil))
+        let updated = try await client.updateDocumentByFile(datasetId: datasetId, documentId: documentId, fileName: "a2.txt", fileData: fileData, data: updData)
+        #expect(updated.indexingStatus == "indexing")
+
+        let statuses = try await client.getDocumentIndexingStatus(datasetId: datasetId, batch: "batch-001")
+        #expect(statuses.count == 1)
+        #expect(statuses[0].completedSegments == 5)
+    }
+
+    @Test("Update Document By Text & Batch Status Action")
+    func testUpdateDocumentByTextAndBatchStatus() async throws {
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
+        let datasetId = "ds-2"
+        let documentId = "doc-2"
+
+        mockSession.register(method: "POST", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)/update-by-text", response: MockResponse.json(MockDataProvider.documentCreationResponse))
+        mockSession.register(method: "PATCH", urlPattern: "/datasets/\(datasetId)/documents/status/enable", response: MockResponse.json(MockDataProvider.successResponse()))
+
+        let req = KBUpdateDocumentByTextRequest(name: "New Name", text: "New content", processRule: KBProcessRule(mode: "automatic", rules: nil))
+        let updated = try await client.updateDocumentByText(datasetId: datasetId, documentId: documentId, req)
+        #expect(updated.id == "new-doc-123")
+
+        let statusResp = try await client.batchUpdateDocumentStatus(datasetId: datasetId, action: .enable, documentIds: [documentId])
+        #expect(statusResp.result == "success")
+    }
+
+    // MARK: - Segments and Child Chunks
+
+    @Test("Segments CRUD")
+    func testSegmentsCRUD() async throws {
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
+        let datasetId = "ds-1"
+        let documentId = "doc-1"
+
+        mockSession.register(method: "GET", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)/segments", response: MockResponse.json(MockDataProvider.segmentList))
+        mockSession.register(method: "POST", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)/segments", response: MockResponse.json(MockDataProvider.segmentCreatedPage))
+
+        let list = try await client.listSegments(datasetId: datasetId, documentId: documentId)
+        #expect(list.data.count == 1)
+
+        let created = try await client.createSegments(datasetId: datasetId, documentId: documentId, KBCreateSegmentsRequest(segments: [.init(content: "Second chunk", answer: nil, keywords: ["body"]) ]))
+        #expect(created.total == 2)
+    }
+
+    @Test("Segments List Only")
+    func testSegmentsListOnly() async throws {
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
+        let datasetId = "ds-1"
+        let documentId = "doc-1"
+        mockSession.register(method: "GET", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)/segments", response: MockResponse.json(MockDataProvider.segmentList))
+        let list = try await client.listSegments(datasetId: datasetId, documentId: documentId)
+        #expect(list.data.count == 1)
+    }
+
+    @Test("Segments Create Page")
+    func testSegmentsCreatePage() async throws {
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
+        let datasetId = "ds-1"
+        let documentId = "doc-1"
+        mockSession.register(method: "POST", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)/segments", response: MockResponse.json(MockDataProvider.segmentCreatedPage))
+        let page = try await client.createSegments(datasetId: datasetId, documentId: documentId, KBCreateSegmentsRequest(segments: [.init(content: "Second chunk", answer: nil, keywords: ["body"]) ]))
+        #expect(page.total == 2)
+    }
+
+    @Test("Segment Detail & Update & Delete")
+    func testSegmentDetailUpdateDelete() async throws {
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
+        let datasetId = "ds-1"
+        let documentId = "doc-1"
+        let segmentId = "seg-1"
+
+        mockSession.register(method: "GET", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)", response: MockResponse.json(MockDataProvider.segmentDetail))
+        mockSession.register(method: "POST", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)", response: MockResponse.json(MockDataProvider.segmentDetail))
+        mockSession.register(method: "DELETE", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)", response: MockResponse.json(MockDataProvider.successResponse()))
+
+        let detail = try await client.getSegmentDetail(datasetId: datasetId, documentId: documentId, segmentId: segmentId)
+        #expect(detail.data.id == segmentId)
+
+        let upd = try await client.updateSegment(datasetId: datasetId, documentId: documentId, segmentId: segmentId, KBUpdateSegmentRequest(segment: .init(content: "First chunk - updated", answer: nil, keywords: ["intro"], enabled: true, regenerateChildChunks: false)))
+        #expect(upd.data.id == segmentId)
+
+        try await client.deleteSegment(datasetId: datasetId, documentId: documentId, segmentId: segmentId)
+    }
+
+    @Test("Child Chunks CRUD")
+    func testChildChunksCRUD() async throws {
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
+        let datasetId = "ds-1"
+        let documentId = "doc-1"
+        let segmentId = "seg-1"
+        let childChunkId = "child-2"
+
+        mockSession.register(method: "GET", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)/child_chunks", response: MockResponse.json(MockDataProvider.childChunkList))
+        mockSession.register(method: "POST", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)/child_chunks", response: MockResponse.json(MockDataProvider.childChunkResponse))
+        mockSession.register(method: "PATCH", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)/child_chunks/\(childChunkId)", response: MockResponse.json(MockDataProvider.childChunkResponse))
+        mockSession.register(method: "DELETE", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)/child_chunks/\(childChunkId)", response: MockResponse.json(MockDataProvider.successResponse()))
+
+        let list = try await client.listChildChunks(datasetId: datasetId, documentId: documentId, segmentId: segmentId, keyword: "Child")
+        #expect(list.total == 1)
+
+        let created = try await client.createChildChunk(datasetId: datasetId, documentId: documentId, segmentId: segmentId, KBCreateChildChunkRequest(content: "Child B"))
+        #expect(created.data.id == childChunkId)
+
+        let updated = try await client.updateChildChunk(datasetId: datasetId, documentId: documentId, segmentId: segmentId, childChunkId: childChunkId, KBUpdateChildChunkRequest(content: "Child B+"))
+        #expect(updated.data.content == "Child B")
+
+        try await client.deleteChildChunk(datasetId: datasetId, documentId: documentId, segmentId: segmentId, childChunkId: childChunkId)
+    }
+
+    // MARK: - Retrieve & Models & Tags
+
+    @Test("Retrieve & Embedding Models")
+    func testRetrieveAndModels() async throws {
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
+        let datasetId = "ds-1"
+
+        mockSession.register(method: "POST", urlPattern: "/datasets/\(datasetId)/retrieve", response: MockResponse.json(MockDataProvider.retrieveResponse))
+        mockSession.register(method: "GET", urlPattern: "/workspaces/current/models/model-types/text-embedding", response: MockResponse.json(MockDataProvider.embeddingModels))
+
+        let resp = try await client.retrieve(datasetId: datasetId, KBRetrieveRequest(query: "What is onboarding?", retrievalModel: nil))
+        #expect(resp.records.count == 1)
+        #expect(resp.records[0].score > 0.5)
+
+        let models = try await client.getAvailableEmbeddingModels()
+        #expect(models.count == 1)
+        #expect(models[0].provider == "openai")
+    }
+
+    @Test("Tags CRUD & Binding")
+    func testTagsCrudAndBinding() async throws {
+        let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
+        let datasetId = "ds-1"
+        let tagId = "t1"
+
+        mockSession.register(method: "POST", urlPattern: "/datasets/tags", response: MockResponse.json(MockDataProvider.tag))
+        mockSession.register(method: "GET", urlPattern: "/datasets/tags", response: MockResponse.json(MockDataProvider.tags))
+        mockSession.register(method: "PATCH", urlPattern: "/datasets/tags", response: MockResponse.json(MockDataProvider.tag))
+        mockSession.register(method: "DELETE", urlPattern: "/datasets/tags", response: MockResponse.json(MockDataProvider.successResponse()))
+        mockSession.register(method: "POST", urlPattern: "/datasets/tags/binding", response: MockResponse.json(MockDataProvider.successResponse()))
+        mockSession.register(method: "POST", urlPattern: "/datasets/tags/unbinding", response: MockResponse.json(MockDataProvider.successResponse()))
+        mockSession.register(method: "POST", urlPattern: "/datasets/\(datasetId)/tags", response: MockResponse.json(MockDataProvider.datasetTagsQuery))
+
+        let created = try await client.createKnowledgeTag(name: "docs")
+        #expect(created.id == tagId)
+
+        let list = try await client.getKnowledgeTags()
+        #expect(list.count == 2)
+
+        let updated = try await client.updateKnowledgeTag(tagId: tagId, name: "docs2")
+        #expect(updated.name == "docs")
+
+        try await client.deleteKnowledgeTag(tagId: tagId)
+
+        let bindResult = try await client.bindTagsToDataset(datasetId: datasetId, tagIds: [tagId])
+        #expect(bindResult.result == "success" || bindResult.result == nil)
+        let bindCaptured = mockSession.getCapturedRequests().first { $0.url?.absoluteString.contains("/datasets/tags/binding") ?? false }
+        #expect(bindCaptured != nil)
+
+        let unbindResult = try await client.unbindTagFromDataset(datasetId: datasetId, tagId: tagId)
+        #expect(unbindResult.result == "success" || unbindResult.result == nil)
+        let unbindCaptured = mockSession.getCapturedRequests().first { $0.url?.absoluteString.contains("/datasets/tags/unbinding") ?? false }
+        #expect(unbindCaptured != nil)
+
+        let query = try await client.queryDatasetTags(datasetId: datasetId)
+        #expect(query.data.count == 1)
+        #expect(query.data[0].id == tagId)
+    }
 }
