@@ -1,6 +1,0 @@
-# Sources/DifySwiftClient/openapi-generator-config.yaml
-generate:
-  - types
-  - client
-
-accessModifier: public
