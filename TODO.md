@@ -75,3 +75,9 @@
 - [ ] Add versioning strategy
 - [ ] Create release automation
 - [ ] Add changelog generation
+### Knowledge Base OpenAPI Alignment (2025-11-12)
+- [x] Expand `KnowledgeBaseClient.swift` to cover OpenAPI knowledge endpoints (datasets, documents, segments, child chunks, retrieve, tags, models)
+- [x] Add OpenAPI-aligned models (`KBDataset`, `KBDatasetDetail`, `KBRetrievalModel`, document/segment/chunk models, tags, models)
+- [x] Create `KBAPITODO.md` to track endpoint coverage and status
+- [ ] Add comprehensive tests for new Knowledge endpoints (isolated mock sessions)
+- [ ] Update README usage examples for new Knowledge methods

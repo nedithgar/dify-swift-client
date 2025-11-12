@@ -6,16 +6,34 @@ import FoundationNetworking
 /// A high-level client for managing Knowledge Base resources (Datasets & their Documents) in the Dify API.
 ///
 /// This client currently offers operations for:
-/// - Listing, creating, deleting datasets
-/// - Listing, uploading, deleting documents within a dataset
+/// - Listing, creating, updating and deleting datasets
+/// - Fetching dataset details
+/// - Listing, uploading, updating and deleting documents within a dataset
+/// - Fetching document details and indexing status
+/// - Managing document segments (chunks) and child chunks
+/// - Retrieving records from a dataset (RAG)
+/// - Managing dataset tags and listing available embedding models
 ///
 /// API Endpoint Mapping:
-/// - `GET /datasets` – ``listDatasets(page:limit:)``
-/// - `POST /datasets` – ``createDataset(name:)``
-/// - `DELETE /datasets/{datasetId}` – ``deleteDataset(datasetId:)``
-/// - `GET /datasets/{datasetId}/documents` – ``listDocuments(datasetId:page:limit:keyword:)``
-/// - `POST /datasets/{datasetId}/documents/upload` – ``createDocument(datasetId:fileData:fileName:processRule:)``
-/// - `DELETE /datasets/{datasetId}/documents/{documentId}` – ``deleteDocument(datasetId:documentId:)``
+/// - `GET /datasets` – ``listDatasets(keyword:tagIds:includeAll:page:limit:)``
+/// - `POST /datasets` – ``createDataset(name:)`` / ``createDataset(_:)``
+/// - `GET /datasets/{dataset_id}` – ``getDatasetDetail(datasetId:)``
+/// - `PATCH /datasets/{dataset_id}` – ``updateDataset(datasetId:_:)``
+/// - `DELETE /datasets/{dataset_id}` – ``deleteDataset(datasetId:)``
+/// - `GET /datasets/{dataset_id}/documents` – ``listDocuments(datasetId:page:limit:keyword:)``
+/// - `POST /datasets/{dataset_id}/document/create-by-file` – ``createDocumentFromFile(datasetId:fileName:fileData:data:)``
+/// - `POST /datasets/{dataset_id}/document/create-by-text` – ``createDocumentFromText(datasetId:_:)``
+/// - `GET /datasets/{dataset_id}/documents/{document_id}` – ``getDocumentDetail(datasetId:documentId:metadata:)``
+/// - `POST /datasets/{dataset_id}/documents/{document_id}/update-by-text` – ``updateDocumentByText(datasetId:documentId:_:)``
+/// - `POST /datasets/{dataset_id}/documents/{document_id}/update-by-file` – ``updateDocumentByFile(datasetId:documentId:fileName:fileData:data:)``
+/// - `GET /datasets/{dataset_id}/documents/{batch}/indexing-status` – ``getDocumentIndexingStatus(datasetId:batch:)``
+/// - `PATCH /datasets/{dataset_id}/documents/status/{action}` – ``batchUpdateDocumentStatus(datasetId:action:documentIds:)``
+/// - `GET/POST/DELETE /datasets/{dataset_id}/documents/{document_id}/segments` – ``listSegments``, ``createSegments``, ``deleteSegment``
+/// - `GET/POST /datasets/{dataset_id}/documents/{document_id}/segments/{segment_id}` – ``getSegmentDetail``, ``updateSegment``
+/// - `GET/POST/PATCH/DELETE /datasets/{dataset_id}/documents/{document_id}/segments/{segment_id}/child_chunks` – child chunk management
+/// - `POST /datasets/{dataset_id}/retrieve` – ``retrieve(datasetId:_:)``
+/// - `GET /workspaces/current/models/model-types/text-embedding` – ``getAvailableEmbeddingModels()``
+/// - `GET/POST/PATCH/DELETE /datasets/tags` and related – tag management helpers
 ///
 /// Error Handling:
 /// Each async method throws on network transport issues, non-success HTTP status codes translated into `DifyError`,
@@ -39,7 +57,7 @@ import FoundationNetworking
 /// _ = try await kbClient.deleteDocument(datasetId: created.data.id, documentId: document.data.id)
 /// ```
 ///
-/// - Note: Segment-level and advanced ingestion management operations are not yet implemented.
+/// - Note: Segment-level and advanced ingestion management operations are implemented as typed helpers below.
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 public final class KnowledgeBaseClient: DifyClient, @unchecked Sendable {
     
@@ -52,8 +70,11 @@ public final class KnowledgeBaseClient: DifyClient, @unchecked Sendable {
     ///   - limit: Page size (items per page). Default is `20`.
     /// - Returns: A decoded `DatasetsResponse`.
     /// - Throws: `DifyError` for API errors or underlying networking/decoding errors.
-    public func listDatasets(page: Int = 1, limit: Int = 20) async throws -> DatasetsResponse {
-        let params = ["page": String(page), "limit": String(limit)]
+    public func listDatasets(keyword: String? = nil, tagIds: [String]? = nil, includeAll: Bool? = nil, page: Int = 1, limit: Int = 20) async throws -> DatasetsResponse {
+        var params: [String: String] = ["page": String(page), "limit": String(limit)]
+        if let keyword, !keyword.isEmpty { params["keyword"] = keyword }
+        if let tagIds, !tagIds.isEmpty { params["tag_ids"] = tagIds.joined(separator: ",") }
+        if let includeAll { params["include_all"] = includeAll ? "true" : "false" }
         let data = try await sendRequest(method: .GET, endpoint: "/datasets", params: params)
         return try decode(data, to: DatasetsResponse.self)
     }
@@ -68,6 +89,13 @@ public final class KnowledgeBaseClient: DifyClient, @unchecked Sendable {
         let data = try await sendRequest(method: .POST, endpoint: "/datasets", body: requestBody)
         return try decode(data, to: DatasetResponse.self)
     }
+
+    /// Creates a dataset with advanced options.
+    /// Mirrors the OpenAPI CreateDatasetRequest.
+    public func createDataset(_ request: KBCreateDatasetRequest) async throws -> KBDataset {
+        let data = try await sendRequest(method: .POST, endpoint: "/datasets", body: request)
+        return try decode(data, to: KBDataset.self)
+    }
     
     /// Permanently deletes a dataset.
     ///
@@ -78,6 +106,18 @@ public final class KnowledgeBaseClient: DifyClient, @unchecked Sendable {
     public func deleteDataset(datasetId: String) async throws -> BaseResponse {
         let data = try await sendRequest(method: .DELETE, endpoint: "/datasets/\(datasetId)")
         return try decode(data, to: BaseResponse.self)
+    }
+
+    /// Fetch dataset detail.
+    public func getDatasetDetail(datasetId: String) async throws -> KBDatasetDetail {
+        let data = try await sendRequest(method: .GET, endpoint: "/datasets/\(datasetId)")
+        return try decode(data, to: KBDatasetDetail.self)
+    }
+
+    /// Update dataset settings.
+    public func updateDataset(datasetId: String, _ request: KBUpdateDatasetRequest) async throws -> KBDatasetDetail {
+        let data = try await sendRequest(method: .PATCH, endpoint: "/datasets/\(datasetId)", body: request)
+        return try decode(data, to: KBDatasetDetail.self)
     }
     
     // MARK: - Documents
@@ -121,8 +161,49 @@ public final class KnowledgeBaseClient: DifyClient, @unchecked Sendable {
         
         multipart.addFileField(named: "file", fileName: fileName, data: fileData, mimeType: "application/octet-stream")
         
-        let request = try createURLRequest(method: .POST, endpoint: "/datasets/\(datasetId)/documents/upload", multipart: multipart)
-        let (data, _) = try await session.data(for: request)
+        let data = try await sendMultipartRequest(method: .POST, endpoint: "/datasets/\(datasetId)/documents/upload", multipart: multipart)
+        return try decode(data, to: DocumentResponse.self)
+    }
+
+    /// Create a document by uploading a file (OpenAPI path).
+    public func createDocumentFromFile(datasetId: String, fileName: String, fileData: Data, data requestData: KBCreateDocumentByFileData) async throws -> DocumentResponse {
+        let multipart = MultipartFormData()
+        // The OpenAPI expects a JSON string in a `data` field
+        if let json = try? JSONEncoder.difyEncoder.encode(requestData), let jsonStr = String(data: json, encoding: .utf8) {
+            multipart.addTextField(named: "data", value: jsonStr)
+        }
+        multipart.addFileField(named: "file", fileName: fileName, data: fileData, mimeType: "application/octet-stream")
+        let data = try await sendMultipartRequest(method: .POST, endpoint: "/datasets/\(datasetId)/document/create-by-file", multipart: multipart)
+        return try decode(data, to: DocumentResponse.self)
+    }
+
+    /// Create a document from raw text.
+    public func createDocumentFromText(datasetId: String, _ request: KBCreateDocumentByTextRequest) async throws -> DocumentResponse {
+        let data = try await sendRequest(method: .POST, endpoint: "/datasets/\(datasetId)/document/create-by-text", body: request)
+        return try decode(data, to: DocumentResponse.self)
+    }
+
+    /// Get document detail.
+    public func getDocumentDetail(datasetId: String, documentId: String, metadata: String = "all") async throws -> KBDocumentDetail {
+        let params = ["metadata": metadata]
+        let data = try await sendRequest(method: .GET, endpoint: "/datasets/\(datasetId)/documents/\(documentId)", params: params)
+        return try decode(data, to: KBDocumentDetail.self)
+    }
+
+    /// Update a document by text payload.
+    public func updateDocumentByText(datasetId: String, documentId: String, _ request: KBUpdateDocumentByTextRequest) async throws -> DocumentResponse {
+        let data = try await sendRequest(method: .POST, endpoint: "/datasets/\(datasetId)/documents/\(documentId)/update-by-text", body: request)
+        return try decode(data, to: DocumentResponse.self)
+    }
+
+    /// Update a document by re-uploading a file.
+    public func updateDocumentByFile(datasetId: String, documentId: String, fileName: String, fileData: Data, data requestData: KBUpdateDocumentByFileData) async throws -> DocumentResponse {
+        let multipart = MultipartFormData()
+        if let json = try? JSONEncoder.difyEncoder.encode(requestData), let jsonStr = String(data: json, encoding: .utf8) {
+            multipart.addTextField(named: "data", value: jsonStr)
+        }
+        multipart.addFileField(named: "file", fileName: fileName, data: fileData, mimeType: "application/octet-stream")
+        let data = try await sendMultipartRequest(method: .POST, endpoint: "/datasets/\(datasetId)/documents/\(documentId)/update-by-file", multipart: multipart)
         return try decode(data, to: DocumentResponse.self)
     }
     
@@ -136,5 +217,135 @@ public final class KnowledgeBaseClient: DifyClient, @unchecked Sendable {
     public func deleteDocument(datasetId: String, documentId: String) async throws -> BaseResponse {
         let data = try await sendRequest(method: .DELETE, endpoint: "/datasets/\(datasetId)/documents/\(documentId)")
         return try decode(data, to: BaseResponse.self)
+    }
+
+    /// Delete a document (204 variant as per OpenAPI). Returns when deletion succeeds.
+    public func removeDocument(datasetId: String, documentId: String) async throws {
+        // We intentionally ignore the (likely empty) response body for 204 semantics.
+        _ = try await sendRequest(method: .DELETE, endpoint: "/datasets/\(datasetId)/documents/\(documentId)")
+    }
+
+    /// Get indexing/embedding status for a batch.
+    public func getDocumentIndexingStatus(datasetId: String, batch: String) async throws -> [KBDocumentIndexingStatus] {
+        let data = try await sendRequest(method: .GET, endpoint: "/datasets/\(datasetId)/documents/\(batch)/indexing-status")
+        let wrapper = try decode(data, to: KBIndexingStatusResponse.self)
+        return wrapper.data
+    }
+
+    /// Batch update document status (enable/disable/archive/un_archive).
+    public func batchUpdateDocumentStatus(datasetId: String, action: KBDocumentStatusAction, documentIds: [String]) async throws -> BaseResponse {
+        let body: [String: AnyCodable] = ["document_ids": AnyCodable(documentIds)]
+        let data = try await sendRequest(method: .PATCH, endpoint: "/datasets/\(datasetId)/documents/status/\(action.rawValue)", body: body)
+        return try decode(data, to: BaseResponse.self)
+    }
+
+    // MARK: - Segments (Chunks)
+
+    /// List segments for a document.
+    public func listSegments(datasetId: String, documentId: String) async throws -> KBSegmentListResponse {
+        let data = try await sendRequest(method: .GET, endpoint: "/datasets/\(datasetId)/documents/\(documentId)/segments")
+        return try decode(data, to: KBSegmentListResponse.self)
+    }
+
+    /// Create segments for a document.
+    public func createSegments(datasetId: String, documentId: String, _ request: KBCreateSegmentsRequest) async throws -> KBSegmentPaginatedResponse {
+        let data = try await sendRequest(method: .POST, endpoint: "/datasets/\(datasetId)/documents/\(documentId)/segments", body: request)
+        return try decode(data, to: KBSegmentPaginatedResponse.self)
+    }
+
+    /// Get a specific segment detail.
+    public func getSegmentDetail(datasetId: String, documentId: String, segmentId: String) async throws -> KBSegmentDetailResponse {
+        let data = try await sendRequest(method: .GET, endpoint: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)")
+        return try decode(data, to: KBSegmentDetailResponse.self)
+    }
+
+    /// Update a specific segment.
+    public func updateSegment(datasetId: String, documentId: String, segmentId: String, _ request: KBUpdateSegmentRequest) async throws -> KBSegmentDetailResponse {
+        let data = try await sendRequest(method: .POST, endpoint: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)", body: request)
+        return try decode(data, to: KBSegmentDetailResponse.self)
+    }
+
+    /// Delete a specific segment.
+    public func deleteSegment(datasetId: String, documentId: String, segmentId: String) async throws {
+        _ = try await sendRequest(method: .DELETE, endpoint: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)")
+    }
+
+    // MARK: - Child Chunks
+
+    public func listChildChunks(datasetId: String, documentId: String, segmentId: String, keyword: String? = nil, page: Int = 1, limit: Int = 20) async throws -> KBChildChunkListResponse {
+        var params: [String: String] = ["page": String(page), "limit": String(limit)]
+        if let keyword, !keyword.isEmpty { params["keyword"] = keyword }
+        let data = try await sendRequest(method: .GET, endpoint: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)/child_chunks", params: params)
+        return try decode(data, to: KBChildChunkListResponse.self)
+    }
+
+    public func createChildChunk(datasetId: String, documentId: String, segmentId: String, _ request: KBCreateChildChunkRequest) async throws -> KBChildChunkResponse {
+        let data = try await sendRequest(method: .POST, endpoint: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)/child_chunks", body: request)
+        return try decode(data, to: KBChildChunkResponse.self)
+    }
+
+    public func updateChildChunk(datasetId: String, documentId: String, segmentId: String, childChunkId: String, _ request: KBUpdateChildChunkRequest) async throws -> KBChildChunkResponse {
+        let data = try await sendRequest(method: .PATCH, endpoint: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)/child_chunks/\(childChunkId)", body: request)
+        return try decode(data, to: KBChildChunkResponse.self)
+    }
+
+    public func deleteChildChunk(datasetId: String, documentId: String, segmentId: String, childChunkId: String) async throws {
+        _ = try await sendRequest(method: .DELETE, endpoint: "/datasets/\(datasetId)/documents/\(documentId)/segments/\(segmentId)/child_chunks/\(childChunkId)")
+    }
+
+    // MARK: - Retrieve & Models
+
+    /// Retrieve relevant segments for a query from a dataset.
+    public func retrieve(datasetId: String, _ request: KBRetrieveRequest) async throws -> KBRetrieveResponse {
+        let data = try await sendRequest(method: .POST, endpoint: "/datasets/\(datasetId)/retrieve", body: request)
+        return try decode(data, to: KBRetrieveResponse.self)
+    }
+
+    /// Get available embedding models grouped by provider.
+    public func getAvailableEmbeddingModels() async throws -> [KBModelProvider] {
+        let data = try await sendRequest(method: .GET, endpoint: "/workspaces/current/models/model-types/text-embedding")
+        let wrapper = try decode(data, to: KBModelProvidersResponse.self)
+        return wrapper.data
+    }
+
+    // MARK: - Tags
+
+    public func createKnowledgeTag(name: String) async throws -> KBTag {
+        let body = ["name": name]
+        let data = try await sendRequest(method: .POST, endpoint: "/datasets/tags", body: body)
+        return try decode(data, to: KBTag.self)
+    }
+
+    public func getKnowledgeTags() async throws -> [KBTag] {
+        let data = try await sendRequest(method: .GET, endpoint: "/datasets/tags")
+        return try decode(data, to: [KBTag].self)
+    }
+
+    public func updateKnowledgeTag(tagId: String, name: String) async throws -> KBTag {
+        let body: [String: String] = ["tag_id": tagId, "name": name]
+        let data = try await sendRequest(method: .PATCH, endpoint: "/datasets/tags", body: body)
+        return try decode(data, to: KBTag.self)
+    }
+
+    public func deleteKnowledgeTag(tagId: String) async throws {
+        let body: [String: String] = ["tag_id": tagId]
+        _ = try await sendRequest(method: .DELETE, endpoint: "/datasets/tags", body: body)
+    }
+
+    public func bindTagsToDataset(datasetId: String, tagIds: [String]) async throws -> BaseResponse {
+        let body: [String: AnyCodable] = ["target_id": AnyCodable(datasetId), "tag_ids": AnyCodable(tagIds)]
+        let data = try await sendRequest(method: .POST, endpoint: "/datasets/tags/binding", body: body)
+        return try decode(data, to: BaseResponse.self)
+    }
+
+    public func unbindTagFromDataset(datasetId: String, tagId: String) async throws -> BaseResponse {
+        let body: [String: AnyCodable] = ["target_id": AnyCodable(datasetId), "tag_id": AnyCodable(tagId)]
+        let data = try await sendRequest(method: .POST, endpoint: "/datasets/tags/unbinding", body: body)
+        return try decode(data, to: BaseResponse.self)
+    }
+
+    public func queryDatasetTags(datasetId: String) async throws -> KBQueryDatasetTagsResponse {
+        let data = try await sendRequest(method: .POST, endpoint: "/datasets/\(datasetId)/tags")
+        return try decode(data, to: KBQueryDatasetTagsResponse.self)
     }
 }

@@ -1030,6 +1030,704 @@ public struct ProcessRule: Codable, Sendable {
     }
 }
 
+// MARK: Knowledge Base Models (OpenAPI-aligned, non-breaking new types)
+
+/// Advanced Create Dataset request (OpenAPI CreateDatasetRequest)
+public struct KBCreateDatasetRequest: Codable, Sendable {
+    public let name: String
+    public let description: String?
+    public let indexingTechnique: String?
+    public let permission: String?
+    public let provider: String?
+    public let externalKnowledgeApiId: String?
+    public let externalKnowledgeId: String?
+    public let embeddingModel: String?
+    public let embeddingModelProvider: String?
+    public let retrievalModel: KBRetrievalModel?
+
+    private enum CodingKeys: String, CodingKey {
+        case name, description
+        case indexingTechnique = "indexing_technique"
+        case permission, provider
+        case externalKnowledgeApiId = "external_knowledge_api_id"
+        case externalKnowledgeId = "external_knowledge_id"
+        case embeddingModel = "embedding_model"
+        case embeddingModelProvider = "embedding_model_provider"
+        case retrievalModel = "retrieval_model"
+    }
+
+    public init(name: String,
+                description: String? = nil,
+                indexingTechnique: String? = nil,
+                permission: String? = nil,
+                provider: String? = nil,
+                externalKnowledgeApiId: String? = nil,
+                externalKnowledgeId: String? = nil,
+                embeddingModel: String? = nil,
+                embeddingModelProvider: String? = nil,
+                retrievalModel: KBRetrievalModel? = nil) {
+        self.name = name
+        self.description = description
+        self.indexingTechnique = indexingTechnique
+        self.permission = permission
+        self.provider = provider
+        self.externalKnowledgeApiId = externalKnowledgeApiId
+        self.externalKnowledgeId = externalKnowledgeId
+        self.embeddingModel = embeddingModel
+        self.embeddingModelProvider = embeddingModelProvider
+        self.retrievalModel = retrievalModel
+    }
+}
+
+/// Dataset object (OpenAPI Dataset)
+public struct KBDataset: Codable, Sendable {
+    public let id: String
+    public let name: String
+    public let description: String?
+    public let provider: String?
+    public let permission: String
+    public let dataSourceType: String?
+    public let indexingTechnique: String?
+    public let appCount: Int
+    public let documentCount: Int
+    public let wordCount: Int
+    public let createdBy: String
+    public let createdAt: Int
+    public let updatedBy: String?
+    public let updatedAt: Int?
+    public let embeddingModel: String?
+    public let embeddingModelProvider: String?
+    public let embeddingAvailable: Bool?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, description, provider, permission
+        case dataSourceType = "data_source_type"
+        case indexingTechnique = "indexing_technique"
+        case appCount = "app_count"
+        case documentCount = "document_count"
+        case wordCount = "word_count"
+        case createdBy = "created_by"
+        case createdAt = "created_at"
+        case updatedBy = "updated_by"
+        case updatedAt = "updated_at"
+        case embeddingModel = "embedding_model"
+        case embeddingModelProvider = "embedding_model_provider"
+        case embeddingAvailable = "embedding_available"
+    }
+}
+
+/// Retrieval Model configuration (OpenAPI RetrievalModel)
+public struct KBRetrievalModel: Codable, Sendable {
+    public struct RerankingMode: Codable, Sendable {
+        public let rerankingProviderName: String?
+        public let rerankingModelName: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case rerankingProviderName = "reranking_provider_name"
+            case rerankingModelName = "reranking_model_name"
+        }
+    }
+
+    public struct MetadataFilteringConditions: Codable, Sendable {
+        public struct Condition: Codable, Sendable {
+            public let name: String?
+            public let comparisonOperator: String?
+            public let value: AnyCodable?
+
+            private enum CodingKeys: String, CodingKey {
+                case name
+                case comparisonOperator = "comparison_operator"
+                case value
+            }
+        }
+
+        public let logicalOperator: String?
+        public let conditions: [Condition]?
+
+        private enum CodingKeys: String, CodingKey {
+            case logicalOperator = "logical_operator"
+            case conditions
+        }
+    }
+
+    public let searchMethod: String?
+    public let rerankingEnable: Bool?
+    public let rerankingMode: RerankingMode?
+    public let topK: Int?
+    public let scoreThresholdEnabled: Bool?
+    public let scoreThreshold: Double?
+    public let weights: Double?
+    public let metadataFilteringConditions: MetadataFilteringConditions?
+
+    private enum CodingKeys: String, CodingKey {
+        case searchMethod = "search_method"
+        case rerankingEnable = "reranking_enable"
+        case rerankingMode = "reranking_mode"
+        case topK = "top_k"
+        case scoreThresholdEnabled = "score_threshold_enabled"
+        case scoreThreshold = "score_threshold"
+        case weights
+        case metadataFilteringConditions = "metadata_filtering_conditions"
+    }
+}
+
+/// Dataset detail (OpenAPI DatasetDetail)
+public struct KBDatasetDetail: Codable, Sendable {
+    // Base dataset fields
+    public let id: String
+    public let name: String
+    public let description: String?
+    public let provider: String?
+    public let permission: String
+    public let dataSourceType: String?
+    public let indexingTechnique: String?
+    public let appCount: Int
+    public let documentCount: Int
+    public let wordCount: Int
+    public let createdBy: String
+    public let createdAt: Int
+    public let updatedBy: String?
+    public let updatedAt: Int?
+    public let embeddingModel: String?
+    public let embeddingModelProvider: String?
+    public let embeddingAvailable: Bool?
+
+    // Additional detail fields
+    public let retrievalModelDict: KBRetrievalModel?
+    public let tags: [AnyCodable]?
+    public let docForm: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, description, provider, permission
+        case dataSourceType = "data_source_type"
+        case indexingTechnique = "indexing_technique"
+        case appCount = "app_count"
+        case documentCount = "document_count"
+        case wordCount = "word_count"
+        case createdBy = "created_by"
+        case createdAt = "created_at"
+        case updatedBy = "updated_by"
+        case updatedAt = "updated_at"
+        case embeddingModel = "embedding_model"
+        case embeddingModelProvider = "embedding_model_provider"
+        case embeddingAvailable = "embedding_available"
+        case retrievalModelDict = "retrieval_model_dict"
+        case tags
+        case docForm = "doc_form"
+    }
+}
+
+/// Update dataset request (OpenAPI UpdateDatasetRequest)
+public struct KBUpdateDatasetRequest: Codable, Sendable {
+    public let name: String?
+    public let description: String?
+    public let indexingTechnique: String?
+    public let permission: String?
+    public let embeddingModelProvider: String?
+    public let embeddingModel: String?
+    public let retrievalModel: KBRetrievalModel?
+    public let partialMemberList: [String]?
+
+    private enum CodingKeys: String, CodingKey {
+        case name, description
+        case indexingTechnique = "indexing_technique"
+        case permission
+        case embeddingModelProvider = "embedding_model_provider"
+        case embeddingModel = "embedding_model"
+        case retrievalModel = "retrieval_model"
+        case partialMemberList = "partial_member_list"
+    }
+
+    public init(name: String? = nil,
+                description: String? = nil,
+                indexingTechnique: String? = nil,
+                permission: String? = nil,
+                embeddingModelProvider: String? = nil,
+                embeddingModel: String? = nil,
+                retrievalModel: KBRetrievalModel? = nil,
+                partialMemberList: [String]? = nil) {
+        self.name = name
+        self.description = description
+        self.indexingTechnique = indexingTechnique
+        self.permission = permission
+        self.embeddingModelProvider = embeddingModelProvider
+        self.embeddingModel = embeddingModel
+        self.retrievalModel = retrievalModel
+        self.partialMemberList = partialMemberList
+    }
+}
+
+/// Flexible process rule for Knowledge endpoints supporting nested structures.
+public struct KBProcessRule: Codable, Sendable {
+    public let mode: String?
+    public let rules: [String: AnyCodable]?
+}
+
+// MARK: Documents (OpenAPI)
+
+public struct KBCreateDocumentByFileData: Codable, Sendable {
+    public let originalDocumentId: String?
+    public let indexingTechnique: String?
+    public let docForm: String?
+    public let docLanguage: String?
+    public let processRule: KBProcessRule?
+    public let retrievalModel: KBRetrievalModel?
+    public let embeddingModel: String?
+    public let embeddingModelProvider: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case originalDocumentId = "original_document_id"
+        case indexingTechnique = "indexing_technique"
+        case docForm = "doc_form"
+        case docLanguage = "doc_language"
+        case processRule = "process_rule"
+        case retrievalModel = "retrieval_model"
+        case embeddingModel = "embedding_model"
+        case embeddingModelProvider = "embedding_model_provider"
+    }
+}
+
+public struct KBCreateDocumentByTextRequest: Codable, Sendable {
+    public let name: String
+    public let text: String
+    public let indexingTechnique: String?
+    public let docForm: String?
+    public let docLanguage: String?
+    public let processRule: KBProcessRule?
+    public let retrievalModel: KBRetrievalModel?
+    public let embeddingModel: String?
+    public let embeddingModelProvider: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case name, text
+        case indexingTechnique = "indexing_technique"
+        case docForm = "doc_form"
+        case docLanguage = "doc_language"
+        case processRule = "process_rule"
+        case retrievalModel = "retrieval_model"
+        case embeddingModel = "embedding_model"
+        case embeddingModelProvider = "embedding_model_provider"
+    }
+}
+
+public struct KBUpdateDocumentByTextRequest: Codable, Sendable {
+    public let name: String?
+    public let text: String?
+    public let processRule: KBProcessRule?
+
+    private enum CodingKeys: String, CodingKey {
+        case name, text
+        case processRule = "process_rule"
+    }
+}
+
+public struct KBUpdateDocumentByFileData: Codable, Sendable {
+    public let name: String?
+    public let processRule: KBProcessRule?
+
+    private enum CodingKeys: String, CodingKey {
+        case name
+        case processRule = "process_rule"
+    }
+}
+
+/// Document detail (OpenAPI DocumentDetail)
+public struct KBDocumentDetail: Codable, Sendable {
+    public let id: String
+    public let position: Int?
+    public let dataSourceType: String?
+    public let dataSourceInfo: [String: AnyCodable]?
+    public let datasetProcessRule: KBProcessRule?
+    public let documentProcessRule: KBDocumentProcessRule?
+    public let indexingLatency: Double?
+    public let segmentCount: Int?
+    public let averageSegmentLength: Int?
+    public let docLanguage: String?
+    public let name: String?
+    public let createdFrom: String?
+    public let createdBy: String?
+    public let createdAt: Int?
+    public let tokens: Int?
+    public let indexingStatus: String?
+    public let error: String?
+    public let enabled: Bool?
+    public let disabledAt: Int?
+    public let disabledBy: String?
+    public let archived: Bool?
+    public let displayStatus: String?
+    public let wordCount: Int?
+    public let hitCount: Int?
+    public let docForm: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, position
+        case dataSourceType = "data_source_type"
+        case dataSourceInfo = "data_source_info"
+        case datasetProcessRule = "dataset_process_rule"
+        case documentProcessRule = "document_process_rule"
+        case indexingLatency = "indexing_latency"
+        case segmentCount = "segment_count"
+        case averageSegmentLength = "average_segment_length"
+        case docLanguage = "doc_language"
+        case name
+        case createdFrom = "created_from"
+        case createdBy = "created_by"
+        case createdAt = "created_at"
+        case tokens
+        case indexingStatus = "indexing_status"
+        case error
+        case enabled
+        case disabledAt = "disabled_at"
+        case disabledBy = "disabled_by"
+        case archived
+        case displayStatus = "display_status"
+        case wordCount = "word_count"
+        case hitCount = "hit_count"
+        case docForm = "doc_form"
+    }
+}
+
+public struct KBDocumentProcessRule: Codable, Sendable {
+    public let id: String?
+    public let datasetId: String?
+    public let mode: String?
+    public let rules: [String: AnyCodable]?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case datasetId = "dataset_id"
+        case mode
+        case rules
+    }
+}
+
+public struct KBDocumentIndexingStatus: Codable, Sendable {
+    public let id: String
+    public let indexingStatus: String
+    public let processingStartedAt: Double?
+    public let parsingCompletedAt: Double?
+    public let cleaningCompletedAt: Double?
+    public let splittingCompletedAt: Double?
+    public let completedAt: Double?
+    public let pausedAt: Double?
+    public let error: String?
+    public let stoppedAt: Double?
+    public let completedSegments: Int?
+    public let totalSegments: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case indexingStatus = "indexing_status"
+        case processingStartedAt = "processing_started_at"
+        case parsingCompletedAt = "parsing_completed_at"
+        case cleaningCompletedAt = "cleaning_completed_at"
+        case splittingCompletedAt = "splitting_completed_at"
+        case completedAt = "completed_at"
+        case pausedAt = "paused_at"
+        case error
+        case stoppedAt = "stopped_at"
+        case completedSegments = "completed_segments"
+        case totalSegments = "total_segments"
+    }
+}
+
+public struct KBIndexingStatusResponse: Codable, Sendable {
+    public let data: [KBDocumentIndexingStatus]
+}
+
+public enum KBDocumentStatusAction: String, Sendable {
+    case enable
+    case disable
+    case archive
+    case un_archive
+}
+
+// MARK: Segments & Child Chunks
+
+public struct KBSegment: Codable, Sendable {
+    public let id: String
+    public let position: Int
+    public let documentId: String
+    public let content: String
+    public let answer: String?
+    public let wordCount: Int
+    public let tokens: Int
+    public let keywords: [String]
+    public let indexNodeId: String
+    public let indexNodeHash: String
+    public let hitCount: Int
+    public let enabled: Bool
+    public let disabledAt: Int?
+    public let disabledBy: String?
+    public let status: String
+    public let createdBy: String
+    public let createdAt: Int
+    public let indexingAt: Int
+    public let completedAt: Int
+    public let error: String?
+    public let stoppedAt: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, position
+        case documentId = "document_id"
+        case content, answer
+        case wordCount = "word_count"
+        case tokens, keywords
+        case indexNodeId = "index_node_id"
+        case indexNodeHash = "index_node_hash"
+        case hitCount = "hit_count"
+        case enabled
+        case disabledAt = "disabled_at"
+        case disabledBy = "disabled_by"
+        case status
+        case createdBy = "created_by"
+        case createdAt = "created_at"
+        case indexingAt = "indexing_at"
+        case completedAt = "completed_at"
+        case error
+        case stoppedAt = "stopped_at"
+    }
+}
+
+public struct KBSegmentListResponse: Codable, Sendable {
+    public let data: [KBSegment]
+    public let docForm: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case data
+        case docForm = "doc_form"
+    }
+}
+
+public struct KBSegmentPaginatedResponse: Codable, Sendable {
+    public let data: [KBSegment]
+    public let docForm: String?
+    public let hasMore: Bool?
+    public let limit: Int?
+    public let total: Int?
+    public let page: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case data
+        case docForm = "doc_form"
+        case hasMore = "has_more"
+        case limit, total, page
+    }
+}
+
+public struct KBSegmentDetailResponse: Codable, Sendable {
+    public let data: KBSegment
+    public let docForm: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case data
+        case docForm = "doc_form"
+    }
+}
+
+public struct KBCreateSegmentsRequest: Codable, Sendable {
+    public struct SegmentItem: Codable, Sendable {
+        public let content: String
+        public let answer: String?
+        public let keywords: [String]?
+    }
+    public let segments: [SegmentItem]
+}
+
+public struct KBUpdateSegmentRequest: Codable, Sendable {
+    public struct SegmentFields: Codable, Sendable {
+        public let content: String
+        public let answer: String?
+        public let keywords: [String]?
+        public let enabled: Bool?
+        public let regenerateChildChunks: Bool?
+
+        private enum CodingKeys: String, CodingKey {
+            case content, answer, keywords, enabled
+            case regenerateChildChunks = "regenerate_child_chunks"
+        }
+    }
+    public let segment: SegmentFields
+}
+
+public struct KBChildChunk: Codable, Sendable {
+    public let id: String
+    public let segmentId: String
+    public let content: String
+    public let wordCount: Int
+    public let tokens: Int
+    public let indexNodeId: String
+    public let indexNodeHash: String
+    public let status: String
+    public let createdBy: String
+    public let createdAt: Int
+    public let indexingAt: Int
+    public let completedAt: Int
+    public let error: String?
+    public let stoppedAt: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case segmentId = "segment_id"
+        case content
+        case wordCount = "word_count"
+        case tokens
+        case indexNodeId = "index_node_id"
+        case indexNodeHash = "index_node_hash"
+        case status
+        case createdBy = "created_by"
+        case createdAt = "created_at"
+        case indexingAt = "indexing_at"
+        case completedAt = "completed_at"
+        case error
+        case stoppedAt = "stopped_at"
+    }
+}
+
+public struct KBChildChunkResponse: Codable, Sendable {
+    public let data: KBChildChunk
+}
+
+public struct KBChildChunkListResponse: Codable, Sendable {
+    public let data: [KBChildChunk]
+    public let total: Int
+    public let totalPages: Int
+    public let page: Int
+    public let limit: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case data, total
+        case totalPages = "total_pages"
+        case page, limit
+    }
+}
+
+public struct KBCreateChildChunkRequest: Codable, Sendable {
+    public let content: String
+}
+
+public struct KBUpdateChildChunkRequest: Codable, Sendable {
+    public let content: String
+}
+
+// MARK: Retrieve
+
+public struct KBRetrieveRequest: Codable, Sendable {
+    public let query: String
+    public let retrievalModel: KBRetrievalModel?
+
+    private enum CodingKeys: String, CodingKey {
+        case query
+        case retrievalModel = "retrieval_model"
+    }
+}
+
+public struct KBRetrieveResponse: Codable, Sendable {
+    public struct Query: Codable, Sendable { public let content: String }
+    public let query: Query
+    public let records: [KBRetrievedSegment]
+}
+
+public struct KBRetrievedSegment: Codable, Sendable {
+    public struct SegmentData: Codable, Sendable {
+        public struct DocumentRef: Codable, Sendable {
+            public let id: String
+            public let dataSourceType: String?
+            public let name: String
+
+            private enum CodingKeys: String, CodingKey {
+                case id
+                case dataSourceType = "data_source_type"
+                case name
+            }
+        }
+
+        // mirror KBSegment minimal set used in retrieve
+        public let id: String
+        public let position: Int?
+        public let documentId: String?
+        public let content: String
+        public let answer: String?
+        public let tokens: Int?
+        public let keywords: [String]?
+        public let document: DocumentRef
+
+        private enum CodingKeys: String, CodingKey {
+            case id, position
+            case documentId = "document_id"
+            case content, answer, tokens, keywords
+            case document
+        }
+    }
+    public let segment: SegmentData
+    public let score: Double
+}
+
+// MARK: Models (Embedding)
+
+public struct KBModel: Codable, Sendable {
+    public let model: String
+    public let label: [String: String]?
+    public let modelType: String?
+    public let features: [AnyCodable]?
+    public let fetchFrom: String?
+    public let modelProperties: KBModelProperties?
+    public let deprecated: Bool?
+    public let status: String?
+    public let loadBalancingEnabled: Bool?
+
+    private enum CodingKeys: String, CodingKey {
+        case model
+        case label
+        case modelType = "model_type"
+        case features
+        case fetchFrom = "fetch_from"
+        case modelProperties = "model_properties"
+        case deprecated, status
+        case loadBalancingEnabled = "load_balancing_enabled"
+    }
+}
+
+public struct KBModelProperties: Codable, Sendable { public let contextSize: Int?; private enum CodingKeys: String, CodingKey { case contextSize = "context_size" } }
+
+public struct KBModelProvider: Codable, Sendable {
+    public let provider: String
+    public let label: [String: String]?
+    public let iconSmall: [String: String]?
+    public let iconLarge: [String: String]?
+    public let status: String?
+    public let models: [KBModel]
+
+    private enum CodingKeys: String, CodingKey {
+        case provider, label
+        case iconSmall = "icon_small"
+        case iconLarge = "icon_large"
+        case status, models
+    }
+}
+
+public struct KBModelProvidersResponse: Codable, Sendable { public let data: [KBModelProvider] }
+
+// MARK: Tags
+
+public struct KBTag: Codable, Sendable {
+    public let id: String
+    public let name: String
+    public let type: String?
+    public let bindingCount: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, type
+        case bindingCount = "binding_count"
+    }
+}
+
+public struct KBQueryDatasetTagsResponse: Codable, Sendable {
+    public struct TagRef: Codable, Sendable { public let id: String; public let name: String }
+    public let data: [TagRef]
+    public let total: Int
+}
+
 
 // MARK: - Feedback Models
 
