@@ -226,6 +226,51 @@ public final class ChatClient: DifyClient, @unchecked Sendable {
         return try decode(data, to: ConversationVariable.self)
     }
 
+    // MARK: - File Uploads
+
+    /// Uploads a file so that chat conversations can reference it.
+    ///
+    /// - Parameters:
+    ///   - fileData: Raw bytes of the file to upload.
+    ///   - fileName: File name (used for MIME detection and server-side metadata).
+    ///   - user: Unique identifier for the end-user performing the upload.
+    ///   - mimeType: Optional explicit MIME type override. If nil a best-effort detection runs.
+    /// - Returns: A `FileUploadResponse` describing the stored artifact.
+    public func uploadFile(
+        fileData: Data,
+        fileName: String,
+        user: String,
+        mimeType: String? = nil
+    ) async throws -> FileUploadResponse {
+        let multipart = MultipartFormData()
+        multipart.addTextField(named: "user", value: user)
+
+        let detectedMimeType = mimeType ?? {
+            let ext = URL(fileURLWithPath: fileName).pathExtension.lowercased()
+            switch ext {
+            case "png": return "image/png"
+            case "jpg", "jpeg": return "image/jpeg"
+            case "webp": return "image/webp"
+            case "gif": return "image/gif"
+            default: return "application/octet-stream"
+            }
+        }()
+
+        multipart.addFileField(
+            named: "file",
+            fileName: fileName,
+            data: fileData,
+            mimeType: detectedMimeType
+        )
+
+        let data = try await sendMultipartRequest(
+            method: .POST,
+            endpoint: "/files/upload",
+            multipart: multipart
+        )
+        return try decode(data, to: FileUploadResponse.self)
+    }
+
     // MARK: - File Preview
 
     /// Retrieves a preview (or download) of a previously uploaded file. Convenience for Chat APIs.

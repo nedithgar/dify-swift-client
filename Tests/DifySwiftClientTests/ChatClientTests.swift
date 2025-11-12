@@ -464,6 +464,61 @@ final class ChatClientTests: DifyTestCase, @unchecked Sendable {
         }
     }
 
+    @Test("Upload File")
+    func testUploadFile() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+
+        mockSession.register(
+            method: "POST",
+            urlPattern: "/files/upload",
+            response: MockResponse.json(MockDataProvider.fileUploadResponse)
+        )
+
+        let payload = TestUtilities.createTestImageData()
+        let response = try await client.uploadFile(
+            fileData: payload,
+            fileName: "grounding.png",
+            user: "user-123"
+        )
+
+        #expect(response.id == "72fa9618-8f89-4a37-9b33-7e1178a24a67")
+        #expect(response.mimeType == "image/png")
+
+        // Ensure request hit the correct endpoint
+        TestUtilities.assertRequestCaptured(
+            in: mockSession,
+            method: "POST",
+            urlPattern: "/files/upload"
+        )
+    }
+
+    @Test("Upload File Custom MIME")
+    func testUploadFileCustomMimeType() async throws {
+        let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
+
+        mockSession.register(
+            method: "POST",
+            urlPattern: "/files/upload",
+            response: MockResponse.json(MockDataProvider.fileUploadResponse)
+        )
+
+        let payload = TestUtilities.createTestImageData()
+        _ = try await client.uploadFile(
+            fileData: payload,
+            fileName: "vector.svg",
+            user: "user-123",
+            mimeType: "image/svg+xml"
+        )
+
+        // Verify the multipart request carries our explicit MIME type
+        let request = mockSession.getCapturedRequests().first { $0.url?.absoluteString.contains("/files/upload") ?? false }
+        #expect(request != nil)
+        if let req = request,
+           let contentType = req.value(forHTTPHeaderField: "Content-Type") {
+            #expect(contentType.contains("multipart/form-data"))
+        }
+    }
+
     @Test("Preview File via ChatClient")
     func testPreviewFile_viaChatClient() async throws {
         let (client, mockSession) = TestUtilities.createTestChatClientWithMockSession()
