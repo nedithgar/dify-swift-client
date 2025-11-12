@@ -223,6 +223,308 @@ enum MockDataProvider {
         "page": 1,
         "limit": 20
     ]
+
+    nonisolated(unsafe) static let datasetDetail: [String: Any] = [
+        "id": "b5829712-b2fb-4e47-bc0b-5f6f29c08162",
+        "name": "Product Documentation",
+        "description": "Company product documentation and guides",
+        "provider": "vendor",
+        "permission": "only_me",
+        "data_source_type": "upload_file",
+        "indexing_technique": "high_quality",
+        "app_count": 3,
+        "document_count": 42,
+        "word_count": 125000,
+        "created_by": "user-123",
+        "created_at": 1695065710,
+        "updated_by": "user-123",
+        "updated_at": 1695065710,
+        "embedding_model": "text-embedding-3-large",
+        "embedding_model_provider": "openai",
+        "embedding_available": true,
+        "retrieval_model_dict": [
+            "search_method": "hybrid_search",
+            "top_k": 5,
+            "score_threshold_enabled": false
+        ],
+        "tags": [["id": "t1", "name": "docs"]],
+        "doc_form": "text_model"
+    ]
+
+    nonisolated(unsafe) static let documentCreationResponse: [String: Any] = [
+        "document": [
+            "id": "new-doc-123",
+            "position": 2,
+            "data_source_type": "upload_file",
+            "data_source_info": [:],
+            "dataset_process_rule_id": "rule-123",
+            "name": "test_document.txt",
+            "created_from": "api",
+            "created_by": "user-123",
+            "created_at": 1695312007,
+            "tokens": 500,
+            "indexing_status": "indexing",
+            "error": nil,
+            "enabled": true,
+            "disabled_at": nil,
+            "disabled_by": nil,
+            "archived": false,
+            "display_status": "processing",
+            "word_count": 1000,
+            "hit_count": 0,
+            "doc_form": "text_model"
+        ],
+        "batch": "batch-001"
+    ]
+
+    nonisolated(unsafe) static let documentDetail: [String: Any] = [
+        "id": "c8b7e36e-0dca-443e-b5f5-2e865e6cbeb5",
+        "position": 1,
+        "data_source_type": "upload_file",
+        "data_source_info": [:],
+        "dataset_process_rule": [
+            "mode": "automatic",
+            "rules": [:]
+        ],
+        "document_process_rule": [
+            "id": "pr-1",
+            "dataset_id": "b5829712-b2fb-4e47-bc0b-5f6f29c08162",
+            "mode": "custom",
+            "rules": ["segmentation": ["max_tokens": 500]]
+        ],
+        "indexing_latency": 0.23,
+        "segment_count": 10,
+        "average_segment_length": 120,
+        "doc_language": "English",
+        "name": "user_guide.pdf",
+        "created_from": "api",
+        "created_by": "user-123",
+        "created_at": 1695312007,
+        "tokens": 1234,
+        "indexing_status": "completed",
+        "error": NSNull(),
+        "enabled": true,
+        "disabled_at": NSNull(),
+        "disabled_by": NSNull(),
+        "archived": false,
+        "display_status": "ready",
+        "word_count": 25000,
+        "hit_count": 42,
+        "doc_form": "text_model"
+    ]
+
+    nonisolated(unsafe) static let indexingStatus: [String: Any] = [
+        "data": [
+            [
+                "id": "new-doc-123",
+                "indexing_status": "indexing",
+                "processing_started_at": 1700000000.0,
+                "parsing_completed_at": 1700000001.0,
+                "cleaning_completed_at": 1700000002.0,
+                "splitting_completed_at": 1700000003.0,
+        "completed_at": NSNull(),
+        "paused_at": NSNull(),
+        "error": NSNull(),
+        "stopped_at": NSNull(),
+                "completed_segments": 5,
+                "total_segments": 20
+            ]
+        ]
+    ]
+
+    nonisolated(unsafe) static let segmentList: [String: Any] = [
+        "data": [
+            [
+                "id": "seg-1",
+                "position": 1,
+                "document_id": "doc-1",
+                "content": "First chunk",
+                "answer": NSNull(),
+                "word_count": 100,
+                "tokens": 120,
+                "keywords": ["intro"],
+                "index_node_id": "idx-1",
+                "index_node_hash": "hash-1",
+                "hit_count": 0,
+                "enabled": true,
+                "disabled_at": NSNull(),
+                "disabled_by": NSNull(),
+                "status": "completed",
+                "created_by": "user-1",
+                "created_at": 1700000100,
+                "indexing_at": 1700000100,
+                "completed_at": 1700000110,
+                "error": NSNull(),
+                "stopped_at": NSNull()
+            ]
+        ],
+        "doc_form": "text_model"
+    ]
+
+    nonisolated(unsafe) static let segmentCreatedPage: [String: Any] = [
+        "data": [
+            [
+                "id": "seg-2",
+                "position": 2,
+                "document_id": "doc-1",
+                "content": "Second chunk",
+        "answer": NSNull(),
+                "word_count": 90,
+                "tokens": 110,
+                "keywords": ["body"],
+                "index_node_id": "idx-2",
+                "index_node_hash": "hash-2",
+                "hit_count": 0,
+                "enabled": true,
+        "disabled_at": NSNull(),
+        "disabled_by": NSNull(),
+                "status": "completed",
+                "created_by": "user-1",
+                "created_at": 1700000200,
+                "indexing_at": 1700000200,
+                "completed_at": 1700000210,
+        "error": NSNull(),
+        "stopped_at": NSNull()
+            ]
+        ],
+        "doc_form": "text_model",
+        "has_more": false,
+        "limit": 20,
+        "total": 2,
+        "page": 1
+    ]
+
+    nonisolated(unsafe) static let segmentDetail: [String: Any] = [
+        "data": [
+            "id": "seg-1",
+            "position": 1,
+            "document_id": "doc-1",
+            "content": "First chunk",
+            "answer": nil,
+            "word_count": 100,
+            "tokens": 120,
+            "keywords": ["intro"],
+            "index_node_id": "idx-1",
+            "index_node_hash": "hash-1",
+            "hit_count": 0,
+            "enabled": true,
+            "disabled_at": nil,
+            "disabled_by": nil,
+            "status": "completed",
+            "created_by": "user-1",
+            "created_at": 1700000100,
+            "indexing_at": 1700000100,
+            "completed_at": 1700000110,
+            "error": nil,
+            "stopped_at": nil
+        ],
+        "doc_form": "text_model"
+    ]
+
+    nonisolated(unsafe) static let childChunkList: [String: Any] = [
+        "data": [
+            [
+                "id": "child-1",
+                "segment_id": "seg-1",
+                "content": "Child A",
+                "word_count": 20,
+                "tokens": 25,
+                "index_node_id": "cidx-1",
+                "index_node_hash": "chash-1",
+                "status": "completed",
+                "created_by": "user-1",
+                "created_at": 1700000120,
+                "indexing_at": 1700000120,
+                "completed_at": 1700000130,
+                "error": NSNull(),
+                "stopped_at": NSNull()
+            ]
+        ],
+        "total": 1,
+        "total_pages": 1,
+        "page": 1,
+        "limit": 20
+    ]
+
+    nonisolated(unsafe) static let childChunkResponse: [String: Any] = [
+        "data": [
+            "id": "child-2",
+            "segment_id": "seg-1",
+            "content": "Child B",
+            "word_count": 22,
+            "tokens": 24,
+            "index_node_id": "cidx-2",
+            "index_node_hash": "chash-2",
+            "status": "completed",
+            "created_by": "user-1",
+            "created_at": 1700000140,
+            "indexing_at": 1700000140,
+            "completed_at": 1700000150,
+            "error": NSNull(),
+            "stopped_at": NSNull()
+        ]
+    ]
+
+    nonisolated(unsafe) static let retrieveResponse: [String: Any] = [
+        "query": ["content": "What is onboarding?"],
+        "records": [
+            [
+                "segment": [
+                    "id": "seg-1",
+                    "position": 1,
+                    "document_id": "doc-1",
+                    "content": "Onboarding is ...",
+                    "answer": NSNull(),
+                    "tokens": 100,
+                    "keywords": ["onboarding"],
+                    "document": ["id": "doc-1", "data_source_type": "upload_file", "name": "Guide"]
+                ],
+                "score": 0.92
+            ]
+        ]
+    ]
+
+    nonisolated(unsafe) static let embeddingModels: [String: Any] = [
+        "data": [
+            [
+                "provider": "openai",
+                "label": ["en": "OpenAI"],
+                "icon_small": ["en": "https://example/icon.png"],
+                "icon_large": ["en": "https://example/icon-large.png"],
+                "status": "active",
+                "models": [
+                    [
+                        "model": "text-embedding-3-large",
+                        "label": ["en": "Text Embedding 3 Large"],
+                        "model_type": "text-embedding",
+                        "features": [],
+                        "fetch_from": "server",
+                        "model_properties": ["context_size": 8192],
+                        "deprecated": false,
+                        "status": "active",
+                        "load_balancing_enabled": false
+                    ]
+                ]
+            ]
+        ]
+    ]
+
+    nonisolated(unsafe) static let tag: [String: Any] = [
+        "id": "t1",
+        "name": "docs",
+        "type": "knowledge",
+        "binding_count": 0
+    ]
+
+    nonisolated(unsafe) static let tags: [[String: Any]] = [
+        ["id": "t1", "name": "docs", "type": "knowledge", "binding_count": 1],
+        ["id": "t2", "name": "faq", "type": "knowledge", "binding_count": 0]
+    ]
+
+    nonisolated(unsafe) static let datasetTagsQuery: [String: Any] = [
+        "data": [["id": "t1", "name": "docs"]],
+        "total": 1
+    ]
     
     // MARK: - File Upload Mock
     

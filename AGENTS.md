@@ -1,6 +1,4 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+# AGENTS.md
 
 ## Project Overview
 
@@ -13,16 +11,6 @@ This is a Swift SDK for Dify AI that provides a complete interface to the Dify S
 - Designed for both synchronous and streaming API interactions
 
 ## Development Rules
-
-### **TODO Management**
-**MOST IMPORTANT**: Always update the [TODO.md](./TODO.md) file when:
-- Starting work on a new feature
-- Completing a feature or subtask
-- Discovering new requirements or edge cases
-- Changing feature priorities
-- Finding bugs that need to be tracked
-
-**The TODO.md file is the single source of truth for all pending work.**
 
 ### Documentation and Learning Resources
 
@@ -257,7 +245,6 @@ The SDK currently implements:
 ## Important Reminders
 
 - **Always run tests** before committing changes: `swift test`
-- **Update TODO.md** when discovering new tasks or completing existing ones
 - **Follow existing patterns** - consistency is key
 - **Document breaking changes** in commit messages
 - **Test on multiple platforms** if making platform-specific changes
