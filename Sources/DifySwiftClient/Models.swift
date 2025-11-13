@@ -1576,7 +1576,11 @@ public struct KBCreateDocumentByFileData: Codable, Sendable {
         if let form = docForm, form == .qaModel {
             let lang = docLanguage?.trimmingCharacters(in: .whitespacesAndNewlines)
             guard let nonEmpty = lang, !nonEmpty.isEmpty else {
-                throw EncodingError.invalidValue("doc_language", EncodingError.Context(codingPath: encoder.codingPath, debugDescription: "doc_language is required when doc_form is qa_model"))
+                let context = EncodingError.Context(
+                    codingPath: container.codingPath + [CodingKeys.docLanguage],
+                    debugDescription: "doc_language must be non-empty when doc_form == qa_model"
+                )
+                throw EncodingError.invalidValue(lang as Any, context)
             }
             try container.encode(nonEmpty, forKey: .docLanguage)
         }
@@ -1639,7 +1643,11 @@ public struct KBCreateDocumentByTextRequest: Codable, Sendable {
         if let form = docForm, form == .qaModel {
             let lang = docLanguage?.trimmingCharacters(in: .whitespacesAndNewlines)
             guard let nonEmpty = lang, !nonEmpty.isEmpty else {
-                throw EncodingError.invalidValue("doc_language", EncodingError.Context(codingPath: encoder.codingPath, debugDescription: "doc_language is required when doc_form is qa_model"))
+                let context = EncodingError.Context(
+                    codingPath: container.codingPath + [CodingKeys.docLanguage],
+                    debugDescription: "doc_language must be non-empty when doc_form == qa_model"
+                )
+                throw EncodingError.invalidValue(lang as Any, context)
             }
             try container.encode(nonEmpty, forKey: .docLanguage)
         }
