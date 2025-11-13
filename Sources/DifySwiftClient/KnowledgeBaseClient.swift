@@ -87,6 +87,20 @@ public final class KnowledgeBaseClient: DifyClient, @unchecked Sendable {
     public func createDataset(name: String) async throws -> DatasetResponse {
         let requestBody = ["name": name]
         let data = try await sendRequest(method: .POST, endpoint: "/datasets", body: requestBody)
+        if data.isEmpty {
+            // Some deployments may return 201/204 with no body for create.
+            // Fallback: query by exact name and return the most recently created match.
+            if DifyDebug.enabled { DifyDebug.log("Empty body for createDataset; falling back to list by name=\(name)") }
+            let list = try await listDatasets(keyword: name, page: 1, limit: 50)
+            let exactMatches = list.data.filter { $0.name == name }
+            if let newest = exactMatches.max(by: { $0.createdAt < $1.createdAt }) {
+                return newest
+            }
+            // If no exact match, return first item containing keyword as last resort
+            if let first = list.data.first { return first }
+            // Nothing found; surface a meaningful error
+            throw DifyError.noData()
+        }
         return try decode(data, to: DatasetResponse.self)
     }
 
