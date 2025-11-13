@@ -423,7 +423,7 @@ final class KnowledgeBaseClientTests: DifyTestCase, @unchecked Sendable {
         mockSession.register(method: "POST", urlPattern: "/datasets/\(datasetId)/document/create-by-text", response: MockResponse.json(MockDataProvider.documentCreationResponse))
         mockSession.register(method: "GET", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)", response: MockResponse.json(MockDataProvider.documentDetail))
 
-        let createReq = KBCreateDocumentByTextRequest(name: "test_document.txt", text: "Hello world", indexingTechnique: .economy, docForm: .textModel, docLanguage: "English", processRule: KBProcessRule(mode: "automatic", rules: nil), retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil)
+        let createReq = KBCreateDocumentByTextRequest(name: "test_document.txt", text: "Hello world", indexingTechnique: .economy, docForm: .textModel, processRule: KBProcessRule(mode: "automatic", rules: nil), retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil)
         let created = try await client.createDocumentFromText(datasetId: datasetId, createReq)
         #expect(created.id == "new-doc-123")
         #expect(created.indexingStatus == "indexing")
@@ -444,7 +444,7 @@ final class KnowledgeBaseClientTests: DifyTestCase, @unchecked Sendable {
         mockSession.register(method: "GET", urlPattern: "/datasets/\(datasetId)/documents/batch-001/indexing-status", response: MockResponse.json(MockDataProvider.indexingStatus))
 
         let fileData = Data([0x00, 0x01])
-        let reqData = KBCreateDocumentByFileData(originalDocumentId: nil, indexingTechnique: .highQuality, docForm: .textModel, docLanguage: "English", processRule: KBProcessRule(mode: "automatic", rules: nil), retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil)
+        let reqData = KBCreateDocumentByFileData(originalDocumentId: nil, indexingTechnique: .highQuality, docForm: .textModel, processRule: KBProcessRule(mode: "automatic", rules: nil), retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil)
         let created = try await client.createDocumentFromFile(datasetId: datasetId, fileName: "a.txt", fileData: fileData, data: reqData)
         #expect(created.name == "test_document.txt")
 

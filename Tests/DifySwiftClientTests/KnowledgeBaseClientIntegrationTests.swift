@@ -109,7 +109,6 @@ struct KnowledgeBaseClientIntegrationTests {
             text: docText,
             indexingTechnique: .economy,
             docForm: .textModel,
-            docLanguage: "English",
             processRule: KBProcessRule(mode: "automatic"),
             retrievalModel: KBRetrievalModel(
                 searchMethod: .semanticSearch,
@@ -131,7 +130,6 @@ struct KnowledgeBaseClientIntegrationTests {
                 data: KBCreateDocumentByFileData(
                     indexingTechnique: .economy,
                     docForm: .textModel,
-                    docLanguage: "English",
                     processRule: KBProcessRule(mode: "automatic")
                 )
             )
@@ -144,7 +142,6 @@ struct KnowledgeBaseClientIntegrationTests {
                 data: KBCreateDocumentByFileData(
                     indexingTechnique: .economy,
                     docForm: .textModel,
-                    docLanguage: "English",
                     processRule: KBProcessRule(mode: "automatic")
                 )
             )
@@ -207,7 +204,6 @@ struct KnowledgeBaseClientIntegrationTests {
             data: KBCreateDocumentByFileData(
                 indexingTechnique: .economy,
                 docForm: .textModel,
-                docLanguage: "English",
                 processRule: KBProcessRule(mode: "automatic")
             )
         )

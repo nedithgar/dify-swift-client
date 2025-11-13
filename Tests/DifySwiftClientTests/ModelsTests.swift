@@ -820,6 +820,43 @@ struct KnowledgeBaseModelTests {
         #expect(response.data[0].indexingStatus == "completed")
         #expect(response.total == 1)
     }
+
+    @Test func testDocLanguageRequiredOnlyForQAModel_TextRequest() throws {
+        // When doc_form is qa_model, doc_language must be present and non-empty
+        let reqMissing = KBCreateDocumentByTextRequest(
+            name: "n", text: "t", indexingTechnique: nil, docForm: .qaModel, docLanguage: nil, processRule: nil, retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil
+        )
+        #expect(throws: EncodingError.self) {
+            _ = try JSONEncoder.difyEncoder.encode(reqMissing)
+        }
+
+        // When doc_form is text_model, doc_language should be omitted even if provided
+        let reqText = KBCreateDocumentByTextRequest(
+            name: "n", text: "t", indexingTechnique: nil, docForm: .textModel, docLanguage: "English", processRule: nil, retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil
+        )
+        let data = try JSONEncoder.difyEncoder.encode(reqText)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(obj?["doc_language"] == nil)
+        #expect(obj?["doc_form"] as? String == KBDocumentForm.textModel.rawValue)
+    }
+
+    @Test func testDocLanguageRequiredOnlyForQAModel_FileData() throws {
+        // FileData variant: enforce same rules
+        let reqMissing = KBCreateDocumentByFileData(
+            originalDocumentId: nil, indexingTechnique: nil, docForm: .qaModel, docLanguage: nil, processRule: nil, retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil
+        )
+        #expect(throws: EncodingError.self) {
+            _ = try JSONEncoder.difyEncoder.encode(reqMissing)
+        }
+
+        let reqText = KBCreateDocumentByFileData(
+            originalDocumentId: nil, indexingTechnique: nil, docForm: .textModel, docLanguage: "English", processRule: nil, retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil
+        )
+        let data = try JSONEncoder.difyEncoder.encode(reqText)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(obj?["doc_language"] == nil)
+        #expect(obj?["doc_form"] as? String == KBDocumentForm.textModel.rawValue)
+    }
 }
 
 // MARK: - Feedback Model Tests

@@ -1419,6 +1419,25 @@ public struct KBCreateDocumentByFileData: Codable, Sendable {
         case embeddingModel = "embedding_model"
         case embeddingModelProvider = "embedding_model_provider"
     }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(originalDocumentId, forKey: .originalDocumentId)
+        try container.encodeIfPresent(indexingTechnique, forKey: .indexingTechnique)
+        try container.encodeIfPresent(docForm, forKey: .docForm)
+        // doc_language: required only when doc_form == qa_model; omitted otherwise
+        if let form = docForm, form == .qaModel {
+            let lang = docLanguage?.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let nonEmpty = lang, !nonEmpty.isEmpty else {
+                throw EncodingError.invalidValue("doc_language", EncodingError.Context(codingPath: encoder.codingPath, debugDescription: "doc_language is required when doc_form is qa_model"))
+            }
+            try container.encode(nonEmpty, forKey: .docLanguage)
+        }
+        try container.encodeIfPresent(processRule, forKey: .processRule)
+        try container.encodeIfPresent(retrievalModel, forKey: .retrievalModel)
+        try container.encodeIfPresent(embeddingModel, forKey: .embeddingModel)
+        try container.encodeIfPresent(embeddingModelProvider, forKey: .embeddingModelProvider)
+    }
 }
 
 public struct KBCreateDocumentByTextRequest: Codable, Sendable {
@@ -1461,6 +1480,26 @@ public struct KBCreateDocumentByTextRequest: Codable, Sendable {
         case retrievalModel = "retrieval_model"
         case embeddingModel = "embedding_model"
         case embeddingModelProvider = "embedding_model_provider"
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encode(text, forKey: .text)
+        try container.encodeIfPresent(indexingTechnique, forKey: .indexingTechnique)
+        try container.encodeIfPresent(docForm, forKey: .docForm)
+        // doc_language: required only when doc_form == qa_model; omitted otherwise
+        if let form = docForm, form == .qaModel {
+            let lang = docLanguage?.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let nonEmpty = lang, !nonEmpty.isEmpty else {
+                throw EncodingError.invalidValue("doc_language", EncodingError.Context(codingPath: encoder.codingPath, debugDescription: "doc_language is required when doc_form is qa_model"))
+            }
+            try container.encode(nonEmpty, forKey: .docLanguage)
+        }
+        try container.encodeIfPresent(processRule, forKey: .processRule)
+        try container.encodeIfPresent(retrievalModel, forKey: .retrievalModel)
+        try container.encodeIfPresent(embeddingModel, forKey: .embeddingModel)
+        try container.encodeIfPresent(embeddingModelProvider, forKey: .embeddingModelProvider)
     }
 }
 
