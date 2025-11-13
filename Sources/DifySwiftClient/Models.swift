@@ -1368,6 +1368,13 @@ public struct KBUpdateDatasetRequest: Codable, Sendable {
 }
 
 /// Flexible process rule for Knowledge endpoints supporting nested structures.
+/// Matches Dify API: `automatic`, `custom`, `hierarchical`.
+public enum KBProcessMode: String, Codable, Sendable {
+    case automatic = "automatic"
+    case custom = "custom"
+    case hierarchical = "hierarchical"
+}
+
 public struct KBProcessRule: Codable, Sendable {
     public let mode: String?
     public let rules: [String: AnyCodable]?
@@ -1377,6 +1384,16 @@ public struct KBProcessRule: Codable, Sendable {
         self.mode = mode
         self.rules = rules
     }
+
+    public init(mode: KBProcessMode,
+                rules: [String: AnyCodable]? = nil) {
+        self.mode = mode.rawValue
+        self.rules = rules
+    }
+
+    public static var automatic: KBProcessRule { KBProcessRule(mode: .automatic) }
+    public static func custom(rules: [String: AnyCodable]? = nil) -> KBProcessRule { KBProcessRule(mode: .custom, rules: rules) }
+    public static func hierarchical(rules: [String: AnyCodable]? = nil) -> KBProcessRule { KBProcessRule(mode: .hierarchical, rules: rules) }
 }
 
 // MARK: Documents (OpenAPI)

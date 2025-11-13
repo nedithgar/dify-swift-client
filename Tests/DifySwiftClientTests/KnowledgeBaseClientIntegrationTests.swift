@@ -109,7 +109,7 @@ struct KnowledgeBaseClientIntegrationTests {
             text: docText,
             indexingTechnique: .economy,
             docForm: .textModel,
-            processRule: KBProcessRule(mode: "automatic"),
+            processRule: KBProcessRule(mode: .automatic),
             retrievalModel: KBRetrievalModel(
                 searchMethod: .semanticSearch,
                 rerankingEnable: false,
@@ -130,7 +130,7 @@ struct KnowledgeBaseClientIntegrationTests {
                 data: KBCreateDocumentByFileData(
                     indexingTechnique: .economy,
                     docForm: .textModel,
-                    processRule: KBProcessRule(mode: "automatic")
+                    processRule: KBProcessRule(mode: .automatic)
                 )
             )
         } catch {
@@ -142,7 +142,7 @@ struct KnowledgeBaseClientIntegrationTests {
                 data: KBCreateDocumentByFileData(
                     indexingTechnique: .economy,
                     docForm: .textModel,
-                    processRule: KBProcessRule(mode: "automatic")
+                    processRule: KBProcessRule(mode: .automatic)
                 )
             )
         }
@@ -189,7 +189,7 @@ struct KnowledgeBaseClientIntegrationTests {
             KBUpdateDocumentByTextRequest(
                 name: "it-text",
                 text: docText + " [v2]",
-                processRule: KBProcessRule(mode: "automatic")
+                processRule: KBProcessRule(mode: .automatic)
             )
         )
         _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: textDocId)
@@ -204,7 +204,7 @@ struct KnowledgeBaseClientIntegrationTests {
             data: KBCreateDocumentByFileData(
                 indexingTechnique: .economy,
                 docForm: .textModel,
-                processRule: KBProcessRule(mode: "automatic")
+                processRule: KBProcessRule(mode: .automatic)
             )
         )
         let fileDocId = fileDoc.id
