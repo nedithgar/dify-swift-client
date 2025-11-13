@@ -2708,7 +2708,17 @@ public struct ToolIcon: Codable, Sendable {
         var container = encoder.singleValueContainer()
         if let url { try container.encode(url) }
         else if let emoji { try container.encode(emoji) }
-        else { try container.encodeNil() }
+        else {
+            // Defensive: This state shouldn't be reachable because our public
+            // initializers and Decodable init always set either `url` or `emoji`.
+            // Encoding `null` would violate the API shape (oneOf: string | object),
+            // so surface the invariant break explicitly.
+            let context = EncodingError.Context(
+                codingPath: encoder.codingPath,
+                debugDescription: "ToolIcon has neither 'url' nor 'emoji'; invalid state for encoding."
+            )
+            throw EncodingError.invalidValue(self, context)
+        }
     }
 }
 
