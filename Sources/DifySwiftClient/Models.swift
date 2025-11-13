@@ -448,22 +448,22 @@ public struct StreamingCompletionEvent: Decodable, Sendable {
         self.kind = Kind(rawValue: eventType)
         switch eventType {
         case "message":
-            self.message = try? MessageStreamEvent(from: decoder)
+            self.message = try MessageStreamEvent(from: decoder)
             self.messageEnd = nil; self.ttsMessage = nil; self.ttsMessageEnd = nil; self.messageReplace = nil; self.error = nil
         case "message_end":
-            self.messageEnd = try? MessageEndStreamEvent(from: decoder)
+            self.messageEnd = try MessageEndStreamEvent(from: decoder)
             self.message = nil; self.ttsMessage = nil; self.ttsMessageEnd = nil; self.messageReplace = nil; self.error = nil
         case "tts_message":
-            self.ttsMessage = try? TTSMessageStreamEvent(from: decoder)
+            self.ttsMessage = try TTSMessageStreamEvent(from: decoder)
             self.message = nil; self.messageEnd = nil; self.ttsMessageEnd = nil; self.messageReplace = nil; self.error = nil
         case "tts_message_end":
-            self.ttsMessageEnd = try? TTSMessageEndStreamEvent(from: decoder)
+            self.ttsMessageEnd = try TTSMessageEndStreamEvent(from: decoder)
             self.message = nil; self.messageEnd = nil; self.ttsMessage = nil; self.messageReplace = nil; self.error = nil
         case "message_replace":
-            self.messageReplace = try? MessageReplaceStreamEvent(from: decoder)
+            self.messageReplace = try MessageReplaceStreamEvent(from: decoder)
             self.message = nil; self.messageEnd = nil; self.ttsMessage = nil; self.ttsMessageEnd = nil; self.error = nil
         case "error":
-            self.error = try? ErrorStreamEvent(from: decoder)
+            self.error = try ErrorStreamEvent(from: decoder)
             self.message = nil; self.messageEnd = nil; self.ttsMessage = nil; self.ttsMessageEnd = nil; self.messageReplace = nil
         case "ping":
             self.message = nil; self.messageEnd = nil; self.ttsMessage = nil; self.ttsMessageEnd = nil; self.messageReplace = nil; self.error = nil
@@ -678,19 +678,19 @@ public struct StreamingChatMessageEvent: Decodable, Sendable {
         var _error: ErrorStreamEvent?
 
         switch eventType {
-        case "message": _message = try? MessageStreamEvent(from: decoder)
-        case "message_end": _messageEnd = try? MessageEndStreamEvent(from: decoder)
-        case "agent_message": _agentMessage = try? AgentMessageStreamEvent(from: decoder)
-        case "agent_thought": _agentThought = try? AgentThoughtStreamEvent(from: decoder)
-        case "tts_message": _ttsMessage = try? TTSMessageStreamEvent(from: decoder)
-        case "tts_message_end": _ttsMessageEnd = try? TTSMessageEndStreamEvent(from: decoder)
-        case "message_file": _messageFile = try? MessageFileStreamEvent(from: decoder)
-        case "message_replace": _messageReplace = try? MessageReplaceStreamEvent(from: decoder)
-        case "workflow_started": _workflowStarted = try? WorkflowStartedEvent(from: decoder)
-        case "node_started": _nodeStarted = try? NodeStartedEvent(from: decoder)
-        case "node_finished": _nodeFinished = try? NodeFinishedEvent(from: decoder)
-        case "workflow_finished": _workflowFinished = try? WorkflowFinishedEvent(from: decoder)
-        case "error": _error = try? ErrorStreamEvent(from: decoder)
+        case "message": _message = try MessageStreamEvent(from: decoder)
+        case "message_end": _messageEnd = try MessageEndStreamEvent(from: decoder)
+        case "agent_message": _agentMessage = try AgentMessageStreamEvent(from: decoder)
+        case "agent_thought": _agentThought = try AgentThoughtStreamEvent(from: decoder)
+        case "tts_message": _ttsMessage = try TTSMessageStreamEvent(from: decoder)
+        case "tts_message_end": _ttsMessageEnd = try TTSMessageEndStreamEvent(from: decoder)
+        case "message_file": _messageFile = try MessageFileStreamEvent(from: decoder)
+        case "message_replace": _messageReplace = try MessageReplaceStreamEvent(from: decoder)
+        case "workflow_started": _workflowStarted = try WorkflowStartedEvent(from: decoder)
+        case "node_started": _nodeStarted = try NodeStartedEvent(from: decoder)
+        case "node_finished": _nodeFinished = try NodeFinishedEvent(from: decoder)
+        case "workflow_finished": _workflowFinished = try WorkflowFinishedEvent(from: decoder)
+        case "error": _error = try ErrorStreamEvent(from: decoder)
         case "ping": break
         default: break // unknown kinds tolerated
         }
@@ -870,14 +870,14 @@ public struct StreamingWorkflowEvent: Decodable, Sendable {
         var _ttsMessageEnd: TTSMessageEndStreamEvent?; var _error: ErrorStreamEvent?
 
         switch eventType {
-        case "workflow_started": _workflowStarted = try? WorkflowStartedEvent(from: decoder)
-        case "node_started": _nodeStarted = try? NodeStartedEvent(from: decoder)
-        case "node_finished": _nodeFinished = try? NodeFinishedEvent(from: decoder)
-        case "workflow_finished": _workflowFinished = try? WorkflowFinishedEvent(from: decoder)
-        case "text_chunk": _textChunk = try? TextChunkEvent(from: decoder)
-        case "tts_message": _ttsMessage = try? TTSMessageStreamEvent(from: decoder)
-        case "tts_message_end": _ttsMessageEnd = try? TTSMessageEndStreamEvent(from: decoder)
-        case "error": _error = try? ErrorStreamEvent(from: decoder)
+        case "workflow_started": _workflowStarted = try WorkflowStartedEvent(from: decoder)
+        case "node_started": _nodeStarted = try NodeStartedEvent(from: decoder)
+        case "node_finished": _nodeFinished = try NodeFinishedEvent(from: decoder)
+        case "workflow_finished": _workflowFinished = try WorkflowFinishedEvent(from: decoder)
+        case "text_chunk": _textChunk = try TextChunkEvent(from: decoder)
+        case "tts_message": _ttsMessage = try TTSMessageStreamEvent(from: decoder)
+        case "tts_message_end": _ttsMessageEnd = try TTSMessageEndStreamEvent(from: decoder)
+        case "error": _error = try ErrorStreamEvent(from: decoder)
         case "ping": break
         default: break
         }
