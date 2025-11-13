@@ -7,43 +7,17 @@ import FoundationNetworking
 
 /// Lightweight debug logger.
 ///
-/// Configuration precedence (highest → lowest):
-/// 1. Programmatic override via `configure(enabled:)`
-/// 2. Environment variables `DIFY_SDK_DEBUG` or `DIFY_SWIFT_CLIENT_DEBUG`
-/// 3. Default = `false`
+/// Configuration: set environment variable `DIFY_SDK_DEBUG` to one of
+/// "1", "true", "yes", or "on" (case-insensitive) to enable logging.
+/// Default is disabled.
 enum DifySDKDebug {
-    /// Returns whether SDK debug logging is enabled.
-    /// - Note: Reads once from environment if no programmatic override is set.
-    static var enabled: Bool {
-        if let override = UserDefaults.standard.object(forKey: "DifySwiftClientDebugEnabled") as? Bool {
-            return override
+    /// Whether SDK debug logging is enabled (derived once from environment).
+    static let enabled: Bool = {
+        guard let raw = ProcessInfo.processInfo.environment["DIFY_SDK_DEBUG"] else { return false }
+        switch raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "1", "true", "yes", "on": return true
+        default: return false
         }
-        return defaultEnabledFromEnvironment
-    }
-
-    /// Configure debug logging at runtime.
-    /// - Parameter enabled: `true` to enable logging, `false` to disable, `nil` to clear override.
-    static func configure(enabled: Bool?) {
-        let key = "DifySwiftClientDebugEnabled"
-        if let enabled {
-            UserDefaults.standard.set(enabled, forKey: key)
-        } else {
-            UserDefaults.standard.removeObject(forKey: key)
-        }
-    }
-
-    /// Internal default derived from environment variables.
-    private static let defaultEnabledFromEnvironment: Bool = {
-        let env = ProcessInfo.processInfo.environment
-        if let raw = env["DIFY_SDK_DEBUG"] ?? env["DIFY_SWIFT_CLIENT_DEBUG"] {
-            switch raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-            case "1", "true", "yes", "on":
-                return true
-            default:
-                return false
-            }
-        }
-        return false
     }()
 
     static func log(_ message: String) {
