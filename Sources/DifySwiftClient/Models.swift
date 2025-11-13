@@ -1165,6 +1165,18 @@ public struct KBDataset: Codable, Sendable {
 
 /// Retrieval Model configuration (OpenAPI RetrievalModel)
 public struct KBRetrievalModel: Codable, Sendable {
+    /// Type-safe wrapper for retrieval search_method values.
+    public struct KBSearchMethod: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible {
+        public let rawValue: String
+        public init(rawValue: String) { self.rawValue = rawValue }
+
+        // Commonly used methods
+        public static let semanticSearch = KBSearchMethod(rawValue: "semantic_search")
+        public static let fullTextSearch = KBSearchMethod(rawValue: "full_text_search")
+        public static let hybridSearch = KBSearchMethod(rawValue: "hybrid_search")
+
+        public var description: String { rawValue }
+    }
     public struct RerankingMode: Codable, Sendable {
         public let rerankingProviderName: String?
         public let rerankingModelName: String?
@@ -1217,7 +1229,7 @@ public struct KBRetrievalModel: Codable, Sendable {
         }
     }
 
-    public let searchMethod: String?
+    public let searchMethod: KBSearchMethod?
     public let rerankingEnable: Bool?
     public let rerankingMode: RerankingMode?
     public let topK: Int?
@@ -1226,7 +1238,7 @@ public struct KBRetrievalModel: Codable, Sendable {
     public let weights: Double?
     public let metadataFilteringConditions: MetadataFilteringConditions?
 
-    public init(searchMethod: String? = nil,
+    public init(searchMethod: KBSearchMethod? = nil,
                 rerankingEnable: Bool? = nil,
                 rerankingMode: RerankingMode? = nil,
                 topK: Int? = nil,

@@ -94,7 +94,7 @@ struct KnowledgeBaseClientIntegrationTests {
                 embeddingModelProvider: chosenProvider.provider,
                 embeddingModel: chosenModel.model,
                 retrievalModel: KBRetrievalModel(
-                    searchMethod: "semantic_search",
+                    searchMethod: .semanticSearch,
                     rerankingEnable: false,
                     topK: 5,
                     scoreThresholdEnabled: false
@@ -112,7 +112,7 @@ struct KnowledgeBaseClientIntegrationTests {
             docLanguage: "English",
             processRule: KBProcessRule(mode: "automatic"),
             retrievalModel: KBRetrievalModel(
-                searchMethod: "semantic_search",
+                searchMethod: .semanticSearch,
                 rerankingEnable: false,
                 topK: 5,
                 scoreThresholdEnabled: false
