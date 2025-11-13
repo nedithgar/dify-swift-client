@@ -15,6 +15,7 @@ A Swift SDK for Dify AI that provides a complete interface to the Dify Service A
 - **Cross-Platform**: Works on macOS, iOS, tvOS, watchOS, and Linux
 - **Advanced Streaming**: Built-in streaming response handling for real-time interactions including workflow events
 - **Type Safety**: Comprehensive Swift types for all API request/response models with proper snake_case to camelCase conversion
+    - Knowledge Base uses typed options: `KBIndexingTechnique` (`.economy`, `.highQuality`), `KBRetrievalModel.KBSearchMethod` (`.semanticSearch`, `.fullTextSearch`, `.hybridSearch`), and `KBDocumentForm` (`.textModel`, `.hierarchicalModel`, `.qaModel`). Note: `docLanguage` is required only when `docForm == .qaModel` and is omitted otherwise.
 - **Error Handling**: Detailed error types with localized descriptions
 - **Testing**: Full test coverage using the latest Swift Testing framework (WWDC2024) with parallel test execution support
 - **Application Management**: Complete application info, parameters, metadata, and configuration support
@@ -344,7 +345,7 @@ let datasets = try await knowledgeBaseClient.listDatasets(
 let detail = try await knowledgeBaseClient.getDatasetDetail(datasetId: dataset.id)
 let updated = try await knowledgeBaseClient.updateDataset(
   datasetId: detail.id,
-  KBUpdateDatasetRequest(name: "Renamed KB", indexingTechnique: "economy")
+    KBUpdateDatasetRequest(name: "Renamed KB", indexingTechnique: .economy)
 )
 
 // Create document from text
@@ -353,9 +354,8 @@ let createdFromText = try await knowledgeBaseClient.createDocumentFromText(
   KBCreateDocumentByTextRequest(
     name: "intro.txt",
     text: "Welcome to our docs!",
-    indexingTechnique: "high_quality",
-    docForm: "text_model",
-    docLanguage: "English",
+        indexingTechnique: .highQuality,
+        docForm: .textModel,
     processRule: KBProcessRule(mode: "automatic", rules: nil)
   )
 )
@@ -367,11 +367,22 @@ let createdFromFile = try await knowledgeBaseClient.createDocumentFromFile(
   fileData: Data(/* file bytes */),
   data: KBCreateDocumentByFileData(
     originalDocumentId: nil,
-    indexingTechnique: "high_quality",
-    docForm: "text_model",
-    docLanguage: "English",
+        indexingTechnique: .highQuality,
+        docForm: .textModel,
     processRule: KBProcessRule(mode: "automatic", rules: nil)
   )
+)
+
+// QA model: requires docLanguage
+let createdQADoc = try await knowledgeBaseClient.createDocumentFromText(
+    datasetId: dataset.id,
+    KBCreateDocumentByTextRequest(
+        name: "qa.txt",
+        text: "Q: ... A: ...",
+        docForm: .qaModel,
+        docLanguage: "English", // required for .qaModel
+        processRule: KBProcessRule(mode: "automatic", rules: nil)
+    )
 )
 
 // Document detail and indexing status
