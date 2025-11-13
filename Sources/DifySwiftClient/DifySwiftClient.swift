@@ -115,6 +115,15 @@ open class DifyClient: @unchecked Sendable {
             }
         }
         
+        // Debug: outbound request snapshot
+        if DifyDebug.enabled {
+            let headers = request.allHTTPHeaderFields ?? [:]
+            let sanitized = DifyDebug.sanitizeHeaders(headers)
+            let bodyInfo: String
+            if let bodyData = request.httpBody { bodyInfo = "(\(bodyData.count) bytes) \(DifyDebug.dump(bodyData))" } else { bodyInfo = "<none>" }
+            DifyDebug.log("-> \(method.rawValue) \(url.absoluteString)\n   headers: \(sanitized)\n   body: \(bodyInfo)")
+        }
+        
         return request
     }
 
@@ -140,6 +149,12 @@ open class DifyClient: @unchecked Sendable {
             throw DifyError.invalidResponse()
         }
         
+        // Debug: inbound response snapshot
+        if DifyDebug.enabled {
+            let headers = DifyDebug.sanitizeHeaders(httpResponse.allHeaderFields)
+            DifyDebug.log("<- [\(httpResponse.statusCode)] \(request.httpMethod ?? "") \(request.url?.absoluteString ?? "")\n   headers: \(headers)\n   body: (\(data.count) bytes) \(DifyDebug.dump(data))")
+        }
+
         guard 200...299 ~= httpResponse.statusCode else {
             let error = try? decode(data, to: DifyError.self)
             throw DifyError.httpError(httpResponse.statusCode, error?.message ?? "Unknown API error")
@@ -167,6 +182,12 @@ open class DifyClient: @unchecked Sendable {
             throw DifyError.invalidResponse()
         }
         
+        // Debug: inbound response snapshot (multipart)
+        if DifyDebug.enabled {
+            let headers = DifyDebug.sanitizeHeaders(httpResponse.allHeaderFields)
+            DifyDebug.log("<- [\(httpResponse.statusCode)] \(request.httpMethod ?? "") \(request.url?.absoluteString ?? "") (multipart)\n   headers: \(headers)\n   body: (\(data.count) bytes) \(DifyDebug.dump(data))")
+        }
+
         guard 200...299 ~= httpResponse.statusCode else {
             let error = try? decode(data, to: DifyError.self)
             throw DifyError.httpError(httpResponse.statusCode, error?.message ?? "Unknown API error")
@@ -326,9 +347,29 @@ open class DifyClient: @unchecked Sendable {
     /// - Returns: Instance of `T`.
     /// - Throws: `DifyError.decodingError` if decoding fails.
     internal func decode<T: Decodable>(_ data: Data, to type: T.Type) throws -> T {
+        // Some Dify endpoints legitimately return 204 No Content (empty body)
+        // even when callers expect a trivial acknowledgement payload.
+        // Gracefully map empty bodies to a sensible default for lightweight
+        // response types we model as `BaseResponse`.
+        if data.isEmpty {
+            if T.self == BaseResponse.self, let value = BaseResponse(result: "success") as? T {
+                return value
+            }
+        }
+
         do {
             return try JSONDecoder.difyDecoder.decode(type, from: data)
         } catch {
+            // Some deployments return plain scalars like "204" or "OK" for ack endpoints.
+            if T.self == BaseResponse.self {
+                let scalar = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+                if scalar == "ok" || scalar == "success" || scalar == "true" || Int(scalar) != nil {
+                    if let value = BaseResponse(result: "success") as? T { return value }
+                }
+            }
+            if DifyDebug.enabled {
+                DifyDebug.log("Decode failed for type=\(T.self) bytes=\(data.count) error=\(error.localizedDescription)\n   body snippet: \(DifyDebug.dump(data))")
+            }
             throw DifyError.decodingError(error)
         }
     }
