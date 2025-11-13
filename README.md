@@ -5,7 +5,7 @@
 [![Swift Version](https://img.shields.io/badge/Swift-6.1+-orange.svg)](https://swift.org)
 [![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20Linux-lightgrey.svg)](https://github.com/nedithgar/dify-swift-client)
 
-A Swift SDK for Dify AI that provides a complete interface to the Dify Service API. This SDK follows Swift best practices and provides native async/await support with comprehensive error handling.
+A Swift SDK for Dify AI that provides a complete interface to the Dify Service API. This SDK follows modern Swift best practices and provides native async/await support, streaming via AsyncSequence, and comprehensive, typed error handling.
 
 ## Features
 
@@ -15,11 +15,24 @@ A Swift SDK for Dify AI that provides a complete interface to the Dify Service A
 - **Cross-Platform**: Works on macOS, iOS, tvOS, watchOS, and Linux
 - **Advanced Streaming**: Built-in streaming response handling for real-time interactions including workflow events
 - **Type Safety**: Comprehensive Swift types for all API request/response models with proper snake_case to camelCase conversion
+    - Knowledge Base uses typed options: `KBIndexingTechnique` (`.economy`, `.highQuality`), `KBRetrievalModel.KBSearchMethod` (`.semanticSearch`, `.fullTextSearch`, `.hybridSearch`), and `KBDocumentForm` (`.textModel`, `.hierarchicalModel`, `.qaModel`). Note: `docLanguage` is required only when `docForm == .qaModel` and is omitted otherwise.
 - **Error Handling**: Detailed error types with localized descriptions
 - **Testing**: Full test coverage using the latest Swift Testing framework (WWDC2024) with parallel test execution support
 - **Application Management**: Complete application info, parameters, metadata, and configuration support
 - **Feedback & Annotations**: Full support for message feedback with content and annotation management
 - **Conversation Variables**: Extract and manage structured data from conversations
+
+## Architecture
+
+- `DifyClient` – Base HTTP client with shared request/response helpers and streaming plumbing
+- `ChatClient` – Chat messages (blocking/streaming), conversations, variables, feedback, annotations, audio, app info
+- `CompletionClient` – Completion messages (blocking/streaming), feedback, files, app info/site/parameters, text-to-audio
+- `WorkflowClient` – Workflow run (blocking/streaming), run detail and logs
+- `KnowledgeBaseClient` – Datasets, documents, segments/child chunks, retrieve, tags, embedding models
+
+Key shared components:
+- `Models.swift` – All request/response models and enums (including Knowledge Base typed models)
+- `Utilities.swift` – JSON coders, multipart builder, helpers, and lightweight debug logging
 
 ## Requirements
 
@@ -92,6 +105,12 @@ for try await event in streamingResponse {
         break
     }
 }
+```
+
+Stop an in-progress chat generation by task id:
+
+```swift
+try await chatClient.stopChatGeneration(taskId: "<task_id>", user: "user_123")
 ```
 
 ### Completion Client
@@ -237,6 +256,25 @@ You can also preview files via `ChatClient`:
 let chatClient = try ChatClient(apiKey: "your_api_key")
 let bytes = try await chatClient.previewFile(fileId: uploadResponse.id, asAttachment: true)
 ```
+
+### Stopping Completion Streams
+
+```swift
+let completionStream = try await completionClient.createStreamingCompletionMessage(
+    inputs: ["query": "Stream a long answer"],
+    user: "user_123"
+)
+
+var taskId: String?
+for try await event in completionStream {
+    if let id = event.message?.taskId { taskId = id }
+    if /* your condition */ false { break }
+}
+
+if let id = taskId {
+    _ = try await completionClient.stopCompletionMessage(taskId: id, user: "user_123")
+}
+```
 ### Workflow Client
 
 ```swift
@@ -303,22 +341,17 @@ let knowledgeBaseClient = try KnowledgeBaseClient(apiKey: "your_api_key")
 // Create a new dataset
 let dataset = try await knowledgeBaseClient.createDataset(name: "My Knowledge Base")
 
-// Create document by uploading a file
+// Create document by uploading a file (typed OpenAPI request)
 let fileData = Data() // Your document data
-let processRule = ProcessRule(
-    mode: "automatic",
-    rules: [
-        "remove_extra_spaces": "true",
-        "segmentation_separator": "\n",
-        "max_tokens": "500"
-    ]
-)
-
-let documentResponse = try await knowledgeBaseClient.createDocument(
+let documentResponse = try await knowledgeBaseClient.createDocumentFromFile(
     datasetId: dataset.id,
-    fileData: fileData,
     fileName: "document.pdf",
-    processRule: processRule
+    fileData: fileData,
+    data: KBCreateDocumentByFileData(
+        indexingTechnique: .highQuality,
+        docForm: .textModel,
+        processRule: KBProcessRule(mode: .automatic)
+    )
 )
 
 // List documents in the dataset
@@ -344,7 +377,7 @@ let datasets = try await knowledgeBaseClient.listDatasets(
 let detail = try await knowledgeBaseClient.getDatasetDetail(datasetId: dataset.id)
 let updated = try await knowledgeBaseClient.updateDataset(
   datasetId: detail.id,
-  KBUpdateDatasetRequest(name: "Renamed KB", indexingTechnique: "economy")
+    KBUpdateDatasetRequest(name: "Renamed KB", indexingTechnique: .economy)
 )
 
 // Create document from text
@@ -353,10 +386,9 @@ let createdFromText = try await knowledgeBaseClient.createDocumentFromText(
   KBCreateDocumentByTextRequest(
     name: "intro.txt",
     text: "Welcome to our docs!",
-    indexingTechnique: "high_quality",
-    docForm: "text_model",
-    docLanguage: "English",
-    processRule: KBProcessRule(mode: "automatic", rules: nil)
+        indexingTechnique: .highQuality,
+        docForm: .textModel,
+    processRule: KBProcessRule(mode: .automatic)
   )
 )
 
@@ -367,11 +399,22 @@ let createdFromFile = try await knowledgeBaseClient.createDocumentFromFile(
   fileData: Data(/* file bytes */),
   data: KBCreateDocumentByFileData(
     originalDocumentId: nil,
-    indexingTechnique: "high_quality",
-    docForm: "text_model",
-    docLanguage: "English",
-    processRule: KBProcessRule(mode: "automatic", rules: nil)
+        indexingTechnique: .highQuality,
+        docForm: .textModel,
+    processRule: KBProcessRule(mode: .automatic)
   )
+)
+
+// QA model: requires docLanguage
+let createdQADoc = try await knowledgeBaseClient.createDocumentFromText(
+    datasetId: dataset.id,
+    KBCreateDocumentByTextRequest(
+        name: "qa.txt",
+        text: "Q: ... A: ...",
+        docForm: .qaModel,
+        docLanguage: "English", // required for .qaModel
+        processRule: KBProcessRule(mode: .automatic)
+    )
 )
 
 // Document detail and indexing status
@@ -671,6 +714,11 @@ All API responses are strongly typed with Swift structs and include comprehensiv
 - `FileType` enum supporting: `.document`, `.image`, `.audio`, `.video`, `.custom`
 - `APIFile` with comprehensive file handling for all supported formats
 
+### Utilities & JSON
+
+- `JSONDecoder.difyDecoder` / `JSONEncoder.difyEncoder` for consistent date handling and API compatibility
+- `DIFY_SDK_DEBUG=true` environment variable prints sanitized request/response debug output to help diagnose issues
+
 ### Error Types
 
  - `DifyError.invalidURL()`
@@ -705,23 +753,29 @@ let client = try DifyClient(
 ### Process Rules for Knowledge Base
 
 ```swift
-let processRule = ProcessRule(
-    mode: "custom",
-    rules: [
-        "remove_extra_spaces": "true",
-        "remove_urls_emails": "true",
-        "segmentation_separator": "\n",
-        "max_tokens": "500"
-    ]
+// Typed rules using the OpenAPI-aligned model only
+let typed = KBProcessRule.custom(
+    rules: KBProcessRules(
+        preProcessingRules: [
+            KBPreprocessingRule(id: .removeExtraSpaces, enabled: true),
+            KBPreprocessingRule(id: .removeUrlsEmails, enabled: true)
+        ],
+        segmentation: KBSegmentationRule(separator: "\n", maxTokens: 500),
+        parentMode: .paragraph
+    )
 )
 
-// Use createDocument method with file data
+// Use the typed createDocumentFromFile with file data and rules
 let fileData = Data("Document content".utf8)
-let response = try await knowledgeBaseClient.createDocument(
+let response = try await knowledgeBaseClient.createDocumentFromFile(
     datasetId: "dataset_id",
-    fileData: fileData,
     fileName: "Custom Document.txt",
-    processRule: processRule
+    fileData: fileData,
+    data: KBCreateDocumentByFileData(
+        indexingTechnique: .economy,
+        docForm: .textModel,
+        processRule: typed
+    )
 )
 ```
 
@@ -756,6 +810,8 @@ swift test --no-parallel
 - **No External Dependencies**: Tests run offline and are completely deterministic
 - **Comprehensive Coverage**: Includes unit tests for all API endpoints, streaming responses, error scenarios, and edge cases
 - **Swift Testing Framework**: Built with the modern Swift Testing framework introduced at WWDC 2024
+
+Tip: integration tests for Knowledge Base are opt-in via environment variables (e.g., `DIFY_KB_API_KEY`) and are disabled by default.
 
 ## Platform Support
 

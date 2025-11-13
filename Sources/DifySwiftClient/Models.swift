@@ -10,29 +10,51 @@ import Foundation
 
 /// Response mode for API requests returned by the server or specified in a request.
 ///
-/// - blocking: The server will perform the entire operation and return a single JSON payload.
-/// - streaming: The server will stream a sequence of SSE (Server Sent Event) JSON objects.
-public enum ResponseMode: String, Codable, Sendable {
-    case blocking
-    case streaming
+/// SDKs should avoid closed enums for long‑term compatibility. This type is an
+/// open string wrapper with static known cases while allowing unknown values.
+public struct ResponseMode: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible, ExpressibleByStringLiteral {
+    public let rawValue: String
+    public init(rawValue: String) { self.rawValue = rawValue }
+    public init(stringLiteral value: StringLiteralType) { self.rawValue = value }
+
+    // Known values
+    public static let blocking = ResponseMode(rawValue: "blocking")
+    public static let streaming = ResponseMode(rawValue: "streaming")
+
+    public var description: String { rawValue }
 }
 
 /// File transfer method indicating how an accompanying file is provided.
 ///
-/// - remoteUrl: Provide a publicly accessible URL that the server can fetch.
-/// - localFile: Provide a previously uploaded file reference (e.g. via file upload endpoint).
-public enum FileTransferMethod: String, Codable, Sendable {
-    case remoteUrl = "remote_url"
-    case localFile = "local_file"
+/// Open string wrapper to remain forward compatible with server additions.
+public struct FileTransferMethod: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible, ExpressibleByStringLiteral {
+    public let rawValue: String
+    public init(rawValue: String) { self.rawValue = rawValue }
+    public init(stringLiteral value: StringLiteralType) { self.rawValue = value }
+
+    // Known values
+    public static let remoteUrl = FileTransferMethod(rawValue: "remote_url")
+    public static let localFile = FileTransferMethod(rawValue: "local_file")
+
+    public var description: String { rawValue }
 }
 
 /// File type accepted by the API. Used for validation / routing of processing logic.
-public enum FileType: String, Codable, Sendable {
-    case document
-    case image
-    case audio
-    case video
-    case custom
+///
+/// Open string wrapper to allow unknown/experimental categories without breaking consumers.
+public struct FileType: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible, ExpressibleByStringLiteral {
+    public let rawValue: String
+    public init(rawValue: String) { self.rawValue = rawValue }
+    public init(stringLiteral value: StringLiteralType) { self.rawValue = value }
+
+    // Known values
+    public static let document = FileType(rawValue: "document")
+    public static let image = FileType(rawValue: "image")
+    public static let audio = FileType(rawValue: "audio")
+    public static let video = FileType(rawValue: "video")
+    public static let custom = FileType(rawValue: "custom")
+
+    public var description: String { rawValue }
 }
 
 /// API file representation used when attaching supplemental user-provided files.
@@ -391,51 +413,69 @@ public struct RetrieverResource: Codable, Sendable {
 
 // MARK: - Streaming Completion Response Models
 
-/// Streaming completion SSE events emitted in `ResponseMode.streaming`.
-public enum StreamingCompletionResponse: Decodable, Sendable {
-    /// Partial text delta for the assistant answer.
-    case message(MessageStreamEvent)
-    /// Finalization event containing usage metadata.
-    case messageEnd(MessageEndStreamEvent)
-    /// Text-to-Speech audio chunk (Base64) for the answer.
-    case ttsMessage(TTSMessageStreamEvent)
-    /// Indicates TTS stream ended (empty audio string).
-    case ttsMessageEnd(TTSMessageEndStreamEvent)
-    /// Replacement of previously emitted content (e.g. when agent rewrites answer).
-    case messageReplace(MessageReplaceStreamEvent)
-    /// Error describing an abnormal termination.
-    case error(ErrorStreamEvent)
-    /// Keep-alive heartbeat.
-    case ping
-
-    private enum CodingKeys: String, CodingKey {
-        case event
+/// Streaming completion SSE event (open sum type).
+///
+/// This struct replaces a closed enum to allow forward-compatible event kinds.
+public struct StreamingCompletionEvent: Decodable, Sendable {
+    /// Discriminant for the event kind.
+    public struct Kind: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible {
+        public let rawValue: String
+        public init(rawValue: String) { self.rawValue = rawValue }
+        public var description: String { rawValue }
+        // Known kinds
+        public static let message = Kind(rawValue: "message")
+        public static let messageEnd = Kind(rawValue: "message_end")
+        public static let ttsMessage = Kind(rawValue: "tts_message")
+        public static let ttsMessageEnd = Kind(rawValue: "tts_message_end")
+        public static let messageReplace = Kind(rawValue: "message_replace")
+        public static let error = Kind(rawValue: "error")
+        public static let ping = Kind(rawValue: "ping")
     }
+
+    public let kind: Kind
+    public let message: MessageStreamEvent?
+    public let messageEnd: MessageEndStreamEvent?
+    public let ttsMessage: TTSMessageStreamEvent?
+    public let ttsMessageEnd: TTSMessageEndStreamEvent?
+    public let messageReplace: MessageReplaceStreamEvent?
+    public let error: ErrorStreamEvent?
+
+    private enum CodingKeys: String, CodingKey { case event }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let eventType = try container.decode(String.self, forKey: .event)
-        
+        let eventType = (try? container.decode(String.self, forKey: .event)) ?? ""
+        self.kind = Kind(rawValue: eventType)
         switch eventType {
         case "message":
-            self = .message(try MessageStreamEvent(from: decoder))
+            self.message = try MessageStreamEvent(from: decoder)
+            self.messageEnd = nil; self.ttsMessage = nil; self.ttsMessageEnd = nil; self.messageReplace = nil; self.error = nil
         case "message_end":
-            self = .messageEnd(try MessageEndStreamEvent(from: decoder))
+            self.messageEnd = try MessageEndStreamEvent(from: decoder)
+            self.message = nil; self.ttsMessage = nil; self.ttsMessageEnd = nil; self.messageReplace = nil; self.error = nil
         case "tts_message":
-            self = .ttsMessage(try TTSMessageStreamEvent(from: decoder))
+            self.ttsMessage = try TTSMessageStreamEvent(from: decoder)
+            self.message = nil; self.messageEnd = nil; self.ttsMessageEnd = nil; self.messageReplace = nil; self.error = nil
         case "tts_message_end":
-            self = .ttsMessageEnd(try TTSMessageEndStreamEvent(from: decoder))
+            self.ttsMessageEnd = try TTSMessageEndStreamEvent(from: decoder)
+            self.message = nil; self.messageEnd = nil; self.ttsMessage = nil; self.messageReplace = nil; self.error = nil
         case "message_replace":
-            self = .messageReplace(try MessageReplaceStreamEvent(from: decoder))
+            self.messageReplace = try MessageReplaceStreamEvent(from: decoder)
+            self.message = nil; self.messageEnd = nil; self.ttsMessage = nil; self.ttsMessageEnd = nil; self.error = nil
         case "error":
-            self = .error(try ErrorStreamEvent(from: decoder))
+            self.error = try ErrorStreamEvent(from: decoder)
+            self.message = nil; self.messageEnd = nil; self.ttsMessage = nil; self.ttsMessageEnd = nil; self.messageReplace = nil
         case "ping":
-            self = .ping
+            self.message = nil; self.messageEnd = nil; self.ttsMessage = nil; self.ttsMessageEnd = nil; self.messageReplace = nil; self.error = nil
         default:
-            throw DecodingError.dataCorruptedError(forKey: .event, in: container, debugDescription: "Unknown event type: \(eventType)")
+            // Unknown kinds decode without payload to stay forward compatible
+            self.message = nil; self.messageEnd = nil; self.ttsMessage = nil; self.ttsMessageEnd = nil; self.messageReplace = nil; self.error = nil
         }
     }
 }
+
+/// Backwards-compatible alias for old name.
+public typealias StreamingCompletionResponse = StreamingCompletionEvent
 
 public struct MessageStreamEvent: Codable, Sendable {
     public let event: String
@@ -585,79 +625,94 @@ public struct ChatMessageResponse: Codable, Sendable {
     }
 }
 
-/// Streaming chat SSE events capturing agent reasoning, files, workflow progress and answer content.
-public enum StreamingChatMessageResponse: Decodable, Sendable {
-    /// Partial answer text.
-    case message(MessageStreamEvent)
-    /// Final answer & usage metadata.
-    case messageEnd(MessageEndStreamEvent)
-    /// Agent produced an intermediate user-visible message.
-    case agentMessage(AgentMessageStreamEvent)
-    /// Agent internal reasoning / tool invocation state.
-    case agentThought(AgentThoughtStreamEvent)
-    /// Text-to-Speech audio chunk for chat answer.
-    case ttsMessage(TTSMessageStreamEvent)
-    /// TTS finished marker.
-    case ttsMessageEnd(TTSMessageEndStreamEvent)
-    /// A file associated with this message became available.
-    case messageFile(MessageFileStreamEvent)
-    /// Answer replacement (e.g. editing / re-generation).
-    case messageReplace(MessageReplaceStreamEvent)
-    /// Workflow started (when chat triggers a workflow).
-    case workflowStarted(WorkflowStartedEvent)
-    /// A workflow node started executing.
-    case nodeStarted(NodeStartedEvent)
-    /// A workflow node finished executing.
-    case nodeFinished(NodeFinishedEvent)
-    /// Workflow run finished.
-    case workflowFinished(WorkflowFinishedEvent)
-    /// Error event.
-    case error(ErrorStreamEvent)
-    /// Keep-alive heartbeat.
-    case ping
-
-    private enum CodingKeys: String, CodingKey {
-        case event
+/// Streaming chat SSE event (open sum type that tolerates unknown kinds).
+public struct StreamingChatMessageEvent: Decodable, Sendable {
+    public struct Kind: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible {
+        public let rawValue: String
+        public init(rawValue: String) { self.rawValue = rawValue }
+        public var description: String { rawValue }
+        public static let message = Kind(rawValue: "message")
+        public static let messageEnd = Kind(rawValue: "message_end")
+        public static let agentMessage = Kind(rawValue: "agent_message")
+        public static let agentThought = Kind(rawValue: "agent_thought")
+        public static let ttsMessage = Kind(rawValue: "tts_message")
+        public static let ttsMessageEnd = Kind(rawValue: "tts_message_end")
+        public static let messageFile = Kind(rawValue: "message_file")
+        public static let messageReplace = Kind(rawValue: "message_replace")
+        public static let workflowStarted = Kind(rawValue: "workflow_started")
+        public static let nodeStarted = Kind(rawValue: "node_started")
+        public static let nodeFinished = Kind(rawValue: "node_finished")
+        public static let workflowFinished = Kind(rawValue: "workflow_finished")
+        public static let error = Kind(rawValue: "error")
+        public static let ping = Kind(rawValue: "ping")
     }
+
+    public let kind: Kind
+    public let message: MessageStreamEvent?
+    public let messageEnd: MessageEndStreamEvent?
+    public let agentMessage: AgentMessageStreamEvent?
+    public let agentThought: AgentThoughtStreamEvent?
+    public let ttsMessage: TTSMessageStreamEvent?
+    public let ttsMessageEnd: TTSMessageEndStreamEvent?
+    public let messageFile: MessageFileStreamEvent?
+    public let messageReplace: MessageReplaceStreamEvent?
+    public let workflowStarted: WorkflowStartedEvent?
+    public let nodeStarted: NodeStartedEvent?
+    public let nodeFinished: NodeFinishedEvent?
+    public let workflowFinished: WorkflowFinishedEvent?
+    public let error: ErrorStreamEvent?
+
+    private enum CodingKeys: String, CodingKey { case event }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let eventType = try container.decode(String.self, forKey: .event)
-        
+        let eventType = (try? container.decode(String.self, forKey: .event)) ?? ""
+        self.kind = Kind(rawValue: eventType)
+        // reset all to nil, then fill the matching payload
+        var _message: MessageStreamEvent?; var _messageEnd: MessageEndStreamEvent?
+        var _agentMessage: AgentMessageStreamEvent?; var _agentThought: AgentThoughtStreamEvent?
+        var _ttsMessage: TTSMessageStreamEvent?; var _ttsMessageEnd: TTSMessageEndStreamEvent?
+        var _messageFile: MessageFileStreamEvent?; var _messageReplace: MessageReplaceStreamEvent?
+        var _workflowStarted: WorkflowStartedEvent?; var _nodeStarted: NodeStartedEvent?
+        var _nodeFinished: NodeFinishedEvent?; var _workflowFinished: WorkflowFinishedEvent?
+        var _error: ErrorStreamEvent?
+
         switch eventType {
-        case "message":
-            self = .message(try MessageStreamEvent(from: decoder))
-        case "message_end":
-            self = .messageEnd(try MessageEndStreamEvent(from: decoder))
-        case "agent_message":
-            self = .agentMessage(try AgentMessageStreamEvent(from: decoder))
-        case "agent_thought":
-            self = .agentThought(try AgentThoughtStreamEvent(from: decoder))
-        case "tts_message":
-            self = .ttsMessage(try TTSMessageStreamEvent(from: decoder))
-        case "tts_message_end":
-            self = .ttsMessageEnd(try TTSMessageEndStreamEvent(from: decoder))
-        case "message_file":
-            self = .messageFile(try MessageFileStreamEvent(from: decoder))
-        case "message_replace":
-            self = .messageReplace(try MessageReplaceStreamEvent(from: decoder))
-        case "workflow_started":
-            self = .workflowStarted(try WorkflowStartedEvent(from: decoder))
-        case "node_started":
-            self = .nodeStarted(try NodeStartedEvent(from: decoder))
-        case "node_finished":
-            self = .nodeFinished(try NodeFinishedEvent(from: decoder))
-        case "workflow_finished":
-            self = .workflowFinished(try WorkflowFinishedEvent(from: decoder))
-        case "error":
-            self = .error(try ErrorStreamEvent(from: decoder))
-        case "ping":
-            self = .ping
-        default:
-            throw DecodingError.dataCorruptedError(forKey: .event, in: container, debugDescription: "Unknown event type: \(eventType)")
+        case "message": _message = try MessageStreamEvent(from: decoder)
+        case "message_end": _messageEnd = try MessageEndStreamEvent(from: decoder)
+        case "agent_message": _agentMessage = try AgentMessageStreamEvent(from: decoder)
+        case "agent_thought": _agentThought = try AgentThoughtStreamEvent(from: decoder)
+        case "tts_message": _ttsMessage = try TTSMessageStreamEvent(from: decoder)
+        case "tts_message_end": _ttsMessageEnd = try TTSMessageEndStreamEvent(from: decoder)
+        case "message_file": _messageFile = try MessageFileStreamEvent(from: decoder)
+        case "message_replace": _messageReplace = try MessageReplaceStreamEvent(from: decoder)
+        case "workflow_started": _workflowStarted = try WorkflowStartedEvent(from: decoder)
+        case "node_started": _nodeStarted = try NodeStartedEvent(from: decoder)
+        case "node_finished": _nodeFinished = try NodeFinishedEvent(from: decoder)
+        case "workflow_finished": _workflowFinished = try WorkflowFinishedEvent(from: decoder)
+        case "error": _error = try ErrorStreamEvent(from: decoder)
+        case "ping": break
+        default: break // unknown kinds tolerated
         }
+
+        self.message = _message
+        self.messageEnd = _messageEnd
+        self.agentMessage = _agentMessage
+        self.agentThought = _agentThought
+        self.ttsMessage = _ttsMessage
+        self.ttsMessageEnd = _ttsMessageEnd
+        self.messageFile = _messageFile
+        self.messageReplace = _messageReplace
+        self.workflowStarted = _workflowStarted
+        self.nodeStarted = _nodeStarted
+        self.nodeFinished = _nodeFinished
+        self.workflowFinished = _workflowFinished
+        self.error = _error
     }
 }
+
+/// Backwards-compatible alias for old name.
+public typealias StreamingChatMessageResponse = StreamingChatMessageEvent
 
 public struct AgentMessageStreamEvent: Codable, Sendable {
     public let event: String
@@ -775,59 +830,71 @@ public struct WorkflowData: Codable, Sendable {
     }
 }
 
-/// Streaming workflow SSE events representing progression of a workflow run.
-public enum StreamingWorkflowResponse: Decodable, Sendable {
-    /// Workflow execution has begun.
-    case workflowStarted(WorkflowStartedEvent)
-    /// A node (step) started executing.
-    case nodeStarted(NodeStartedEvent)
-    /// A node finished executing.
-    case nodeFinished(NodeFinishedEvent)
-    /// Workflow has finished (success or error contained in data).
-    case workflowFinished(WorkflowFinishedEvent)
-    /// Incremental text output generated by a running node.
-    case textChunk(TextChunkEvent)
-    /// TTS audio chunk produced during workflow.
-    case ttsMessage(TTSMessageStreamEvent)
-    /// TTS finished marker.
-    case ttsMessageEnd(TTSMessageEndStreamEvent)
-    /// Error event.
-    case error(ErrorStreamEvent)
-    /// Keep-alive heartbeat.
-    case ping
-
-    private enum CodingKeys: String, CodingKey {
-        case event
+/// Streaming workflow SSE event (open sum type).
+public struct StreamingWorkflowEvent: Decodable, Sendable {
+    public struct Kind: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible {
+        public let rawValue: String
+        public init(rawValue: String) { self.rawValue = rawValue }
+        public var description: String { rawValue }
+        public static let workflowStarted = Kind(rawValue: "workflow_started")
+        public static let nodeStarted = Kind(rawValue: "node_started")
+        public static let nodeFinished = Kind(rawValue: "node_finished")
+        public static let workflowFinished = Kind(rawValue: "workflow_finished")
+        public static let textChunk = Kind(rawValue: "text_chunk")
+        public static let ttsMessage = Kind(rawValue: "tts_message")
+        public static let ttsMessageEnd = Kind(rawValue: "tts_message_end")
+        public static let error = Kind(rawValue: "error")
+        public static let ping = Kind(rawValue: "ping")
     }
+
+    public let kind: Kind
+    public let workflowStarted: WorkflowStartedEvent?
+    public let nodeStarted: NodeStartedEvent?
+    public let nodeFinished: NodeFinishedEvent?
+    public let workflowFinished: WorkflowFinishedEvent?
+    public let textChunk: TextChunkEvent?
+    public let ttsMessage: TTSMessageStreamEvent?
+    public let ttsMessageEnd: TTSMessageEndStreamEvent?
+    public let error: ErrorStreamEvent?
+
+    private enum CodingKeys: String, CodingKey { case event }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let eventType = try container.decode(String.self, forKey: .event)
-        
+        let eventType = (try? container.decode(String.self, forKey: .event)) ?? ""
+        self.kind = Kind(rawValue: eventType)
+
+        var _workflowStarted: WorkflowStartedEvent?; var _nodeStarted: NodeStartedEvent?
+        var _nodeFinished: NodeFinishedEvent?; var _workflowFinished: WorkflowFinishedEvent?
+        var _textChunk: TextChunkEvent?; var _ttsMessage: TTSMessageStreamEvent?
+        var _ttsMessageEnd: TTSMessageEndStreamEvent?; var _error: ErrorStreamEvent?
+
         switch eventType {
-        case "workflow_started":
-            self = .workflowStarted(try WorkflowStartedEvent(from: decoder))
-        case "node_started":
-            self = .nodeStarted(try NodeStartedEvent(from: decoder))
-        case "node_finished":
-            self = .nodeFinished(try NodeFinishedEvent(from: decoder))
-        case "workflow_finished":
-            self = .workflowFinished(try WorkflowFinishedEvent(from: decoder))
-        case "text_chunk":
-            self = .textChunk(try TextChunkEvent(from: decoder))
-        case "tts_message":
-            self = .ttsMessage(try TTSMessageStreamEvent(from: decoder))
-        case "tts_message_end":
-            self = .ttsMessageEnd(try TTSMessageEndStreamEvent(from: decoder))
-        case "error":
-            self = .error(try ErrorStreamEvent(from: decoder))
-        case "ping":
-            self = .ping
-        default:
-            throw DecodingError.dataCorruptedError(forKey: .event, in: container, debugDescription: "Unknown event type: \(eventType)")
+        case "workflow_started": _workflowStarted = try WorkflowStartedEvent(from: decoder)
+        case "node_started": _nodeStarted = try NodeStartedEvent(from: decoder)
+        case "node_finished": _nodeFinished = try NodeFinishedEvent(from: decoder)
+        case "workflow_finished": _workflowFinished = try WorkflowFinishedEvent(from: decoder)
+        case "text_chunk": _textChunk = try TextChunkEvent(from: decoder)
+        case "tts_message": _ttsMessage = try TTSMessageStreamEvent(from: decoder)
+        case "tts_message_end": _ttsMessageEnd = try TTSMessageEndStreamEvent(from: decoder)
+        case "error": _error = try ErrorStreamEvent(from: decoder)
+        case "ping": break
+        default: break
         }
+
+        self.workflowStarted = _workflowStarted
+        self.nodeStarted = _nodeStarted
+        self.nodeFinished = _nodeFinished
+        self.workflowFinished = _workflowFinished
+        self.textChunk = _textChunk
+        self.ttsMessage = _ttsMessage
+        self.ttsMessageEnd = _ttsMessageEnd
+        self.error = _error
     }
 }
+
+/// Backwards-compatible alias for old name.
+public typealias StreamingWorkflowResponse = StreamingWorkflowEvent
 
 public struct WorkflowStartedEvent: Codable, Sendable {
     public let event: String
@@ -954,13 +1021,51 @@ public struct ExecutionMetadata: Codable, Sendable {
 
 // MARK: - Knowledge Base Models
 
+/// Type-safe wrapper for indexing technique values used by Knowledge Base APIs.
+public struct KBIndexingTechnique: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible {
+    public let rawValue: String
+
+    public init(rawValue: String) { self.rawValue = rawValue }
+
+    // Common techniques
+    public static let economy = KBIndexingTechnique(rawValue: "economy")
+    public static let highQuality = KBIndexingTechnique(rawValue: "high_quality")
+
+    // Codable as a single string
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(String.self)
+        self.init(rawValue: value)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
+    public var description: String { rawValue }
+}
+
+/// Type-safe wrapper for document form values (doc_form) used by Knowledge Base APIs.
+public struct KBDocumentForm: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible {
+    public let rawValue: String
+    public init(rawValue: String) { self.rawValue = rawValue }
+
+    // Known/common forms
+    public static let textModel = KBDocumentForm(rawValue: "text_model")
+    public static let hierarchicalModel = KBDocumentForm(rawValue: "hierarchical_model")
+    public static let qaModel = KBDocumentForm(rawValue: "qa_model")
+
+    public var description: String { rawValue }
+}
+
 public struct DatasetResponse: Codable, Sendable {
     public let id: String
     public let name: String
     public let description: String?
     public let permission: String
     public let dataSourceType: String
-    public let indexingTechnique: String
+    public let indexingTechnique: KBIndexingTechnique
     public let appCount: Int
     public let documentCount: Int
     public let wordCount: Int
@@ -987,7 +1092,8 @@ public struct DatasetResponse: Codable, Sendable {
         self.description = try container.decodeIfPresent(String.self, forKey: .description)
         self.permission = try container.decode(String.self, forKey: .permission)
         self.dataSourceType = try container.decodeIfPresent(String.self, forKey: .dataSourceType) ?? ""
-        self.indexingTechnique = try container.decodeIfPresent(String.self, forKey: .indexingTechnique) ?? ""
+        let idx = try container.decodeIfPresent(String.self, forKey: .indexingTechnique) ?? ""
+        self.indexingTechnique = KBIndexingTechnique(rawValue: idx)
         self.appCount = try container.decode(Int.self, forKey: .appCount)
         self.documentCount = try container.decode(Int.self, forKey: .documentCount)
         self.wordCount = try container.decode(Int.self, forKey: .wordCount)
@@ -1041,23 +1147,13 @@ public struct DocumentsResponse: Codable, Sendable {
     }
 }
 
-public struct ProcessRule: Codable, Sendable {
-    public let mode: String
-    public let rules: [String: String]?
-    
-    public init(mode: String, rules: [String : String]? = nil) {
-        self.mode = mode
-        self.rules = rules
-    }
-}
-
 // MARK: Knowledge Base Models (OpenAPI-aligned, non-breaking new types)
 
 /// Advanced Create Dataset request (OpenAPI CreateDatasetRequest)
 public struct KBCreateDatasetRequest: Codable, Sendable {
     public let name: String
     public let description: String?
-    public let indexingTechnique: String?
+    public let indexingTechnique: KBIndexingTechnique?
     public let permission: String?
     public let provider: String?
     public let externalKnowledgeApiId: String?
@@ -1079,7 +1175,7 @@ public struct KBCreateDatasetRequest: Codable, Sendable {
 
     public init(name: String,
                 description: String? = nil,
-                indexingTechnique: String? = nil,
+                indexingTechnique: KBIndexingTechnique? = nil,
                 permission: String? = nil,
                 provider: String? = nil,
                 externalKnowledgeApiId: String? = nil,
@@ -1108,7 +1204,7 @@ public struct KBDataset: Codable, Sendable {
     public let provider: String?
     public let permission: String
     public let dataSourceType: String?
-    public let indexingTechnique: String?
+    public let indexingTechnique: KBIndexingTechnique?
     public let appCount: Int
     public let documentCount: Int
     public let wordCount: Int
@@ -1139,6 +1235,18 @@ public struct KBDataset: Codable, Sendable {
 
 /// Retrieval Model configuration (OpenAPI RetrievalModel)
 public struct KBRetrievalModel: Codable, Sendable {
+    /// Type-safe wrapper for retrieval search_method values.
+    public struct KBSearchMethod: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible {
+        public let rawValue: String
+        public init(rawValue: String) { self.rawValue = rawValue }
+
+        // Commonly used methods
+        public static let semanticSearch = KBSearchMethod(rawValue: "semantic_search")
+        public static let fullTextSearch = KBSearchMethod(rawValue: "full_text_search")
+        public static let hybridSearch = KBSearchMethod(rawValue: "hybrid_search")
+
+        public var description: String { rawValue }
+    }
     public struct RerankingMode: Codable, Sendable {
         public let rerankingProviderName: String?
         public let rerankingModelName: String?
@@ -1191,7 +1299,7 @@ public struct KBRetrievalModel: Codable, Sendable {
         }
     }
 
-    public let searchMethod: String?
+    public let searchMethod: KBSearchMethod?
     public let rerankingEnable: Bool?
     public let rerankingMode: RerankingMode?
     public let topK: Int?
@@ -1200,7 +1308,7 @@ public struct KBRetrievalModel: Codable, Sendable {
     public let weights: Double?
     public let metadataFilteringConditions: MetadataFilteringConditions?
 
-    public init(searchMethod: String? = nil,
+    public init(searchMethod: KBSearchMethod? = nil,
                 rerankingEnable: Bool? = nil,
                 rerankingMode: RerankingMode? = nil,
                 topK: Int? = nil,
@@ -1239,7 +1347,7 @@ public struct KBDatasetDetail: Codable, Sendable {
     public let provider: String?
     public let permission: String
     public let dataSourceType: String?
-    public let indexingTechnique: String?
+    public let indexingTechnique: KBIndexingTechnique?
     public let appCount: Int
     public let documentCount: Int
     public let wordCount: Int
@@ -1254,7 +1362,7 @@ public struct KBDatasetDetail: Codable, Sendable {
     // Additional detail fields
     public let retrievalModelDict: KBRetrievalModel?
     public let tags: [AnyCodable]?
-    public let docForm: String?
+    public let docForm: KBDocumentForm?
 
     private enum CodingKeys: String, CodingKey {
         case id, name, description, provider, permission
@@ -1280,7 +1388,7 @@ public struct KBDatasetDetail: Codable, Sendable {
 public struct KBUpdateDatasetRequest: Codable, Sendable {
     public let name: String?
     public let description: String?
-    public let indexingTechnique: String?
+    public let indexingTechnique: KBIndexingTechnique?
     public let permission: String?
     public let embeddingModelProvider: String?
     public let embeddingModel: String?
@@ -1299,7 +1407,7 @@ public struct KBUpdateDatasetRequest: Codable, Sendable {
 
     public init(name: String? = nil,
                 description: String? = nil,
-                indexingTechnique: String? = nil,
+                indexingTechnique: KBIndexingTechnique? = nil,
                 permission: String? = nil,
                 embeddingModelProvider: String? = nil,
                 embeddingModel: String? = nil,
@@ -1316,24 +1424,132 @@ public struct KBUpdateDatasetRequest: Codable, Sendable {
     }
 }
 
-/// Flexible process rule for Knowledge endpoints supporting nested structures.
+/// Flexible process mode (open string wrapper) for Knowledge endpoints.
+public struct KBProcessMode: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible, ExpressibleByStringLiteral {
+    public let rawValue: String
+    public init(rawValue: String) { self.rawValue = rawValue }
+    public init(stringLiteral value: StringLiteralType) { self.rawValue = value }
+    public static let automatic = KBProcessMode(rawValue: "automatic")
+    public static let custom = KBProcessMode(rawValue: "custom")
+    public static let hierarchical = KBProcessMode(rawValue: "hierarchical")
+    public var description: String { rawValue }
+}
+
+/// Preprocess rule identifiers (open string wrapper).
+public struct KBPreprocessRuleId: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible, ExpressibleByStringLiteral {
+    public let rawValue: String
+    public init(rawValue: String) { self.rawValue = rawValue }
+    public init(stringLiteral value: StringLiteralType) { self.rawValue = value }
+    public static let removeExtraSpaces = KBPreprocessRuleId(rawValue: "remove_extra_spaces")
+    public static let removeUrlsEmails = KBPreprocessRuleId(rawValue: "remove_urls_emails")
+    public var description: String { rawValue }
+}
+
+public struct KBPreprocessingRule: Codable, Sendable {
+    public let id: KBPreprocessRuleId
+    public let enabled: Bool
+
+    public init(id: KBPreprocessRuleId, enabled: Bool) {
+        self.id = id
+        self.enabled = enabled
+    }
+}
+
+public struct KBSegmentationRule: Codable, Sendable {
+    public let separator: String?
+    public let maxTokens: Int?
+    
+    public init(separator: String? = nil, maxTokens: Int? = nil) {
+        self.separator = separator
+        self.maxTokens = maxTokens
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case separator
+        case maxTokens = "max_tokens"
+    }
+}
+
+public struct KBParentMode: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible, ExpressibleByStringLiteral {
+    public let rawValue: String
+    public init(rawValue: String) { self.rawValue = rawValue }
+    public init(stringLiteral value: StringLiteralType) { self.rawValue = value }
+    public static let fullDoc = KBParentMode(rawValue: "full-doc")
+    public static let paragraph = KBParentMode(rawValue: "paragraph")
+    public var description: String { rawValue }
+}
+
+public struct KBSubChunkSegmentationRule: Codable, Sendable {
+    public let separator: String?
+    public let maxTokens: Int?
+    public let chunkOverlap: Int?
+
+    public init(separator: String? = nil,
+                maxTokens: Int? = nil,
+                chunkOverlap: Int? = nil) {
+        self.separator = separator
+        self.maxTokens = maxTokens
+        self.chunkOverlap = chunkOverlap
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case separator
+        case maxTokens = "max_tokens"
+        case chunkOverlap = "chunk_overlap"
+    }
+}
+
+public struct KBProcessRules: Codable, Sendable {
+    public let preProcessingRules: [KBPreprocessingRule]?
+    public let segmentation: KBSegmentationRule?
+    public let parentMode: KBParentMode?
+    public let subchunkSegmentation: KBSubChunkSegmentationRule?
+
+    public init(preProcessingRules: [KBPreprocessingRule]? = nil,
+                segmentation: KBSegmentationRule? = nil,
+                parentMode: KBParentMode? = nil,
+                subchunkSegmentation: KBSubChunkSegmentationRule? = nil) {
+        self.preProcessingRules = preProcessingRules
+        self.segmentation = segmentation
+        self.parentMode = parentMode
+        self.subchunkSegmentation = subchunkSegmentation
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case preProcessingRules = "pre_processing_rules"
+        case segmentation
+        case parentMode = "parent_mode"
+        case subchunkSegmentation = "subchunk_segmentation"
+    }
+}
+
 public struct KBProcessRule: Codable, Sendable {
-    public let mode: String?
-    public let rules: [String: AnyCodable]?
+    public let mode: KBProcessMode?
+    public let rules: KBProcessRules?
 
     public init(mode: String? = nil,
-                rules: [String: AnyCodable]? = nil) {
+                rules: KBProcessRules? = nil) {
+        self.mode = mode.map { KBProcessMode(rawValue: $0) }
+        self.rules = rules
+    }
+
+    public init(mode: KBProcessMode,
+                rules: KBProcessRules? = nil) {
         self.mode = mode
         self.rules = rules
     }
+
+    public static var automatic: KBProcessRule { KBProcessRule(mode: .automatic) }
+    public static func custom(rules: KBProcessRules? = nil) -> KBProcessRule { KBProcessRule(mode: .custom, rules: rules) }
+    public static func hierarchical(rules: KBProcessRules? = nil) -> KBProcessRule { KBProcessRule(mode: .hierarchical, rules: rules) }
 }
 
 // MARK: Documents (OpenAPI)
 
 public struct KBCreateDocumentByFileData: Codable, Sendable {
     public let originalDocumentId: String?
-    public let indexingTechnique: String?
-    public let docForm: String?
+    public let indexingTechnique: KBIndexingTechnique?
+    public let docForm: KBDocumentForm?
     public let docLanguage: String?
     public let processRule: KBProcessRule?
     public let retrievalModel: KBRetrievalModel?
@@ -1341,8 +1557,8 @@ public struct KBCreateDocumentByFileData: Codable, Sendable {
     public let embeddingModelProvider: String?
 
     public init(originalDocumentId: String? = nil,
-                indexingTechnique: String? = nil,
-                docForm: String? = nil,
+                indexingTechnique: KBIndexingTechnique? = nil,
+                docForm: KBDocumentForm? = nil,
                 docLanguage: String? = nil,
                 processRule: KBProcessRule? = nil,
                 retrievalModel: KBRetrievalModel? = nil,
@@ -1368,13 +1584,36 @@ public struct KBCreateDocumentByFileData: Codable, Sendable {
         case embeddingModel = "embedding_model"
         case embeddingModelProvider = "embedding_model_provider"
     }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(originalDocumentId, forKey: .originalDocumentId)
+        try container.encodeIfPresent(indexingTechnique, forKey: .indexingTechnique)
+        try container.encodeIfPresent(docForm, forKey: .docForm)
+        // doc_language: required only when doc_form == qa_model; omitted otherwise
+        if let form = docForm, form == .qaModel {
+            let lang = docLanguage?.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let nonEmpty = lang, !nonEmpty.isEmpty else {
+                let context = EncodingError.Context(
+                    codingPath: container.codingPath + [CodingKeys.docLanguage],
+                    debugDescription: "doc_language must be non-empty when doc_form == qa_model"
+                )
+                throw EncodingError.invalidValue(lang as Any, context)
+            }
+            try container.encode(nonEmpty, forKey: .docLanguage)
+        }
+        try container.encodeIfPresent(processRule, forKey: .processRule)
+        try container.encodeIfPresent(retrievalModel, forKey: .retrievalModel)
+        try container.encodeIfPresent(embeddingModel, forKey: .embeddingModel)
+        try container.encodeIfPresent(embeddingModelProvider, forKey: .embeddingModelProvider)
+    }
 }
 
 public struct KBCreateDocumentByTextRequest: Codable, Sendable {
     public let name: String
     public let text: String
-    public let indexingTechnique: String?
-    public let docForm: String?
+    public let indexingTechnique: KBIndexingTechnique?
+    public let docForm: KBDocumentForm?
     public let docLanguage: String?
     public let processRule: KBProcessRule?
     public let retrievalModel: KBRetrievalModel?
@@ -1383,8 +1622,8 @@ public struct KBCreateDocumentByTextRequest: Codable, Sendable {
 
     public init(name: String,
                 text: String,
-                indexingTechnique: String? = nil,
-                docForm: String? = nil,
+                indexingTechnique: KBIndexingTechnique? = nil,
+                docForm: KBDocumentForm? = nil,
                 docLanguage: String? = nil,
                 processRule: KBProcessRule? = nil,
                 retrievalModel: KBRetrievalModel? = nil,
@@ -1410,6 +1649,30 @@ public struct KBCreateDocumentByTextRequest: Codable, Sendable {
         case retrievalModel = "retrieval_model"
         case embeddingModel = "embedding_model"
         case embeddingModelProvider = "embedding_model_provider"
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encode(text, forKey: .text)
+        try container.encodeIfPresent(indexingTechnique, forKey: .indexingTechnique)
+        try container.encodeIfPresent(docForm, forKey: .docForm)
+        // doc_language: required only when doc_form == qa_model; omitted otherwise
+        if let form = docForm, form == .qaModel {
+            let lang = docLanguage?.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let nonEmpty = lang, !nonEmpty.isEmpty else {
+                let context = EncodingError.Context(
+                    codingPath: container.codingPath + [CodingKeys.docLanguage],
+                    debugDescription: "doc_language must be non-empty when doc_form == qa_model"
+                )
+                throw EncodingError.invalidValue(lang as Any, context)
+            }
+            try container.encode(nonEmpty, forKey: .docLanguage)
+        }
+        try container.encodeIfPresent(processRule, forKey: .processRule)
+        try container.encodeIfPresent(retrievalModel, forKey: .retrievalModel)
+        try container.encodeIfPresent(embeddingModel, forKey: .embeddingModel)
+        try container.encodeIfPresent(embeddingModelProvider, forKey: .embeddingModelProvider)
     }
 }
 
@@ -1474,7 +1737,7 @@ public struct KBDocumentDetail: Codable, Sendable {
     public let displayStatus: String?
     public let wordCount: Int?
     public let hitCount: Int?
-    public let docForm: String?
+    public let docForm: KBDocumentForm?
 
     private enum CodingKeys: String, CodingKey {
         case id, position
@@ -1592,11 +1855,16 @@ public struct KBIndexingStatusResponse: Codable, Sendable {
     public let data: [KBDocumentIndexingStatus]
 }
 
-public enum KBDocumentStatusAction: String, Sendable {
-    case enable
-    case disable
-    case archive
-    case un_archive
+/// Action for batch document status updates (open string wrapper).
+public struct KBDocumentStatusAction: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible, ExpressibleByStringLiteral {
+    public let rawValue: String
+    public init(rawValue: String) { self.rawValue = rawValue }
+    public init(stringLiteral value: StringLiteralType) { self.rawValue = value }
+    public static let enable = KBDocumentStatusAction(rawValue: "enable")
+    public static let disable = KBDocumentStatusAction(rawValue: "disable")
+    public static let archive = KBDocumentStatusAction(rawValue: "archive")
+    public static let un_archive = KBDocumentStatusAction(rawValue: "un_archive")
+    public var description: String { rawValue }
 }
 
 // MARK: Segments & Child Chunks
@@ -2443,28 +2711,41 @@ public struct ApplicationMetaResponse: Codable, Sendable {
     }
 }
 
-/// Tool icon representation
-/// Tool icon which might be a direct URL string or an emoji descriptor.
-public enum ToolIcon: Codable, Sendable {
-    case url(String)
-    case emoji(ToolIconEmoji)
-    
+/// Tool icon representation (URL string or emoji descriptor). Open shape to avoid enum.
+public struct ToolIcon: Codable, Sendable {
+    /// When non-nil, represents a direct URL string for the icon.
+    public let url: String?
+    /// When non-nil, represents an emoji-based icon.
+    public let emoji: ToolIconEmoji?
+
+    public init(url: String) { self.url = url; self.emoji = nil }
+    public init(emoji: ToolIconEmoji) { self.url = nil; self.emoji = emoji }
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if let url = try? container.decode(String.self) {
-            self = .url(url)
+            self.url = url
+            self.emoji = nil
         } else {
-            self = .emoji(try container.decode(ToolIconEmoji.self))
+            self.url = nil
+            self.emoji = try container.decode(ToolIconEmoji.self)
         }
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        switch self {
-        case .url(let url):
-            try container.encode(url)
-        case .emoji(let emoji):
-            try container.encode(emoji)
+        if let url { try container.encode(url) }
+        else if let emoji { try container.encode(emoji) }
+        else {
+            // Defensive: This state shouldn't be reachable because our public
+            // initializers and Decodable init always set either `url` or `emoji`.
+            // Encoding `null` would violate the API shape (oneOf: string | object),
+            // so surface the invariant break explicitly.
+            let context = EncodingError.Context(
+                codingPath: encoder.codingPath,
+                debugDescription: "ToolIcon has neither 'url' nor 'emoji'; invalid state for encoding."
+            )
+            throw EncodingError.invalidValue(self, context)
         }
     }
 }

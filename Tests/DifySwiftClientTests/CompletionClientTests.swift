@@ -123,10 +123,7 @@ final class CompletionClientTests: DifyTestCase, @unchecked Sendable {
         #expect(events.count == 7)
         
         // Verify message events
-        let messageEvents = events.compactMap { event -> MessageStreamEvent? in
-            if case .message(let msg) = event { return msg }
-            return nil
-        }
+        let messageEvents = events.compactMap { $0.message }
         #expect(messageEvents.count == 6)
         
         // Verify the accumulated answer
@@ -134,10 +131,7 @@ final class CompletionClientTests: DifyTestCase, @unchecked Sendable {
         #expect(fullAnswer == "The capital of France is Paris.")
         
         // Verify message_end event
-        let endEvents = events.compactMap { event -> MessageEndStreamEvent? in
-            if case .messageEnd(let end) = event { return end }
-            return nil
-        }
+        let endEvents = events.compactMap { $0.messageEnd }
         #expect(endEvents.count == 1)
         #expect(endEvents.first?.metadata.usage?.totalTokens == 18)
     }
@@ -191,10 +185,7 @@ final class CompletionClientTests: DifyTestCase, @unchecked Sendable {
         #expect(events.count == 4)
         
         // Verify message events
-        let messageEvents = events.compactMap { event -> MessageStreamEvent? in
-            if case .message(let msg) = event { return msg }
-            return nil
-        }
+        let messageEvents = events.compactMap { $0.message }
         #expect(messageEvents.count == 3)
         
         // Verify the accumulated answer
@@ -1157,25 +1148,16 @@ final class CompletionClientTests: DifyTestCase, @unchecked Sendable {
         )
         
         var events: [StreamingCompletionResponse] = []
-        var hadError = false
-        
-        do {
-            for try await event in stream {
-                events.append(event)
-            }
-        } catch {
-            // Expected to throw a DifyError wrapping the decoding error for unknown event type
-            hadError = true
-            if let difyError = error as? DifyError {
-                #expect(difyError.message?.contains("Failed to decode response") == true)
-            } else {
-                Issue.record("Expected DifyError but got \(error)")
-            }
+        for try await event in stream {
+            events.append(event)
         }
         
-        // Should have thrown an error when encountering unknown event type
-        #expect(hadError == true)
-        #expect(events.isEmpty)
+        // Unknown event should be tolerated and surfaced as kind-only
+        #expect(events.count == 2)
+        #expect(events.first?.kind.rawValue == "unknown_event")
+        #expect(events.first?.message == nil)
+        #expect(events.last?.kind == .message)
+        #expect(events.last?.message?.answer == "Hello")
     }
     
     @Test("Streaming Response with Error Event")
@@ -1210,13 +1192,10 @@ final class CompletionClientTests: DifyTestCase, @unchecked Sendable {
         #expect(events.count == 2)
         
         // Verify error event
-        if case .error(let errorEvent) = events[1] {
-            #expect(errorEvent.status == 500)
-            #expect(errorEvent.code == "internal_error")
-            #expect(errorEvent.message == "An error occurred")
-        } else {
-            Issue.record("Expected second event to be error type")
-        }
+        #expect(events[1].kind == .error)
+        #expect(events[1].error?.status == 500)
+        #expect(events[1].error?.code == "internal_error")
+        #expect(events[1].error?.message == "An error occurred")
     }
     
     @Test("Text-to-Audio with Both MessageId and Text")

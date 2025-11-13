@@ -2,46 +2,41 @@ import Testing
 import Foundation
 @testable import DifySwiftClient
 
-// MARK: - Enum Tests
+// MARK: - Open String Wrapper Tests
 
-struct EnumTests {
-    @Test func testResponseModeRawValues() {
-        // Test raw values
+struct OpenStringWrapperTests {
+    @Test func testResponseModeRawValues() throws {
         #expect(ResponseMode.blocking.rawValue == "blocking")
         #expect(ResponseMode.streaming.rawValue == "streaming")
-        
-        // Test initialization from raw value
-        #expect(ResponseMode(rawValue: "blocking") == .blocking)
-        #expect(ResponseMode(rawValue: "streaming") == .streaming)
-        #expect(ResponseMode(rawValue: "invalid") == nil)
+
+        let unknown = ResponseMode(rawValue: "future_mode")
+        // round-trip through codable
+        let data = try JSONEncoder.difyEncoder.encode(["response_mode": unknown.rawValue])
+        let decoded = try JSONDecoder.difyDecoder.decode([String: String].self, from: data)
+        #expect(decoded["response_mode"] == "future_mode")
     }
-    
-    @Test func testFileTransferMethodRawValues() {
-        // Test raw values
+
+    @Test func testFileTransferMethodRawValues() throws {
         #expect(FileTransferMethod.remoteUrl.rawValue == "remote_url")
         #expect(FileTransferMethod.localFile.rawValue == "local_file")
-        
-        // Test initialization from raw value
-        #expect(FileTransferMethod(rawValue: "remote_url") == .remoteUrl)
-        #expect(FileTransferMethod(rawValue: "local_file") == .localFile)
-        #expect(FileTransferMethod(rawValue: "invalid") == nil)
+
+        let unknown = FileTransferMethod(rawValue: "new_method")
+        let data = try JSONEncoder.difyEncoder.encode(["transfer_method": unknown.rawValue])
+        let decoded = try JSONDecoder.difyDecoder.decode([String: String].self, from: data)
+        #expect(decoded["transfer_method"] == "new_method")
     }
-    
-    @Test func testFileTypeRawValues() {
-        // Test raw values
+
+    @Test func testFileTypeRawValues() throws {
         #expect(FileType.document.rawValue == "document")
         #expect(FileType.image.rawValue == "image")
         #expect(FileType.audio.rawValue == "audio")
         #expect(FileType.video.rawValue == "video")
         #expect(FileType.custom.rawValue == "custom")
-        
-        // Test initialization from raw value
-        #expect(FileType(rawValue: "document") == .document)
-        #expect(FileType(rawValue: "image") == .image)
-        #expect(FileType(rawValue: "audio") == .audio)
-        #expect(FileType(rawValue: "video") == .video)
-        #expect(FileType(rawValue: "custom") == .custom)
-        #expect(FileType(rawValue: "invalid") == nil)
+
+        let unknown = FileType(rawValue: "vector")
+        let data = try JSONEncoder.difyEncoder.encode(["type": unknown.rawValue])
+        let decoded = try JSONDecoder.difyDecoder.decode([String: String].self, from: data)
+        #expect(decoded["type"] == "vector")
     }
 }
 
@@ -98,21 +93,19 @@ struct SimpleModelTests {
         #expect(nilDecoded.result == nil)
     }
     
-    @Test func testProcessRule() throws {
-        let rule = ProcessRule(mode: "auto", rules: ["key": "value"])
+    @Test func testKBProcessRuleEncoding() throws {
+        let rules = KBProcessRules(
+            preProcessingRules: [KBPreprocessingRule(id: .removeExtraSpaces, enabled: true)],
+            segmentation: KBSegmentationRule(separator: "\n", maxTokens: 500),
+            parentMode: .paragraph,
+            subchunkSegmentation: nil
+        )
+        let rule = KBProcessRule(mode: .custom, rules: rules)
         let encoded = try JSONEncoder.difyEncoder.encode(rule)
-        let decoded = try JSONDecoder.difyDecoder.decode(ProcessRule.self, from: encoded)
-        
-        #expect(decoded.mode == "auto")
-        #expect(decoded.rules?["key"] == "value")
-        
-        // Test with nil rules
-        let simpleRule = ProcessRule(mode: "manual")
-        let simpleEncoded = try JSONEncoder.difyEncoder.encode(simpleRule)
-        let simpleDecoded = try JSONDecoder.difyDecoder.decode(ProcessRule.self, from: simpleEncoded)
-        
-        #expect(simpleDecoded.mode == "manual")
-        #expect(simpleDecoded.rules == nil)
+        let json = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        #expect(json?["mode"] as? String == "custom")
+        let rulesJson = json?["rules"] as? [String: Any]
+        #expect((rulesJson?["pre_processing_rules"] as? [[String: Any]])?.count == 1)
     }
 }
 
@@ -364,7 +357,8 @@ struct StreamingResponseTests {
         """.data(using: .utf8)!
         
         let messageResponse = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: messageJson)
-        if case .message(let event) = messageResponse {
+        #expect(messageResponse.kind == .message)
+        if let event = messageResponse.message {
             #expect(event.taskId == "task123")
             #expect(event.messageId == "msg123")
             #expect(event.answer == "Streaming answer")
@@ -389,7 +383,8 @@ struct StreamingResponseTests {
         """.data(using: .utf8)!
         
         let messageEndResponse = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: messageEndJson)
-        if case .messageEnd(let event) = messageEndResponse {
+        #expect(messageEndResponse.kind == .messageEnd)
+        if let event = messageEndResponse.messageEnd {
             #expect(event.taskId == "task123")
             #expect(event.metadata.usage?.totalTokens == 30)
         } else {
@@ -409,7 +404,8 @@ struct StreamingResponseTests {
         """.data(using: .utf8)!
         
         let errorResponse = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: errorJson)
-        if case .error(let event) = errorResponse {
+        #expect(errorResponse.kind == .error)
+        if let event = errorResponse.error {
             #expect(event.status == 400)
             #expect(event.code == "invalid_param")
             #expect(event.message == "Invalid parameter")
@@ -423,7 +419,7 @@ struct StreamingResponseTests {
         """.data(using: .utf8)!
         
         let pingResponse = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: pingJson)
-        if case .ping = pingResponse {
+        if pingResponse.kind == .ping {
             // Success
         } else {
             Issue.record("Expected ping event")
@@ -434,9 +430,8 @@ struct StreamingResponseTests {
         {"event": "unknown_event"}
         """.data(using: .utf8)!
         
-        #expect(throws: DecodingError.self) {
-            _ = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: unknownJson)
-        }
+        let unknown = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: unknownJson)
+        #expect(unknown.kind.rawValue == "unknown_event")
     }
     
     @Test func testStreamingChatMessageResponse() throws {
@@ -462,7 +457,8 @@ struct StreamingResponseTests {
         """.data(using: .utf8)!
         
         let workflowResponse = try JSONDecoder.difyDecoder.decode(StreamingChatMessageResponse.self, from: workflowJson)
-        if case .workflowStarted(let event) = workflowResponse {
+        #expect(workflowResponse.kind == .workflowStarted)
+        if let event = workflowResponse.workflowStarted {
             #expect(event.workflowRunId == "run123")
             #expect(event.data.status == "running")
             #expect(event.data.totalSteps == 5)
@@ -483,7 +479,8 @@ struct StreamingResponseTests {
         """.data(using: .utf8)!
         
         let agentResponse = try JSONDecoder.difyDecoder.decode(StreamingChatMessageResponse.self, from: agentMessageJson)
-        if case .agentMessage(let event) = agentResponse {
+        #expect(agentResponse.kind == .agentMessage)
+        if let event = agentResponse.agentMessage {
             #expect(event.conversationId == "conv123")
             #expect(event.answer == "Agent response")
         } else {
@@ -506,7 +503,8 @@ struct StreamingResponseTests {
         """.data(using: .utf8)!
         
         let textChunkResponse = try JSONDecoder.difyDecoder.decode(StreamingWorkflowResponse.self, from: textChunkJson)
-        if case .textChunk(let event) = textChunkResponse {
+        #expect(textChunkResponse.kind == .textChunk)
+        if let event = textChunkResponse.textChunk {
             #expect(event.data.text == "Chunk of text")
             #expect(event.data.fromVariableSelector == ["node1", "output"])
         } else {
@@ -542,7 +540,8 @@ struct StreamingResponseTests {
         """.data(using: .utf8)!
         
         let nodeResponse = try JSONDecoder.difyDecoder.decode(StreamingWorkflowResponse.self, from: nodeStartedJson)
-        if case .nodeStarted(let event) = nodeResponse {
+        #expect(nodeResponse.kind == .nodeStarted)
+        if let event = nodeResponse.nodeStarted {
             #expect(event.data.nodeType == "llm")
             #expect(event.data.title == "LLM Node")
             #expect(event.data.executionMetadata?.currency == "USD")
@@ -784,7 +783,7 @@ struct KnowledgeBaseModelTests {
         #expect(response.description == "A test dataset")
         #expect(response.permission == "read_write")
         #expect(response.dataSourceType == "upload_file")
-        #expect(response.indexingTechnique == "high_quality")
+        #expect(response.indexingTechnique == .highQuality)
         #expect(response.appCount == 3)
         #expect(response.documentCount == 10)
         #expect(response.wordCount == 5000)
@@ -819,6 +818,43 @@ struct KnowledgeBaseModelTests {
         #expect(response.data[0].tokens == 1500)
         #expect(response.data[0].indexingStatus == "completed")
         #expect(response.total == 1)
+    }
+
+    @Test func testDocLanguageRequiredOnlyForQAModel_TextRequest() throws {
+        // When doc_form is qa_model, doc_language must be present and non-empty
+        let reqMissing = KBCreateDocumentByTextRequest(
+            name: "n", text: "t", indexingTechnique: nil, docForm: .qaModel, docLanguage: nil, processRule: nil, retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil
+        )
+        #expect(throws: EncodingError.self) {
+            _ = try JSONEncoder.difyEncoder.encode(reqMissing)
+        }
+
+        // When doc_form is text_model, doc_language should be omitted even if provided
+        let reqText = KBCreateDocumentByTextRequest(
+            name: "n", text: "t", indexingTechnique: nil, docForm: .textModel, docLanguage: "English", processRule: nil, retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil
+        )
+        let data = try JSONEncoder.difyEncoder.encode(reqText)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(obj?["doc_language"] == nil)
+        #expect(obj?["doc_form"] as? String == KBDocumentForm.textModel.rawValue)
+    }
+
+    @Test func testDocLanguageRequiredOnlyForQAModel_FileData() throws {
+        // FileData variant: enforce same rules
+        let reqMissing = KBCreateDocumentByFileData(
+            originalDocumentId: nil, indexingTechnique: nil, docForm: .qaModel, docLanguage: nil, processRule: nil, retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil
+        )
+        #expect(throws: EncodingError.self) {
+            _ = try JSONEncoder.difyEncoder.encode(reqMissing)
+        }
+
+        let reqText = KBCreateDocumentByFileData(
+            originalDocumentId: nil, indexingTechnique: nil, docForm: .textModel, docLanguage: "English", processRule: nil, retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil
+        )
+        let data = try JSONEncoder.difyEncoder.encode(reqText)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(obj?["doc_language"] == nil)
+        #expect(obj?["doc_form"] as? String == KBDocumentForm.textModel.rawValue)
     }
 }
 
@@ -1156,20 +1192,12 @@ struct ToolIconTests {
         """.data(using: .utf8)!
         
         let urlIcon = try JSONDecoder.difyDecoder.decode(ToolIcon.self, from: urlJson)
-        if case .url(let url) = urlIcon {
-            #expect(url == "https://example.com/icon.png")
-        } else {
-            Issue.record("Expected URL icon")
-        }
+        #expect(urlIcon.url == "https://example.com/icon.png")
         
         // Test encoding
         let encoded = try JSONEncoder.difyEncoder.encode(urlIcon)
         let decoded = try JSONDecoder.difyDecoder.decode(ToolIcon.self, from: encoded)
-        if case .url(let url) = decoded {
-            #expect(url == "https://example.com/icon.png")
-        } else {
-            Issue.record("Expected URL icon after encoding/decoding")
-        }
+        #expect(decoded.url == "https://example.com/icon.png")
     }
     
     @Test func testToolIconEmoji() throws {
@@ -1182,22 +1210,14 @@ struct ToolIconTests {
         """.data(using: .utf8)!
         
         let emojiIcon = try JSONDecoder.difyDecoder.decode(ToolIcon.self, from: emojiJson)
-        if case .emoji(let emoji) = emojiIcon {
-            #expect(emoji.background == "#FF0000")
-            #expect(emoji.content == "🚀")
-        } else {
-            Issue.record("Expected emoji icon")
-        }
+        #expect(emojiIcon.emoji?.background == "#FF0000")
+        #expect(emojiIcon.emoji?.content == "🚀")
         
         // Test encoding
         let encoded = try JSONEncoder.difyEncoder.encode(emojiIcon)
         let decoded = try JSONDecoder.difyDecoder.decode(ToolIcon.self, from: encoded)
-        if case .emoji(let emoji) = decoded {
-            #expect(emoji.background == "#FF0000")
-            #expect(emoji.content == "🚀")
-        } else {
-            Issue.record("Expected emoji icon after encoding/decoding")
-        }
+        #expect(decoded.emoji?.background == "#FF0000")
+        #expect(decoded.emoji?.content == "🚀")
     }
     
     @Test func testApplicationMetaResponse() throws {
@@ -1217,18 +1237,9 @@ struct ToolIconTests {
         
         #expect(response.toolIcons.count == 2)
         
-        if case .url(let url) = response.toolIcons["web_search"] {
-            #expect(url == "https://example.com/search.png")
-        } else {
-            Issue.record("Expected URL icon for web_search")
-        }
+        if let icon = response.toolIcons["web_search"] { #expect(icon.url == "https://example.com/search.png") } else { Issue.record("Missing web_search icon") }
         
-        if case .emoji(let emoji) = response.toolIcons["calculator"] {
-            #expect(emoji.background == "#0000FF")
-            #expect(emoji.content == "🧮")
-        } else {
-            Issue.record("Expected emoji icon for calculator")
-        }
+        if let icon = response.toolIcons["calculator"] { #expect(icon.emoji?.background == "#0000FF"); #expect(icon.emoji?.content == "🧮") } else { Issue.record("Missing calculator icon") }
     }
 }
 
@@ -1496,14 +1507,15 @@ struct InitializerTests {
         #expect(file2.uploadFileId == "123")
     }
     
-    @Test func testProcessRuleInitializer() {
-        let rule1 = ProcessRule(mode: "auto")
-        #expect(rule1.mode == "auto")
-        #expect(rule1.rules == nil)
+    @Test func testKBProcessRuleInitializer() {
+        let auto = KBProcessRule(mode: .automatic)
+        #expect(auto.mode == .automatic)
+        #expect(auto.rules == nil)
         
-        let rule2 = ProcessRule(mode: "manual", rules: ["key": "value"])
-        #expect(rule2.mode == "manual")
-        #expect(rule2.rules?["key"] == "value")
+        let rules = KBProcessRules(preProcessingRules: nil, segmentation: nil, parentMode: .fullDoc, subchunkSegmentation: nil)
+        let custom = KBProcessRule(mode: .custom, rules: rules)
+        #expect(custom.mode == .custom)
+        #expect(custom.rules?.parentMode == .fullDoc)
     }
     
     @Test func testMessageFeedbackRequestInitializer() {
@@ -2408,7 +2420,7 @@ struct AllStreamingEventTests {
         }
         """.data(using: .utf8)!
         let messageResponse = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: messageJson)
-        if case .message = messageResponse {} else { Issue.record("Expected message event") }
+        #expect(messageResponse.kind == .message)
         
         // Test message_end event
         let messageEndJson = """
@@ -2420,7 +2432,7 @@ struct AllStreamingEventTests {
         }
         """.data(using: .utf8)!
         let messageEndResponse = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: messageEndJson)
-        if case .messageEnd = messageEndResponse {} else { Issue.record("Expected message_end event") }
+        #expect(messageEndResponse.kind == .messageEnd)
         
         // Test tts_message event
         let ttsMessageJson = """
@@ -2433,7 +2445,7 @@ struct AllStreamingEventTests {
         }
         """.data(using: .utf8)!
         let ttsMessageResponse = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: ttsMessageJson)
-        if case .ttsMessage = ttsMessageResponse {} else { Issue.record("Expected tts_message event") }
+        #expect(ttsMessageResponse.kind == .ttsMessage)
         
         // Test tts_message_end event
         let ttsMessageEndJson = """
@@ -2446,7 +2458,7 @@ struct AllStreamingEventTests {
         }
         """.data(using: .utf8)!
         let ttsMessageEndResponse = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: ttsMessageEndJson)
-        if case .ttsMessageEnd = ttsMessageEndResponse {} else { Issue.record("Expected tts_message_end event") }
+        #expect(ttsMessageEndResponse.kind == .ttsMessageEnd)
         
         // Test message_replace event
         let messageReplaceJson = """
@@ -2460,7 +2472,7 @@ struct AllStreamingEventTests {
         }
         """.data(using: .utf8)!
         let messageReplaceResponse = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: messageReplaceJson)
-        if case .messageReplace = messageReplaceResponse {} else { Issue.record("Expected message_replace event") }
+        #expect(messageReplaceResponse.kind == .messageReplace)
         
         // Test error event
         let errorJson = """
@@ -2474,22 +2486,21 @@ struct AllStreamingEventTests {
         }
         """.data(using: .utf8)!
         let errorResponse = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: errorJson)
-        if case .error = errorResponse {} else { Issue.record("Expected error event") }
+        #expect(errorResponse.kind == .error)
         
         // Test ping event
         let pingJson = """
         {"event": "ping"}
         """.data(using: .utf8)!
         let pingResponse = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: pingJson)
-        if case .ping = pingResponse {} else { Issue.record("Expected ping event") }
+        #expect(pingResponse.kind == .ping)
         
-        // Test unknown event
+        // Test unknown event (should not throw, preserves kind)
         let unknownJson = """
         {"event": "unknown_event"}
         """.data(using: .utf8)!
-        #expect(throws: DecodingError.self) {
-            _ = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: unknownJson)
-        }
+        let unknown = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: unknownJson)
+        #expect(unknown.kind.rawValue == "unknown_event")
     }
     
     @Test func testAllStreamingChatEventTypes() throws {
@@ -2505,12 +2516,7 @@ struct AllStreamingEventTests {
             {"event": "\(eventType)"}
             """.data(using: .utf8)!
             
-            do {
-                _ = try JSONDecoder.difyDecoder.decode(StreamingChatMessageResponse.self, from: json)
-            } catch {
-                // Some events require additional fields, which is expected
-                // The important thing is that we handle all known event types
-            }
+            _ = try? JSONDecoder.difyDecoder.decode(StreamingChatMessageResponse.self, from: json)
         }
     }
     
@@ -2526,42 +2532,17 @@ struct AllStreamingEventTests {
             {"event": "\(eventType)"}
             """.data(using: .utf8)!
             
-            do {
-                _ = try JSONDecoder.difyDecoder.decode(StreamingWorkflowResponse.self, from: json)
-            } catch {
-                // Some events require additional fields, which is expected
-            }
+            _ = try? JSONDecoder.difyDecoder.decode(StreamingWorkflowResponse.self, from: json)
         }
     }
     
-    @Test func testStreamingCompletionResponseUnknownEvent() throws {
-        // Test unknown event type for StreamingCompletionResponse
-        let json = #"{"event": "unknown_event_type", "data": "some data"}"#
-        let data = json.data(using: .utf8)!
-        
-        #expect(throws: DecodingError.self) {
-            _ = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: data)
-        }
-    }
-    
-    @Test func testStreamingChatMessageResponseUnknownEvent() throws {
-        // Test unknown event type for StreamingChatMessageResponse
-        let json = #"{"event": "unknown_chat_event", "data": "some data"}"#
-        let data = json.data(using: .utf8)!
-        
-        #expect(throws: DecodingError.self) {
-            _ = try JSONDecoder.difyDecoder.decode(StreamingChatMessageResponse.self, from: data)
-        }
-    }
-    
-    @Test func testStreamingWorkflowResponseUnknownEvent() throws {
-        // Test unknown event type for StreamingWorkflowResponse
-        let json = #"{"event": "unknown_workflow_event", "data": "some data"}"#
-        let data = json.data(using: .utf8)!
-        
-        #expect(throws: DecodingError.self) {
-            _ = try JSONDecoder.difyDecoder.decode(StreamingWorkflowResponse.self, from: data)
-        }
+    @Test func testUnknownEventKindsDoNotThrow() throws {
+        let c = try JSONDecoder.difyDecoder.decode(StreamingCompletionResponse.self, from: #"{"event":"new_kind"}"#.data(using: .utf8)!)
+        #expect(c.kind.rawValue == "new_kind")
+        let ch = try JSONDecoder.difyDecoder.decode(StreamingChatMessageResponse.self, from: #"{"event":"new_chat_kind"}"#.data(using: .utf8)!)
+        #expect(ch.kind.rawValue == "new_chat_kind")
+        let w = try JSONDecoder.difyDecoder.decode(StreamingWorkflowResponse.self, from: #"{"event":"new_workflow_kind"}"#.data(using: .utf8)!)
+        #expect(w.kind.rawValue == "new_workflow_kind")
     }
 }
 

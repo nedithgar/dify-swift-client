@@ -106,7 +106,7 @@ final class KnowledgeBaseClientTests: DifyTestCase, @unchecked Sendable {
         #expect(response.name == "New Dataset")
         #expect(response.permission == "private")
         #expect(response.dataSourceType == "upload_file")
-        #expect(response.indexingTechnique == "economy")
+        #expect(response.indexingTechnique == .economy)
         #expect(response.documentCount == 0)
         
         // Verify request body
@@ -217,13 +217,13 @@ final class KnowledgeBaseClientTests: DifyTestCase, @unchecked Sendable {
         }
     }
     
-    @Test("Create Document")
-    func testCreateDocument() async throws {
+    @Test("Create Document (typed create-by-file)")
+    func testCreateDocumentByFile() async throws {
         let (client, mockSession) = TestUtilities.createTestKnowledgeBaseClientWithMockSession()
         
         let datasetId = "test-dataset-123"
         
-        // Register create document mock
+        // Register create-by-file mock (typed OpenAPI wrapper)
         let mockDocument: [String: Any] = [
             "id": "new-doc-123",
             "position": 2,
@@ -233,23 +233,18 @@ final class KnowledgeBaseClientTests: DifyTestCase, @unchecked Sendable {
             "created_by": "user-123",
             "created_at": 1695065710
         ]
+        let wrapper: [String: Any] = ["document": mockDocument, "batch": "batch-001"]
         
         mockSession.register(
             method: "POST",
-            urlPattern: "/datasets/\(datasetId)/documents/upload",
-            response: MockResponse.json(mockDocument)
+            urlPattern: "/datasets/\(datasetId)/document/create-by-file",
+            response: MockResponse.json(wrapper)
         )
         
-        // Create document
+        // Create document using typed API
         let fileData = "This is test document content".data(using: .utf8)!
-        let processRule = ProcessRule(mode: "automatic", rules: ["chunk_size": "500"])
-        
-        let response = try await client.createDocument(
-            datasetId: datasetId,
-            fileData: fileData,
-            fileName: "test_document.txt",
-            processRule: processRule
-        )
+        let requestData = KBCreateDocumentByFileData(indexingTechnique: .economy, docForm: .textModel, processRule: KBProcessRule(mode: .automatic))
+        let response = try await client.createDocumentFromFile(datasetId: datasetId, fileName: "test_document.txt", fileData: fileData, data: requestData)
         
         // Verify response
         #expect(response.id == "new-doc-123")
@@ -260,7 +255,7 @@ final class KnowledgeBaseClientTests: DifyTestCase, @unchecked Sendable {
         
         // Verify request was multipart
         let capturedRequests = mockSession.getCapturedRequests()
-        let uploadRequest = capturedRequests.first { $0.url?.absoluteString.contains("/documents/upload") ?? false }
+        let uploadRequest = capturedRequests.first { $0.url?.absoluteString.contains("/document/create-by-file") ?? false }
         #expect(uploadRequest != nil)
         #expect(uploadRequest?.value(forHTTPHeaderField: "Content-Type")?.contains("multipart/form-data") == true)
     }
@@ -405,9 +400,9 @@ final class KnowledgeBaseClientTests: DifyTestCase, @unchecked Sendable {
         let detail = try await client.getDatasetDetail(datasetId: datasetId)
         #expect(detail.name == "Product Documentation")
         #expect(detail.retrievalModelDict?.topK == 5)
-        #expect(detail.docForm == "text_model")
+        #expect(detail.docForm == .textModel)
 
-        let req = KBUpdateDatasetRequest(name: "New Name", indexingTechnique: "economy")
+        let req = KBUpdateDatasetRequest(name: "New Name", indexingTechnique: .economy)
         let updated = try await client.updateDataset(datasetId: datasetId, req)
         #expect(updated.name == "Product Documentation")
     }
@@ -423,7 +418,7 @@ final class KnowledgeBaseClientTests: DifyTestCase, @unchecked Sendable {
         mockSession.register(method: "POST", urlPattern: "/datasets/\(datasetId)/document/create-by-text", response: MockResponse.json(MockDataProvider.documentCreationResponse))
         mockSession.register(method: "GET", urlPattern: "/datasets/\(datasetId)/documents/\(documentId)", response: MockResponse.json(MockDataProvider.documentDetail))
 
-        let createReq = KBCreateDocumentByTextRequest(name: "test_document.txt", text: "Hello world", indexingTechnique: "economy", docForm: "text_model", docLanguage: "English", processRule: KBProcessRule(mode: "automatic", rules: nil), retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil)
+        let createReq = KBCreateDocumentByTextRequest(name: "test_document.txt", text: "Hello world", indexingTechnique: .economy, docForm: .textModel, processRule: KBProcessRule(mode: "automatic", rules: nil), retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil)
         let created = try await client.createDocumentFromText(datasetId: datasetId, createReq)
         #expect(created.id == "new-doc-123")
         #expect(created.indexingStatus == "indexing")
@@ -444,7 +439,7 @@ final class KnowledgeBaseClientTests: DifyTestCase, @unchecked Sendable {
         mockSession.register(method: "GET", urlPattern: "/datasets/\(datasetId)/documents/batch-001/indexing-status", response: MockResponse.json(MockDataProvider.indexingStatus))
 
         let fileData = Data([0x00, 0x01])
-        let reqData = KBCreateDocumentByFileData(originalDocumentId: nil, indexingTechnique: "high_quality", docForm: "text_model", docLanguage: "English", processRule: KBProcessRule(mode: "automatic", rules: nil), retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil)
+        let reqData = KBCreateDocumentByFileData(originalDocumentId: nil, indexingTechnique: .highQuality, docForm: .textModel, processRule: KBProcessRule(mode: "automatic", rules: nil), retrievalModel: nil, embeddingModel: nil, embeddingModelProvider: nil)
         let created = try await client.createDocumentFromFile(datasetId: datasetId, fileName: "a.txt", fileData: fileData, data: reqData)
         #expect(created.name == "test_document.txt")
 
