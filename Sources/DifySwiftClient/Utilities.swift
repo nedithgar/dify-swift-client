@@ -3,6 +3,46 @@ import Foundation
 import FoundationNetworking
 #endif
 
+// MARK: - Debug Logger
+
+/// Lightweight debug logger.
+///
+/// Configuration: set environment variable `DIFY_SDK_DEBUG` to
+/// the string "true" (case-insensitive) to enable logging.
+/// Any other value, or unset, disables logging.
+enum DifySDKDebug {
+    /// Whether SDK debug logging is enabled (derived once from environment).
+    static let enabled: Bool = {
+        guard let raw = ProcessInfo.processInfo.environment["DIFY_SDK_DEBUG"] else { return false }
+        return raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "true"
+    }()
+
+    static func log(_ message: String) {
+        guard enabled else { return }
+        print("[DifySwiftClient][DEBUG] \(message)")
+    }
+
+    static func dump(_ data: Data, limit: Int = 256) -> String {
+        if data.isEmpty { return "<empty>" }
+        let prefix = String(data: data.prefix(limit), encoding: .utf8) ?? "<non-utf8>"
+        let more = data.count > limit ? "… (\(data.count) bytes total)" : ""
+        return prefix + more
+    }
+
+    static func sanitizeHeaders(_ headers: [AnyHashable: Any]) -> [String: String] {
+        var sanitized: [String: String] = [:]
+        for (kAny, vAny) in headers {
+            let k = String(describing: kAny)
+            var v = String(describing: vAny)
+            if k.lowercased() == "authorization" {
+                v = "Bearer ****"
+            }
+            sanitized[k] = v
+        }
+        return sanitized
+    }
+}
+
 // MARK: - Errors
 
 /// Errors that can occur when using the Dify client.
