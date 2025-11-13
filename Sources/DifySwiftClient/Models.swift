@@ -962,7 +962,7 @@ public struct DatasetResponse: Codable, Sendable {
     public let wordCount: Int
     public let createdBy: String
     public let createdAt: Int
-    
+
     private enum CodingKeys: String, CodingKey {
         case id, name, description, permission
         case dataSourceType = "data_source_type"
@@ -972,6 +972,23 @@ public struct DatasetResponse: Codable, Sendable {
         case wordCount = "word_count"
         case createdBy = "created_by"
         case createdAt = "created_at"
+    }
+
+    // Some deployments return null for data_source_type/indexing_technique on creation.
+    // Keep properties non-optional for API ergonomics and default nulls to empty strings.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(String.self, forKey: .id)
+        self.name = try container.decode(String.self, forKey: .name)
+        self.description = try container.decodeIfPresent(String.self, forKey: .description)
+        self.permission = try container.decode(String.self, forKey: .permission)
+        self.dataSourceType = try container.decodeIfPresent(String.self, forKey: .dataSourceType) ?? ""
+        self.indexingTechnique = try container.decodeIfPresent(String.self, forKey: .indexingTechnique) ?? ""
+        self.appCount = try container.decode(Int.self, forKey: .appCount)
+        self.documentCount = try container.decode(Int.self, forKey: .documentCount)
+        self.wordCount = try container.decode(Int.self, forKey: .wordCount)
+        self.createdBy = try container.decode(String.self, forKey: .createdBy)
+        self.createdAt = try container.decode(Int.self, forKey: .createdAt)
     }
 }
 
@@ -1486,7 +1503,41 @@ public struct KBDocumentDetail: Codable, Sendable {
 /// Wrapper for creation/update responses that include batch id
 public struct KBDocumentCreationResponse: Codable, Sendable {
     public let document: DocumentResponse
-    public let batch: String
+    public let batch: String?
+
+    private enum CodingKeys: String, CodingKey { case document, batch }
+
+    public init(document: DocumentResponse, batch: String? = nil) {
+        self.document = document
+        self.batch = batch
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // Try the compact DocumentResponse shape first
+        if let doc = try? container.decode(DocumentResponse.self, forKey: .document) {
+            self.document = doc
+        } else if let detail = try? container.decode(KBDocumentDetail.self, forKey: .document) {
+            // Some deployments return a richer document detail in creation responses.
+            self.document = DocumentResponse(from: detail)
+        } else {
+            throw DecodingError.dataCorruptedError(forKey: .document, in: container, debugDescription: "Unrecognized document shape in creation response")
+        }
+        self.batch = try container.decodeIfPresent(String.self, forKey: .batch)
+    }
+}
+
+extension DocumentResponse {
+    /// Lenient initializer to bridge from KBDocumentDetail when creation responses return a rich shape.
+    init(from detail: KBDocumentDetail) {
+        self.id = detail.id
+        self.position = detail.position ?? 0
+        self.name = detail.name ?? ""
+        self.tokens = detail.tokens ?? 0
+        self.indexingStatus = detail.indexingStatus ?? ""
+        self.createdBy = detail.createdBy ?? ""
+        self.createdAt = detail.createdAt ?? 0
+    }
 }
 
 public struct KBDocumentProcessRule: Codable, Sendable {
