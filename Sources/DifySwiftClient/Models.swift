@@ -64,6 +64,10 @@ public struct APIFile: Codable, Sendable {
 /// Base response structure returned by certain simple endpoints carrying only a result status.
 public struct BaseResponse: Codable, Sendable {
     public let result: String?
+
+    public init(result: String?) {
+        self.result = result
+    }
 }
 
 /// Message feedback response (e.g. acknowledging a like/dislike submission).
