@@ -5,8 +5,8 @@ import FoundationNetworking
 
 // MARK: - Debug Logger
 
-/// Lightweight debug logger. Always enabled during rapid development.
-enum DifyDebug {
+/// Lightweight debug logger.
+enum DifySDKDebug {
     // MARK: Gate is removed; keep the flag for potential future use.
     // TODO: Make this configurable via environment or build settings.
     static let enabled: Bool = true

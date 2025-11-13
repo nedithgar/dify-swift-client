@@ -116,12 +116,12 @@ open class DifyClient: @unchecked Sendable {
         }
         
         // Debug: outbound request snapshot
-        if DifyDebug.enabled {
+        if DifySDKDebug.enabled {
             let headers = request.allHTTPHeaderFields ?? [:]
-            let sanitized = DifyDebug.sanitizeHeaders(headers)
+            let sanitized = DifySDKDebug.sanitizeHeaders(headers)
             let bodyInfo: String
-            if let bodyData = request.httpBody { bodyInfo = "(\(bodyData.count) bytes) \(DifyDebug.dump(bodyData))" } else { bodyInfo = "<none>" }
-            DifyDebug.log("-> \(method.rawValue) \(url.absoluteString)\n   headers: \(sanitized)\n   body: \(bodyInfo)")
+            if let bodyData = request.httpBody { bodyInfo = "(\(bodyData.count) bytes) \(DifySDKDebug.dump(bodyData))" } else { bodyInfo = "<none>" }
+            DifySDKDebug.log("-> \(method.rawValue) \(url.absoluteString)\n   headers: \(sanitized)\n   body: \(bodyInfo)")
         }
         
         return request
@@ -150,9 +150,9 @@ open class DifyClient: @unchecked Sendable {
         }
         
         // Debug: inbound response snapshot
-        if DifyDebug.enabled {
-            let headers = DifyDebug.sanitizeHeaders(httpResponse.allHeaderFields)
-            DifyDebug.log("<- [\(httpResponse.statusCode)] \(request.httpMethod ?? "") \(request.url?.absoluteString ?? "")\n   headers: \(headers)\n   body: (\(data.count) bytes) \(DifyDebug.dump(data))")
+        if DifySDKDebug.enabled {
+            let headers = DifySDKDebug.sanitizeHeaders(httpResponse.allHeaderFields)
+            DifySDKDebug.log("<- [\(httpResponse.statusCode)] \(request.httpMethod ?? "") \(request.url?.absoluteString ?? "")\n   headers: \(headers)\n   body: (\(data.count) bytes) \(DifySDKDebug.dump(data))")
         }
 
         guard 200...299 ~= httpResponse.statusCode else {
@@ -183,9 +183,9 @@ open class DifyClient: @unchecked Sendable {
         }
         
         // Debug: inbound response snapshot (multipart)
-        if DifyDebug.enabled {
-            let headers = DifyDebug.sanitizeHeaders(httpResponse.allHeaderFields)
-            DifyDebug.log("<- [\(httpResponse.statusCode)] \(request.httpMethod ?? "") \(request.url?.absoluteString ?? "") (multipart)\n   headers: \(headers)\n   body: (\(data.count) bytes) \(DifyDebug.dump(data))")
+        if DifySDKDebug.enabled {
+            let headers = DifySDKDebug.sanitizeHeaders(httpResponse.allHeaderFields)
+            DifySDKDebug.log("<- [\(httpResponse.statusCode)] \(request.httpMethod ?? "") \(request.url?.absoluteString ?? "") (multipart)\n   headers: \(headers)\n   body: (\(data.count) bytes) \(DifySDKDebug.dump(data))")
         }
 
         guard 200...299 ~= httpResponse.statusCode else {
@@ -367,8 +367,8 @@ open class DifyClient: @unchecked Sendable {
                     if let value = BaseResponse(result: "success") as? T { return value }
                 }
             }
-            if DifyDebug.enabled {
-                DifyDebug.log("Decode failed for type=\(T.self) bytes=\(data.count) error=\(error.localizedDescription)\n   body snippet: \(DifyDebug.dump(data))")
+            if DifySDKDebug.enabled {
+                DifySDKDebug.log("Decode failed for type=\(T.self) bytes=\(data.count) error=\(error.localizedDescription)\n   body snippet: \(DifySDKDebug.dump(data))")
             }
             throw DifyError.decodingError(error)
         }
