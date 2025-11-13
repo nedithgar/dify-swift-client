@@ -1375,25 +1375,76 @@ public enum KBProcessMode: String, Codable, Sendable {
     case hierarchical = "hierarchical"
 }
 
+public enum KBPreprocessRuleId: String, Codable, Sendable {
+    case removeExtraSpaces = "remove_extra_spaces"
+    case removeUrlsEmails = "remove_urls_emails"
+}
+
+public struct KBPreprocessingRule: Codable, Sendable {
+    public let id: KBPreprocessRuleId
+    public let enabled: Bool
+}
+
+public struct KBSegmentationRule: Codable, Sendable {
+    public let separator: String?
+    public let maxTokens: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case separator
+        case maxTokens = "max_tokens"
+    }
+}
+
+public enum KBParentMode: String, Codable, Sendable {
+    case fullDoc = "full-doc"
+    case paragraph = "paragraph"
+}
+
+public struct KBSubChunkSegmentationRule: Codable, Sendable {
+    public let separator: String?
+    public let maxTokens: Int?
+    public let chunkOverlap: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case separator
+        case maxTokens = "max_tokens"
+        case chunkOverlap = "chunk_overlap"
+    }
+}
+
+public struct KBProcessRules: Codable, Sendable {
+    public let preProcessingRules: [KBPreprocessingRule]?
+    public let segmentation: KBSegmentationRule?
+    public let parentMode: KBParentMode?
+    public let subchunkSegmentation: KBSubChunkSegmentationRule?
+
+    private enum CodingKeys: String, CodingKey {
+        case preProcessingRules = "pre_processing_rules"
+        case segmentation
+        case parentMode = "parent_mode"
+        case subchunkSegmentation = "subchunk_segmentation"
+    }
+}
+
 public struct KBProcessRule: Codable, Sendable {
-    public let mode: String?
-    public let rules: [String: AnyCodable]?
+    public let mode: KBProcessMode?
+    public let rules: KBProcessRules?
 
     public init(mode: String? = nil,
-                rules: [String: AnyCodable]? = nil) {
-        self.mode = mode
+                rules: KBProcessRules? = nil) {
+        self.mode = mode.flatMap { KBProcessMode(rawValue: $0) }
         self.rules = rules
     }
 
     public init(mode: KBProcessMode,
-                rules: [String: AnyCodable]? = nil) {
-        self.mode = mode.rawValue
+                rules: KBProcessRules? = nil) {
+        self.mode = mode
         self.rules = rules
     }
 
     public static var automatic: KBProcessRule { KBProcessRule(mode: .automatic) }
-    public static func custom(rules: [String: AnyCodable]? = nil) -> KBProcessRule { KBProcessRule(mode: .custom, rules: rules) }
-    public static func hierarchical(rules: [String: AnyCodable]? = nil) -> KBProcessRule { KBProcessRule(mode: .hierarchical, rules: rules) }
+    public static func custom(rules: KBProcessRules? = nil) -> KBProcessRule { KBProcessRule(mode: .custom, rules: rules) }
+    public static func hierarchical(rules: KBProcessRules? = nil) -> KBProcessRule { KBProcessRule(mode: .hierarchical, rules: rules) }
 }
 
 // MARK: Documents (OpenAPI)
