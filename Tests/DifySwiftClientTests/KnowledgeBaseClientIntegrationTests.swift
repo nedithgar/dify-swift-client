@@ -108,7 +108,7 @@ struct KnowledgeBaseClientIntegrationTests {
             name: "it-text",
             text: docText,
             indexingTechnique: .economy,
-            docForm: "text_model",
+            docForm: .textModel,
             docLanguage: "English",
             processRule: KBProcessRule(mode: "automatic"),
             retrievalModel: KBRetrievalModel(
@@ -130,7 +130,7 @@ struct KnowledgeBaseClientIntegrationTests {
                 fileData: fallbackData,
                 data: KBCreateDocumentByFileData(
                     indexingTechnique: .economy,
-                    docForm: "text_model",
+                    docForm: .textModel,
                     docLanguage: "English",
                     processRule: KBProcessRule(mode: "automatic")
                 )
@@ -143,7 +143,7 @@ struct KnowledgeBaseClientIntegrationTests {
                 fileData: fallbackData,
                 data: KBCreateDocumentByFileData(
                     indexingTechnique: .economy,
-                    docForm: "text_model",
+                    docForm: .textModel,
                     docLanguage: "English",
                     processRule: KBProcessRule(mode: "automatic")
                 )
@@ -206,7 +206,7 @@ struct KnowledgeBaseClientIntegrationTests {
             fileData: fileData,
             data: KBCreateDocumentByFileData(
                 indexingTechnique: .economy,
-                docForm: "text_model",
+                docForm: .textModel,
                 docLanguage: "English",
                 processRule: KBProcessRule(mode: "automatic")
             )

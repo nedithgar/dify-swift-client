@@ -979,6 +979,19 @@ public struct KBIndexingTechnique: RawRepresentable, Codable, Equatable, Hashabl
     public var description: String { rawValue }
 }
 
+/// Type-safe wrapper for document form values (doc_form) used by Knowledge Base APIs.
+public struct KBDocumentForm: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible {
+    public let rawValue: String
+    public init(rawValue: String) { self.rawValue = rawValue }
+
+    // Known/common forms
+    public static let textModel = KBDocumentForm(rawValue: "text_model")
+    public static let hierarchicalModel = KBDocumentForm(rawValue: "hierarchical_model")
+    public static let qaModel = KBDocumentForm(rawValue: "qa_model")
+
+    public var description: String { rawValue }
+}
+
 public struct DatasetResponse: Codable, Sendable {
     public let id: String
     public let name: String
@@ -1292,7 +1305,7 @@ public struct KBDatasetDetail: Codable, Sendable {
     // Additional detail fields
     public let retrievalModelDict: KBRetrievalModel?
     public let tags: [AnyCodable]?
-    public let docForm: String?
+    public let docForm: KBDocumentForm?
 
     private enum CodingKeys: String, CodingKey {
         case id, name, description, provider, permission
@@ -1371,7 +1384,7 @@ public struct KBProcessRule: Codable, Sendable {
 public struct KBCreateDocumentByFileData: Codable, Sendable {
     public let originalDocumentId: String?
     public let indexingTechnique: KBIndexingTechnique?
-    public let docForm: String?
+    public let docForm: KBDocumentForm?
     public let docLanguage: String?
     public let processRule: KBProcessRule?
     public let retrievalModel: KBRetrievalModel?
@@ -1380,7 +1393,7 @@ public struct KBCreateDocumentByFileData: Codable, Sendable {
 
     public init(originalDocumentId: String? = nil,
                 indexingTechnique: KBIndexingTechnique? = nil,
-                docForm: String? = nil,
+                docForm: KBDocumentForm? = nil,
                 docLanguage: String? = nil,
                 processRule: KBProcessRule? = nil,
                 retrievalModel: KBRetrievalModel? = nil,
@@ -1412,7 +1425,7 @@ public struct KBCreateDocumentByTextRequest: Codable, Sendable {
     public let name: String
     public let text: String
     public let indexingTechnique: KBIndexingTechnique?
-    public let docForm: String?
+    public let docForm: KBDocumentForm?
     public let docLanguage: String?
     public let processRule: KBProcessRule?
     public let retrievalModel: KBRetrievalModel?
@@ -1422,7 +1435,7 @@ public struct KBCreateDocumentByTextRequest: Codable, Sendable {
     public init(name: String,
                 text: String,
                 indexingTechnique: KBIndexingTechnique? = nil,
-                docForm: String? = nil,
+                docForm: KBDocumentForm? = nil,
                 docLanguage: String? = nil,
                 processRule: KBProcessRule? = nil,
                 retrievalModel: KBRetrievalModel? = nil,
@@ -1512,7 +1525,7 @@ public struct KBDocumentDetail: Codable, Sendable {
     public let displayStatus: String?
     public let wordCount: Int?
     public let hitCount: Int?
-    public let docForm: String?
+    public let docForm: KBDocumentForm?
 
     private enum CodingKeys: String, CodingKey {
         case id, position
