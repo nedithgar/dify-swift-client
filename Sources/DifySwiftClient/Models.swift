@@ -1448,11 +1448,21 @@ public struct KBPreprocessRuleId: RawRepresentable, Codable, Equatable, Hashable
 public struct KBPreprocessingRule: Codable, Sendable {
     public let id: KBPreprocessRuleId
     public let enabled: Bool
+
+    public init(id: KBPreprocessRuleId, enabled: Bool) {
+        self.id = id
+        self.enabled = enabled
+    }
 }
 
 public struct KBSegmentationRule: Codable, Sendable {
     public let separator: String?
     public let maxTokens: Int?
+    
+    public init(separator: String? = nil, maxTokens: Int? = nil) {
+        self.separator = separator
+        self.maxTokens = maxTokens
+    }
 
     private enum CodingKeys: String, CodingKey {
         case separator
@@ -1474,6 +1484,14 @@ public struct KBSubChunkSegmentationRule: Codable, Sendable {
     public let maxTokens: Int?
     public let chunkOverlap: Int?
 
+    public init(separator: String? = nil,
+                maxTokens: Int? = nil,
+                chunkOverlap: Int? = nil) {
+        self.separator = separator
+        self.maxTokens = maxTokens
+        self.chunkOverlap = chunkOverlap
+    }
+
     private enum CodingKeys: String, CodingKey {
         case separator
         case maxTokens = "max_tokens"
@@ -1486,6 +1504,16 @@ public struct KBProcessRules: Codable, Sendable {
     public let segmentation: KBSegmentationRule?
     public let parentMode: KBParentMode?
     public let subchunkSegmentation: KBSubChunkSegmentationRule?
+
+    public init(preProcessingRules: [KBPreprocessingRule]? = nil,
+                segmentation: KBSegmentationRule? = nil,
+                parentMode: KBParentMode? = nil,
+                subchunkSegmentation: KBSubChunkSegmentationRule? = nil) {
+        self.preProcessingRules = preProcessingRules
+        self.segmentation = segmentation
+        self.parentMode = parentMode
+        self.subchunkSegmentation = subchunkSegmentation
+    }
 
     private enum CodingKeys: String, CodingKey {
         case preProcessingRules = "pre_processing_rules"
