@@ -6,12 +6,48 @@ import FoundationNetworking
 // MARK: - Debug Logger
 
 /// Lightweight debug logger.
+///
+/// Configuration precedence (highest → lowest):
+/// 1. Programmatic override via `configure(enabled:)`
+/// 2. Environment variables `DIFY_SDK_DEBUG` or `DIFY_SWIFT_CLIENT_DEBUG`
+/// 3. Default = `false`
 enum DifySDKDebug {
-    // MARK: Gate is removed; keep the flag for potential future use.
-    // TODO: Make this configurable via environment or build settings.
-    static let enabled: Bool = true
+    /// Returns whether SDK debug logging is enabled.
+    /// - Note: Reads once from environment if no programmatic override is set.
+    static var enabled: Bool {
+        if let override = UserDefaults.standard.object(forKey: "DifySwiftClientDebugEnabled") as? Bool {
+            return override
+        }
+        return defaultEnabledFromEnvironment
+    }
+
+    /// Configure debug logging at runtime.
+    /// - Parameter enabled: `true` to enable logging, `false` to disable, `nil` to clear override.
+    static func configure(enabled: Bool?) {
+        let key = "DifySwiftClientDebugEnabled"
+        if let enabled {
+            UserDefaults.standard.set(enabled, forKey: key)
+        } else {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+    }
+
+    /// Internal default derived from environment variables.
+    private static let defaultEnabledFromEnvironment: Bool = {
+        let env = ProcessInfo.processInfo.environment
+        if let raw = env["DIFY_SDK_DEBUG"] ?? env["DIFY_SWIFT_CLIENT_DEBUG"] {
+            switch raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+            case "1", "true", "yes", "on":
+                return true
+            default:
+                return false
+            }
+        }
+        return false
+    }()
 
     static func log(_ message: String) {
+        guard enabled else { return }
         print("[DifySwiftClient][DEBUG] \(message)")
     }
 
