@@ -25,7 +25,7 @@ let KB_IT_RUN_TAG_TESTS: Bool = {
 @Suite(
     "KnowledgeBaseClient Integration",
     .serialized,
-    .enabled(if: KB_IT_HAS_LIVE_CONFIG)
+    .disabled(if: !KB_IT_HAS_LIVE_CONFIG)
 )
 struct KnowledgeBaseClientIntegrationTests {
 
