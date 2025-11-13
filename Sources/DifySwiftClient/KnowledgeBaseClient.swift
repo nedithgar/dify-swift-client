@@ -328,40 +328,47 @@ public final class KnowledgeBaseClient: DifyClient, @unchecked Sendable {
 
     // MARK: - Tags
 
+    @available(*, unavailable, message: "Tag APIs are not available in this SDK because they cannot be exercised through integration tests.")
     public func createKnowledgeTag(name: String) async throws -> KBTag {
         let body = ["name": name]
         let data = try await sendRequest(method: .POST, endpoint: "/datasets/tags", body: body)
         return try decode(data, to: KBTag.self)
     }
 
+    @available(*, unavailable, message: "Tag APIs are not available in this SDK because they cannot be exercised through integration tests.")
     public func getKnowledgeTags() async throws -> [KBTag] {
         let data = try await sendRequest(method: .GET, endpoint: "/datasets/tags")
         return try decode(data, to: [KBTag].self)
     }
 
+    @available(*, unavailable, message: "Tag APIs are not available in this SDK because they cannot be exercised through integration tests.")
     public func updateKnowledgeTag(tagId: String, name: String) async throws -> KBTag {
         let body: [String: String] = ["tag_id": tagId, "name": name]
         let data = try await sendRequest(method: .PATCH, endpoint: "/datasets/tags", body: body)
         return try decode(data, to: KBTag.self)
     }
 
+    @available(*, unavailable, message: "Tag APIs are not available in this SDK because they cannot be exercised through integration tests.")
     public func deleteKnowledgeTag(tagId: String) async throws {
         let body: [String: String] = ["tag_id": tagId]
         _ = try await sendRequest(method: .DELETE, endpoint: "/datasets/tags", body: body)
     }
 
+    @available(*, unavailable, message: "Tag APIs are not available in this SDK because they cannot be exercised through integration tests.")
     public func bindTagsToDataset(datasetId: String, tagIds: [String]) async throws -> BaseResponse {
         let body: [String: AnyCodable] = ["target_id": AnyCodable(datasetId), "tag_ids": AnyCodable(tagIds)]
         let data = try await sendRequest(method: .POST, endpoint: "/datasets/tags/binding", body: body)
         return try decode(data, to: BaseResponse.self)
     }
 
+    @available(*, unavailable, message: "Tag APIs are not available in this SDK because they cannot be exercised through integration tests.")
     public func unbindTagFromDataset(datasetId: String, tagId: String) async throws -> BaseResponse {
         let body: [String: AnyCodable] = ["target_id": AnyCodable(datasetId), "tag_id": AnyCodable(tagId)]
         let data = try await sendRequest(method: .POST, endpoint: "/datasets/tags/unbinding", body: body)
         return try decode(data, to: BaseResponse.self)
     }
 
+    @available(*, unavailable, message: "Tag APIs are not available in this SDK because they cannot be exercised through integration tests.")
     public func queryDatasetTags(datasetId: String) async throws -> KBQueryDatasetTagsResponse {
         let data = try await sendRequest(method: .POST, endpoint: "/datasets/\(datasetId)/tags")
         return try decode(data, to: KBQueryDatasetTagsResponse.self)

@@ -313,7 +313,8 @@ struct KnowledgeBaseClientIntegrationTests {
 
     // MARK: - Tags management (opt-in)
 
-    @Test("Tags CRUD and binding (opt-in)", .enabled(if: KB_IT_RUN_TAG_TESTS))
+    #if false
+    @Test("Tags CRUD and binding (opt-in)", .disabled())
     func testTagsCRUDAndBinding() async throws {
         let client = try Self.makeClient()
 
@@ -338,4 +339,5 @@ struct KnowledgeBaseClientIntegrationTests {
 
         try await client.deleteKnowledgeTag(tagId: tagId)
     }
+    #endif
 }
