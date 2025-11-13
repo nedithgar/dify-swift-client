@@ -316,7 +316,7 @@ struct KnowledgeBaseClientIntegrationTests {
         // Create a dataset for tag binding scope
         let dataset = try await client.createDataset(name: "SDK-IT-TAGS-\(UUID().uuidString.prefix(6))")
         let datasetId = dataset.id
-        defer { Task { _ = try? await client.deleteDataset(datasetId: datasetId) } }
+        defer { _ = try? await client.deleteDataset(datasetId: datasetId) }
 
         // Create, update, list, bind/unbind, delete tag
         let tag = try await client.createKnowledgeTag(name: "it-tag-\(Int.random(in: 1000...9999))")
