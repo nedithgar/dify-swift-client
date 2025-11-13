@@ -186,7 +186,7 @@ swift test --filter "test.*Streaming"
 ## Code Style Guidelines
 
 ### Swift Best Practices
-- Use descriptive variable and function names following Swift naming conventions
+- Use descriptive variable and function names following Swift naming conventions; avoid unclear abbreviations
 - Prefer value types (structs) over reference types (classes) where appropriate
 - Use `guard` statements for early returns and validation
 - Leverage Swift's type system with proper error handling
@@ -249,3 +249,4 @@ The SDK currently implements:
 - **Document breaking changes** in commit messages
 - **Test on multiple platforms** if making platform-specific changes
 - **Use isolated mock sessions** when writing tests to ensure thread safety
+- **Naming must be descriptive** across variables, types, files, tests, and APIs.
