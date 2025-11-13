@@ -122,10 +122,7 @@ final class ChatClientTests: DifyTestCase, @unchecked Sendable {
         #expect(events.count == 7)
         
         // Verify message events
-        let messageEvents = events.compactMap { event -> MessageStreamEvent? in
-            if case .message(let msg) = event { return msg }
-            return nil
-        }
+        let messageEvents = events.compactMap { $0.message }
         #expect(messageEvents.count == 6)
         
         // Verify the accumulated answer
@@ -133,10 +130,7 @@ final class ChatClientTests: DifyTestCase, @unchecked Sendable {
         #expect(fullAnswer == "Hello! How can I help?")
         
         // Verify message_end event
-        let endEvents = events.compactMap { event -> MessageEndStreamEvent? in
-            if case .messageEnd(let end) = event { return end }
-            return nil
-        }
+        let endEvents = events.compactMap { $0.messageEnd }
         #expect(endEvents.count == 1)
         #expect(endEvents.first?.metadata.usage?.totalTokens == 1168)
     }
@@ -455,13 +449,10 @@ final class ChatClientTests: DifyTestCase, @unchecked Sendable {
         }
         """.data(using: .utf8)!
         let event = try JSONDecoder.difyDecoder.decode(StreamingChatMessageResponse.self, from: json)
-        if case .agentThought(let e) = event {
-            #expect(e.id == "thought-1")
-            #expect(e.tool == "search")
-            #expect(e.messageFiles?.count == 2)
-        } else {
-            Issue.record("Expected agent_thought event")
-        }
+        #expect(event.kind == .agentThought)
+        #expect(event.agentThought?.id == "thought-1")
+        #expect(event.agentThought?.tool == "search")
+        #expect(event.agentThought?.messageFiles?.count == 2)
     }
 
     @Test("Upload File")
@@ -726,19 +717,15 @@ final class ChatClientTests: DifyTestCase, @unchecked Sendable {
         #expect(response.toolIcons.count == 2)
         
         // Check emoji icon
-        if case .emoji(let emoji) = response.toolIcons["dalle2"] {
-            #expect(emoji.background == "#FEE2E2")
-            #expect(emoji.content == "🎨")
-        } else {
-            throw TestError("Expected emoji icon for dalle2")
-        }
+        if let icon = response.toolIcons["dalle2"] {
+            #expect(icon.emoji?.background == "#FEE2E2")
+            #expect(icon.emoji?.content == "🎨")
+        } else { throw TestError("Expected emoji icon for dalle2") }
         
         // Check URL icon
-        if case .url(let url) = response.toolIcons["api_tool"] {
-            #expect(url == "https://example.com/icon.png")
-        } else {
-            throw TestError("Expected URL icon for api_tool")
-        }
+        if let icon = response.toolIcons["api_tool"] {
+            #expect(icon.url == "https://example.com/icon.png")
+        } else { throw TestError("Expected URL icon for api_tool") }
     }
     
     @Test("Get Application WebApp Settings")

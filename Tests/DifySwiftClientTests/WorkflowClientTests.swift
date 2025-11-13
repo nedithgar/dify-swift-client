@@ -72,40 +72,28 @@ final class WorkflowClientTests: DifyTestCase, @unchecked Sendable {
         #expect(events.count == 4)
         
         // Verify workflow_started event
-        if case .workflowStarted(let event) = events[0] {
-            #expect(event.taskId == "5ad4cb98-f0c7-4085-b384-88c403be6290")
-            #expect(event.workflowRunId == "5ad498-f0c7-4085-b384-88cbe6290")
-        } else {
-            Issue.record("Expected workflow_started event")
-        }
+        #expect(events[0].kind == .workflowStarted)
+        #expect(events[0].workflowStarted?.taskId == "5ad4cb98-f0c7-4085-b384-88c403be6290")
+        #expect(events[0].workflowStarted?.workflowRunId == "5ad498-f0c7-4085-b384-88cbe6290")
         
         // Verify node_started event
-        if case .nodeStarted(let event) = events[1] {
-            #expect(event.data.nodeId == "start-node")
-            #expect(event.data.nodeType == "start")
-            #expect(event.data.title == "Start")
-        } else {
-            Issue.record("Expected node_started event")
-        }
+        #expect(events[1].kind == .nodeStarted)
+        #expect(events[1].nodeStarted?.data.nodeId == "start-node")
+        #expect(events[1].nodeStarted?.data.nodeType == "start")
+        #expect(events[1].nodeStarted?.data.title == "Start")
         
         // Verify node_finished event
-        if case .nodeFinished(let event) = events[2] {
-            #expect(event.data.nodeId == "start-node")
-            #expect(event.data.status == "succeeded")
-            #expect(event.data.elapsedTime == 0.324)
-        } else {
-            Issue.record("Expected node_finished event")
-        }
+        #expect(events[2].kind == .nodeFinished)
+        #expect(events[2].nodeFinished?.data.nodeId == "start-node")
+        #expect(events[2].nodeFinished?.data.status == "succeeded")
+        #expect(events[2].nodeFinished?.data.elapsedTime == 0.324)
         
         // Verify workflow_finished event
-        if case .workflowFinished(let event) = events[3] {
-            #expect(event.data.status == "succeeded")
-            #expect(event.data.totalTokens == 100)
-            #expect(event.data.totalSteps == 1)
-            #expect(event.data.outputs?["result"]?.value as? String == "Success")
-        } else {
-            Issue.record("Expected workflow_finished event")
-        }
+        #expect(events[3].kind == .workflowFinished)
+        #expect(events[3].workflowFinished?.data.status == "succeeded")
+        #expect(events[3].workflowFinished?.data.totalTokens == 100)
+        #expect(events[3].workflowFinished?.data.totalSteps == 1)
+        #expect(events[3].workflowFinished?.data.outputs?["result"]?.value as? String == "Success")
     }
 
     @Test("Run Workflow - Blocking Mode with Files and TraceId")
@@ -188,13 +176,11 @@ final class WorkflowClientTests: DifyTestCase, @unchecked Sendable {
         #expect(events.count == 4)
 
         // Verify workflow_run_id exposure on node events
-        if case .nodeStarted(let nodeStart) = events[1] {
-            #expect(nodeStart.workflowRunId == "5ad498-f0c7-4085-b384-88cbe6290")
-        } else { Issue.record("Expected node_started event with workflow_run_id") }
+        #expect(events[1].kind == .nodeStarted)
+        #expect(events[1].nodeStarted?.workflowRunId == "5ad498-f0c7-4085-b384-88cbe6290")
 
-        if case .nodeFinished(let nodeFinish) = events[2] {
-            #expect(nodeFinish.workflowRunId == "5ad498-f0c7-4085-b384-88cbe6290")
-        } else { Issue.record("Expected node_finished event with workflow_run_id") }
+        #expect(events[2].kind == .nodeFinished)
+        #expect(events[2].nodeFinished?.workflowRunId == "5ad498-f0c7-4085-b384-88cbe6290")
     }
     
     // MARK: - Stop Workflow Tests
@@ -492,20 +478,12 @@ final class WorkflowClientTests: DifyTestCase, @unchecked Sendable {
         // Run streaming workflow
         let stream = try await client.runStreamingWorkflow(inputs: ["query": "test"], user: "test-user")
         
-        // Expect decoding error
-        do {
-            for try await _ in stream {
-                // Should throw before getting here
-            }
-            Issue.record("Expected decoding error for unknown event type")
-        } catch {
-            // Expected error - wrapped as DifyError
-            if let difyError = error as? DifyError {
-                #expect(difyError.message?.contains("Failed to decode response") == true)
-            } else {
-                Issue.record("Expected DifyError but got \(type(of: error)): \(error)")
-            }
-        }
+        // Unknown kinds should be tolerated; stream should yield an event with kind only
+        var collected: [StreamingWorkflowResponse] = []
+        for try await e in stream { collected.append(e) }
+        #expect(collected.count == 1)
+        #expect(collected.first?.kind.rawValue == "unknown_event")
+        #expect(collected.first?.workflowStarted == nil)
     }
     
     @Test("Get Workflow Logs - Empty Response")
