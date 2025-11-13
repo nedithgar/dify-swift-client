@@ -9,16 +9,11 @@ let KB_IT_HAS_LIVE_CONFIG: Bool = {
     return (env["DIFY_API_KEY"].map { !$0.isEmpty } ?? false)
 }()
 
-let KB_IT_RUN_TAG_TESTS: Bool = {
-    ProcessInfo.processInfo.environment["DIFY_RUN_TAG_TESTS"] == "1"
-}()
-
 /// Integration tests for KnowledgeBaseClient using a real Dify instance.
 ///
 /// Opt-in via environment variables:
 /// - DIFY_API_KEY: required. Server/workspace API key with Knowledge Base permissions.
 /// - DIFY_BASE_URL: optional. Defaults to "https://api.dify.ai/v1" (must include /v1).
-/// - DIFY_RUN_TAG_TESTS: optional. Set to "1" to run tag binding/update/delete tests.
 ///
 /// IMPORTANT: These tests make live changes (datasets/documents/tags) and clean them up.
 /// They are serialized and skipped by default if env is missing.
