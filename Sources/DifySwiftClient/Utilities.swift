@@ -3,6 +3,39 @@ import Foundation
 import FoundationNetworking
 #endif
 
+// MARK: - Debug Logger
+
+/// Lightweight debug logger. Always enabled during rapid development.
+enum DifyDebug {
+    // MARK: Gate is removed; keep the flag for potential future use.
+    // TODO: Make this configurable via environment or build settings.
+    static let enabled: Bool = true
+
+    static func log(_ message: String) {
+        print("[DifySwiftClient][DEBUG] \(message)")
+    }
+
+    static func dump(_ data: Data, limit: Int = 256) -> String {
+        if data.isEmpty { return "<empty>" }
+        let prefix = String(data: data.prefix(limit), encoding: .utf8) ?? "<non-utf8>"
+        let more = data.count > limit ? "… (\(data.count) bytes total)" : ""
+        return prefix + more
+    }
+
+    static func sanitizeHeaders(_ headers: [AnyHashable: Any]) -> [String: String] {
+        var sanitized: [String: String] = [:]
+        for (kAny, vAny) in headers {
+            let k = String(describing: kAny)
+            var v = String(describing: vAny)
+            if k.lowercased() == "authorization" {
+                v = "Bearer ****"
+            }
+            sanitized[k] = v
+        }
+        return sanitized
+    }
+}
+
 // MARK: - Errors
 
 /// Errors that can occur when using the Dify client.
