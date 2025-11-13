@@ -341,15 +341,17 @@ let knowledgeBaseClient = try KnowledgeBaseClient(apiKey: "your_api_key")
 // Create a new dataset
 let dataset = try await knowledgeBaseClient.createDataset(name: "My Knowledge Base")
 
-// Create document by uploading a file (legacy upload endpoint)
+// Create document by uploading a file (typed OpenAPI request)
 let fileData = Data() // Your document data
-let legacyProcessRule = ProcessRule(mode: "automatic")
-
-let documentResponse = try await knowledgeBaseClient.createDocument(
+let documentResponse = try await knowledgeBaseClient.createDocumentFromFile(
     datasetId: dataset.id,
-    fileData: fileData,
     fileName: "document.pdf",
-    processRule: legacyProcessRule
+    fileData: fileData,
+    data: KBCreateDocumentByFileData(
+        indexingTechnique: .highQuality,
+        docForm: .textModel,
+        processRule: KBProcessRule(mode: .automatic)
+    )
 )
 
 // List documents in the dataset
@@ -751,10 +753,7 @@ let client = try DifyClient(
 ### Process Rules for Knowledge Base
 
 ```swift
-// Legacy simplified rules shape
-let legacy = ProcessRule(mode: "automatic")
-
-// Typed rules using the OpenAPI-aligned model
+// Typed rules using the OpenAPI-aligned model only
 let typed = KBProcessRule.custom(
     rules: KBProcessRules(
         preProcessingRules: [
@@ -766,13 +765,17 @@ let typed = KBProcessRule.custom(
     )
 )
 
-// Use legacy createDocument method with file data
+// Use the typed createDocumentFromFile with file data and rules
 let fileData = Data("Document content".utf8)
-let response = try await knowledgeBaseClient.createDocument(
+let response = try await knowledgeBaseClient.createDocumentFromFile(
     datasetId: "dataset_id",
-    fileData: fileData,
     fileName: "Custom Document.txt",
-    processRule: legacy
+    fileData: fileData,
+    data: KBCreateDocumentByFileData(
+        indexingTechnique: .economy,
+        docForm: .textModel,
+        processRule: typed
+    )
 )
 ```
 

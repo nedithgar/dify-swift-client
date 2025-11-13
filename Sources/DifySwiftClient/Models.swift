@@ -1147,16 +1147,6 @@ public struct DocumentsResponse: Codable, Sendable {
     }
 }
 
-public struct ProcessRule: Codable, Sendable {
-    public let mode: String
-    public let rules: [String: String]?
-    
-    public init(mode: String, rules: [String : String]? = nil) {
-        self.mode = mode
-        self.rules = rules
-    }
-}
-
 // MARK: Knowledge Base Models (OpenAPI-aligned, non-breaking new types)
 
 /// Advanced Create Dataset request (OpenAPI CreateDatasetRequest)

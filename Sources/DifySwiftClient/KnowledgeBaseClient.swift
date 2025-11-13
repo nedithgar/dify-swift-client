@@ -153,31 +153,8 @@ public final class KnowledgeBaseClient: DifyClient, @unchecked Sendable {
         return try decode(data, to: DocumentsResponse.self)
     }
     
-    /// Uploads and creates a new document in a dataset using multipart/form-data.
-    ///
-    /// - Parameters:
-    ///   - datasetId: Dataset identifier receiving the document.
-    ///   - fileData: Raw file bytes to ingest.
-    ///   - fileName: Original filename; also used as the logical document name.
-    ///   - processRule: Processing / ingestion rule serialized to JSON in the `process_rule` field.
-    /// - Returns: A `DocumentResponse` representing the newly created document.
-    /// - Throws: `DifyError` on upload or processing failure.
-    /// - Note: MIME type is currently fixed as `application/octet-stream` – adjust if the API introduces behavior
-    ///   dependent on specific content types.
-    public func createDocument(datasetId: String, fileData: Data, fileName: String, processRule: ProcessRule) async throws -> DocumentResponse {
-        let multipart = MultipartFormData()
-        multipart.addTextField(named: "name", value: fileName)
-        
-        if let processRuleData = try? JSONEncoder.difyEncoder.encode(processRule),
-           let processRuleString = String(data: processRuleData, encoding: .utf8) {
-            multipart.addTextField(named: "process_rule", value: processRuleString)
-        }
-        
-        multipart.addFileField(named: "file", fileName: fileName, data: fileData, mimeType: "application/octet-stream")
-        
-        let data = try await sendMultipartRequest(method: .POST, endpoint: "/datasets/\(datasetId)/documents/upload", multipart: multipart)
-        return try decode(data, to: DocumentResponse.self)
-    }
+    // Note: Legacy upload endpoint (`/datasets/{dataset_id}/documents/upload`) removed. Use
+    // `createDocumentFromFile` or `createDocumentFromText` with typed KB* requests instead.
 
     /// Create a document by uploading a file (OpenAPI path).
     public func createDocumentFromFile(datasetId: String, fileName: String, fileData: Data, data requestData: KBCreateDocumentByFileData) async throws -> DocumentResponse {

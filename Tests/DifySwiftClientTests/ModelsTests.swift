@@ -93,21 +93,19 @@ struct SimpleModelTests {
         #expect(nilDecoded.result == nil)
     }
     
-    @Test func testProcessRule() throws {
-        let rule = ProcessRule(mode: "auto", rules: ["key": "value"])
+    @Test func testKBProcessRuleEncoding() throws {
+        let rules = KBProcessRules(
+            preProcessingRules: [KBPreprocessingRule(id: .removeExtraSpaces, enabled: true)],
+            segmentation: KBSegmentationRule(separator: "\n", maxTokens: 500),
+            parentMode: .paragraph,
+            subchunkSegmentation: nil
+        )
+        let rule = KBProcessRule(mode: .custom, rules: rules)
         let encoded = try JSONEncoder.difyEncoder.encode(rule)
-        let decoded = try JSONDecoder.difyDecoder.decode(ProcessRule.self, from: encoded)
-        
-        #expect(decoded.mode == "auto")
-        #expect(decoded.rules?["key"] == "value")
-        
-        // Test with nil rules
-        let simpleRule = ProcessRule(mode: "manual")
-        let simpleEncoded = try JSONEncoder.difyEncoder.encode(simpleRule)
-        let simpleDecoded = try JSONDecoder.difyDecoder.decode(ProcessRule.self, from: simpleEncoded)
-        
-        #expect(simpleDecoded.mode == "manual")
-        #expect(simpleDecoded.rules == nil)
+        let json = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        #expect(json?["mode"] as? String == "custom")
+        let rulesJson = json?["rules"] as? [String: Any]
+        #expect((rulesJson?["pre_processing_rules"] as? [[String: Any]])?.count == 1)
     }
 }
 
@@ -1509,14 +1507,15 @@ struct InitializerTests {
         #expect(file2.uploadFileId == "123")
     }
     
-    @Test func testProcessRuleInitializer() {
-        let rule1 = ProcessRule(mode: "auto")
-        #expect(rule1.mode == "auto")
-        #expect(rule1.rules == nil)
+    @Test func testKBProcessRuleInitializer() {
+        let auto = KBProcessRule(mode: .automatic)
+        #expect(auto.mode == .automatic)
+        #expect(auto.rules == nil)
         
-        let rule2 = ProcessRule(mode: "manual", rules: ["key": "value"])
-        #expect(rule2.mode == "manual")
-        #expect(rule2.rules?["key"] == "value")
+        let rules = KBProcessRules(preProcessingRules: nil, segmentation: nil, parentMode: .fullDoc, subchunkSegmentation: nil)
+        let custom = KBProcessRule(mode: .custom, rules: rules)
+        #expect(custom.mode == .custom)
+        #expect(custom.rules?.parentMode == .fullDoc)
     }
     
     @Test func testMessageFeedbackRequestInitializer() {
