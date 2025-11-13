@@ -2,6 +2,17 @@ import Foundation
 import Testing
 @testable import DifySwiftClient
 
+// MARK: - Gating Flags (module-level to avoid macro circular refs)
+
+let KB_IT_HAS_LIVE_CONFIG: Bool = {
+    let env = ProcessInfo.processInfo.environment
+    return (env["DIFY_API_KEY"].map { !$0.isEmpty } ?? false)
+}()
+
+let KB_IT_RUN_TAG_TESTS: Bool = {
+    ProcessInfo.processInfo.environment["DIFY_RUN_TAG_TESTS"] == "1"
+}()
+
 /// Integration tests for KnowledgeBaseClient using a real Dify instance.
 ///
 /// Opt-in via environment variables:
@@ -11,21 +22,25 @@ import Testing
 ///
 /// IMPORTANT: These tests make live changes (datasets/documents/tags) and clean them up.
 /// They are serialized and skipped by default if env is missing.
-@Suite("KnowledgeBaseClient Integration", .serialized)
+@Suite(
+    "KnowledgeBaseClient Integration",
+    .serialized,
+    .enabled(if: KB_IT_HAS_LIVE_CONFIG)
+)
 struct KnowledgeBaseClientIntegrationTests {
 
     // MARK: - Live Client Bootstrap
 
-    private static func makeClient() -> KnowledgeBaseClient? {
+    private static func makeClient() throws -> KnowledgeBaseClient {
         let env = ProcessInfo.processInfo.environment
-        guard let apiKey = env["DIFY_API_KEY"], !apiKey.isEmpty else { return nil }
+        let apiKey = env["DIFY_API_KEY"] ?? ""
         let baseURL = env["DIFY_BASE_URL"] ?? "https://api.dify.ai/v1"
 
         // Ensure mocks from unit tests don't intercept live calls
         // (DifyTestCase registers MockURLProtocol globally).
         URLProtocol.unregisterClass(MockURLProtocol.self)
 
-        return try? KnowledgeBaseClient(apiKey: apiKey, baseURL: baseURL)
+        return try KnowledgeBaseClient(apiKey: apiKey, baseURL: baseURL)
     }
 
     // MARK: - Helpers
@@ -56,7 +71,7 @@ struct KnowledgeBaseClientIntegrationTests {
 
     @Test("Dataset and Document lifecycle, segments, and retrieve")
     func testDatasetDocumentSegmentsAndRetrieve() async throws {
-        guard let client = Self.makeClient() else { return }
+        let client = try Self.makeClient()
 
         // Create Dataset
         let datasetName = "SDK-IT-\(UUID().uuidString.prefix(8))"
@@ -149,18 +164,16 @@ struct KnowledgeBaseClientIntegrationTests {
 
     @Test("Embedding models listing")
     func testGetAvailableEmbeddingModels() async throws {
-        guard let client = Self.makeClient() else { return }
+        let client = try Self.makeClient()
         let providers = try await client.getAvailableEmbeddingModels()
         #expect(!providers.isEmpty)
     }
 
     // MARK: - Tags management (opt-in)
 
-    @Test("Tags CRUD and binding (opt-in)")
+    @Test("Tags CRUD and binding (opt-in)", .enabled(if: KB_IT_RUN_TAG_TESTS))
     func testTagsCRUDAndBinding() async throws {
-        let env = ProcessInfo.processInfo.environment
-        guard env["DIFY_RUN_TAG_TESTS"] == "1" else { return }
-        guard let client = Self.makeClient() else { return }
+        let client = try Self.makeClient()
 
         // Create a dataset for tag binding scope
         let dataset = try await client.createDataset(name: "SDK-IT-TAGS-\(UUID().uuidString.prefix(6))")
