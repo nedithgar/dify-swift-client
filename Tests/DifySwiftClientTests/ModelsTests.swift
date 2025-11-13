@@ -784,7 +784,7 @@ struct KnowledgeBaseModelTests {
         #expect(response.description == "A test dataset")
         #expect(response.permission == "read_write")
         #expect(response.dataSourceType == "upload_file")
-        #expect(response.indexingTechnique == "high_quality")
+        #expect(response.indexingTechnique == .highQuality)
         #expect(response.appCount == 3)
         #expect(response.documentCount == 10)
         #expect(response.wordCount == 5000)

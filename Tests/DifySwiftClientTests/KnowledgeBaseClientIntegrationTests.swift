@@ -90,7 +90,7 @@ struct KnowledgeBaseClientIntegrationTests {
         _ = try await client.updateDataset(
             datasetId: datasetId,
             KBUpdateDatasetRequest(
-                indexingTechnique: "economy",
+                indexingTechnique: .economy,
                 embeddingModelProvider: chosenProvider.provider,
                 embeddingModel: chosenModel.model,
                 retrievalModel: KBRetrievalModel(
@@ -107,7 +107,7 @@ struct KnowledgeBaseClientIntegrationTests {
         let createTextReq = KBCreateDocumentByTextRequest(
             name: "it-text",
             text: docText,
-            indexingTechnique: "economy",
+            indexingTechnique: .economy,
             docForm: "text_model",
             docLanguage: "English",
             processRule: KBProcessRule(mode: "automatic"),
@@ -129,7 +129,7 @@ struct KnowledgeBaseClientIntegrationTests {
                 fileName: "fallback.txt",
                 fileData: fallbackData,
                 data: KBCreateDocumentByFileData(
-                    indexingTechnique: "economy",
+                    indexingTechnique: .economy,
                     docForm: "text_model",
                     docLanguage: "English",
                     processRule: KBProcessRule(mode: "automatic")
@@ -142,7 +142,7 @@ struct KnowledgeBaseClientIntegrationTests {
                 fileName: "fallback.txt",
                 fileData: fallbackData,
                 data: KBCreateDocumentByFileData(
-                    indexingTechnique: "economy",
+                    indexingTechnique: .economy,
                     docForm: "text_model",
                     docLanguage: "English",
                     processRule: KBProcessRule(mode: "automatic")
@@ -205,7 +205,7 @@ struct KnowledgeBaseClientIntegrationTests {
             fileName: "kb-it.txt",
             fileData: fileData,
             data: KBCreateDocumentByFileData(
-                indexingTechnique: "economy",
+                indexingTechnique: .economy,
                 docForm: "text_model",
                 docLanguage: "English",
                 processRule: KBProcessRule(mode: "automatic")

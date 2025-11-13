@@ -954,13 +954,38 @@ public struct ExecutionMetadata: Codable, Sendable {
 
 // MARK: - Knowledge Base Models
 
+/// Type-safe wrapper for indexing technique values used by Knowledge Base APIs.
+public struct KBIndexingTechnique: RawRepresentable, Codable, Equatable, Hashable, Sendable, CustomStringConvertible {
+    public let rawValue: String
+
+    public init(rawValue: String) { self.rawValue = rawValue }
+
+    // Common techniques
+    public static let economy = KBIndexingTechnique(rawValue: "economy")
+    public static let highQuality = KBIndexingTechnique(rawValue: "high_quality")
+
+    // Codable as a single string
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(String.self)
+        self.init(rawValue: value)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
+    public var description: String { rawValue }
+}
+
 public struct DatasetResponse: Codable, Sendable {
     public let id: String
     public let name: String
     public let description: String?
     public let permission: String
     public let dataSourceType: String
-    public let indexingTechnique: String
+    public let indexingTechnique: KBIndexingTechnique
     public let appCount: Int
     public let documentCount: Int
     public let wordCount: Int
@@ -987,7 +1012,8 @@ public struct DatasetResponse: Codable, Sendable {
         self.description = try container.decodeIfPresent(String.self, forKey: .description)
         self.permission = try container.decode(String.self, forKey: .permission)
         self.dataSourceType = try container.decodeIfPresent(String.self, forKey: .dataSourceType) ?? ""
-        self.indexingTechnique = try container.decodeIfPresent(String.self, forKey: .indexingTechnique) ?? ""
+        let idx = try container.decodeIfPresent(String.self, forKey: .indexingTechnique) ?? ""
+        self.indexingTechnique = KBIndexingTechnique(rawValue: idx)
         self.appCount = try container.decode(Int.self, forKey: .appCount)
         self.documentCount = try container.decode(Int.self, forKey: .documentCount)
         self.wordCount = try container.decode(Int.self, forKey: .wordCount)
@@ -1057,7 +1083,7 @@ public struct ProcessRule: Codable, Sendable {
 public struct KBCreateDatasetRequest: Codable, Sendable {
     public let name: String
     public let description: String?
-    public let indexingTechnique: String?
+    public let indexingTechnique: KBIndexingTechnique?
     public let permission: String?
     public let provider: String?
     public let externalKnowledgeApiId: String?
@@ -1079,7 +1105,7 @@ public struct KBCreateDatasetRequest: Codable, Sendable {
 
     public init(name: String,
                 description: String? = nil,
-                indexingTechnique: String? = nil,
+                indexingTechnique: KBIndexingTechnique? = nil,
                 permission: String? = nil,
                 provider: String? = nil,
                 externalKnowledgeApiId: String? = nil,
@@ -1108,7 +1134,7 @@ public struct KBDataset: Codable, Sendable {
     public let provider: String?
     public let permission: String
     public let dataSourceType: String?
-    public let indexingTechnique: String?
+    public let indexingTechnique: KBIndexingTechnique?
     public let appCount: Int
     public let documentCount: Int
     public let wordCount: Int
@@ -1239,7 +1265,7 @@ public struct KBDatasetDetail: Codable, Sendable {
     public let provider: String?
     public let permission: String
     public let dataSourceType: String?
-    public let indexingTechnique: String?
+    public let indexingTechnique: KBIndexingTechnique?
     public let appCount: Int
     public let documentCount: Int
     public let wordCount: Int
@@ -1280,7 +1306,7 @@ public struct KBDatasetDetail: Codable, Sendable {
 public struct KBUpdateDatasetRequest: Codable, Sendable {
     public let name: String?
     public let description: String?
-    public let indexingTechnique: String?
+    public let indexingTechnique: KBIndexingTechnique?
     public let permission: String?
     public let embeddingModelProvider: String?
     public let embeddingModel: String?
@@ -1299,7 +1325,7 @@ public struct KBUpdateDatasetRequest: Codable, Sendable {
 
     public init(name: String? = nil,
                 description: String? = nil,
-                indexingTechnique: String? = nil,
+                indexingTechnique: KBIndexingTechnique? = nil,
                 permission: String? = nil,
                 embeddingModelProvider: String? = nil,
                 embeddingModel: String? = nil,
@@ -1332,7 +1358,7 @@ public struct KBProcessRule: Codable, Sendable {
 
 public struct KBCreateDocumentByFileData: Codable, Sendable {
     public let originalDocumentId: String?
-    public let indexingTechnique: String?
+    public let indexingTechnique: KBIndexingTechnique?
     public let docForm: String?
     public let docLanguage: String?
     public let processRule: KBProcessRule?
@@ -1341,7 +1367,7 @@ public struct KBCreateDocumentByFileData: Codable, Sendable {
     public let embeddingModelProvider: String?
 
     public init(originalDocumentId: String? = nil,
-                indexingTechnique: String? = nil,
+                indexingTechnique: KBIndexingTechnique? = nil,
                 docForm: String? = nil,
                 docLanguage: String? = nil,
                 processRule: KBProcessRule? = nil,
@@ -1373,7 +1399,7 @@ public struct KBCreateDocumentByFileData: Codable, Sendable {
 public struct KBCreateDocumentByTextRequest: Codable, Sendable {
     public let name: String
     public let text: String
-    public let indexingTechnique: String?
+    public let indexingTechnique: KBIndexingTechnique?
     public let docForm: String?
     public let docLanguage: String?
     public let processRule: KBProcessRule?
@@ -1383,7 +1409,7 @@ public struct KBCreateDocumentByTextRequest: Codable, Sendable {
 
     public init(name: String,
                 text: String,
-                indexingTechnique: String? = nil,
+                indexingTechnique: KBIndexingTechnique? = nil,
                 docForm: String? = nil,
                 docLanguage: String? = nil,
                 processRule: KBProcessRule? = nil,
