@@ -7,17 +7,14 @@ import FoundationNetworking
 
 /// Lightweight debug logger.
 ///
-/// Configuration: set environment variable `DIFY_SDK_DEBUG` to one of
-/// "1", "true", "yes", or "on" (case-insensitive) to enable logging.
-/// Default is disabled.
+/// Configuration: set environment variable `DIFY_SDK_DEBUG` to
+/// the string "true" (case-insensitive) to enable logging.
+/// Any other value, or unset, disables logging.
 enum DifySDKDebug {
     /// Whether SDK debug logging is enabled (derived once from environment).
     static let enabled: Bool = {
         guard let raw = ProcessInfo.processInfo.environment["DIFY_SDK_DEBUG"] else { return false }
-        switch raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-        case "1", "true", "yes", "on": return true
-        default: return false
-        }
+        return raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "true"
     }()
 
     static func log(_ message: String) {
