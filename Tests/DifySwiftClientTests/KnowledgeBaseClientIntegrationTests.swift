@@ -6,13 +6,14 @@ import Testing
 
 let KB_IT_HAS_LIVE_CONFIG: Bool = {
     let env = ProcessInfo.processInfo.environment
-    return (env["DIFY_API_KEY"].map { !$0.isEmpty } ?? false)
+    // Require a narrowly scoped key for KB integration tests.
+    return (env["DIFY_KB_API_KEY"].map { !$0.isEmpty } ?? false)
 }()
 
 /// Integration tests for KnowledgeBaseClient using a real Dify instance.
 ///
 /// Opt-in via environment variables:
-/// - DIFY_API_KEY: required. Server/workspace API key with Knowledge Base permissions.
+/// - DIFY_KB_API_KEY: required. Server/workspace API key scoped for Knowledge Base operations.
 /// - DIFY_BASE_URL: optional. Defaults to "https://api.dify.ai/v1" (must include /v1).
 ///
 /// IMPORTANT: These tests make live changes (datasets/documents/tags) and clean them up.
@@ -28,7 +29,7 @@ struct KnowledgeBaseClientIntegrationTests {
 
     private static func makeClient() throws -> KnowledgeBaseClient {
         let env = ProcessInfo.processInfo.environment
-        let apiKey = env["DIFY_API_KEY"] ?? ""
+        let apiKey = env["DIFY_KB_API_KEY"] ?? ""
         let baseURL = env["DIFY_BASE_URL"] ?? "https://api.dify.ai/v1"
 
         // Ensure mocks from unit tests don't intercept live calls
