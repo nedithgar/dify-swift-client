@@ -31,7 +31,7 @@ struct KnowledgeBaseClientIntegrationTests {
         let apiKey = env["DIFY_KB_API_KEY"] ?? ""
         let baseURL = env["DIFY_BASE_URL"] ?? "https://api.dify.ai/v1"
 
-        // Use a dedicated URLSession that excludes MockURLProtocol so live HTTP traffic bypasses the unit-test mocking layer.
+        // Use a dedicated URLSession without MockURLProtocol to bypass unit-test mocking for live HTTP requests.
         let configuration = URLSessionConfiguration.default
         configuration.protocolClasses = nil
         configuration.waitsForConnectivity = true
@@ -151,8 +151,8 @@ struct KnowledgeBaseClientIntegrationTests {
     private func shouldRetryVectorIndexAvailability(_ error: DifyError) -> Bool {
         guard let status = error.status, status == 400 else { return false }
         let message = error.message?.lowercased() ?? ""
-        if message.contains("vector_index") && message.contains("doesn\"t exist") { return true }
-        if message.contains("collection") && message.contains("doesn\"t exist") { return true }
+        if message.contains("vector_index") && message.contains("doesn't exist") { return true }
+        if message.contains("collection") && message.contains("doesn't exist") { return true }
         if message.contains("unexpected response: 404") { return true }
         return false
     }
