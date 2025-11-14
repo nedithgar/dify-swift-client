@@ -726,7 +726,7 @@ struct KnowledgeBaseClientIntegrationTests {
         let dataset = try await client.createDataset(name: "SDK-IT-UF-\(UUID().uuidString.prefix(6))")
         let datasetId = dataset.id
 
-        // Configure embeddings on dataset (reuse economy for speed)
+        // Configure embeddings on dataset using the specified technique
         let providers = try await client.getAvailableEmbeddingModels()
         #expect(!providers.isEmpty)
         let chosenProvider = providers.first(where: { !$0.models.isEmpty }) ?? providers[0]
