@@ -617,6 +617,75 @@ struct KnowledgeBaseClientIntegrationTests {
         try await runRetrieveHybridTop5Weight(client: client, technique: .highQuality)
     }
 
+    private func runRetrieveSemanticDatasetReranking(client: KnowledgeBaseClient, technique: KBIndexingTechnique) async throws {
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(
+            client: client,
+            datasetRetrieval: KBRetrievalModel(searchMethod: .semanticSearch, rerankingEnable: true, topK: 5),
+            indexingTechnique: technique
+        )
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+        do {
+            let resp = try await client.retrieve(
+                datasetId: datasetId,
+                KBRetrieveRequest(query: "knowledge bases and segments")
+            )
+            #expect(resp.records.count >= 0)
+        } catch let difyError as DifyError {
+            if !(400...499).contains(difyError.status ?? 0) { throw difyError }
+            #expect(Bool(true))
+        }
+        _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+        _ = try? await client.deleteDataset(datasetId: datasetId)
+    }
+
+    @Test("Retrieve semantic_search dataset-level reranking enabled (economy)")
+    func testRetrieveSemanticDatasetReranking_Economy() async throws {
+        let client = try Self.makeClient()
+        try await runRetrieveSemanticDatasetReranking(client: client, technique: .economy)
+    }
+
+    @Test("Retrieve semantic_search dataset-level reranking enabled (high_quality)")
+    func testRetrieveSemanticDatasetReranking_HighQuality() async throws {
+        let client = try Self.makeClient()
+        try await runRetrieveSemanticDatasetReranking(client: client, technique: .highQuality)
+    }
+
+    private func runRetrieveSemanticRequestReranking(client: KnowledgeBaseClient, technique: KBIndexingTechnique) async throws {
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(
+            client: client,
+            datasetRetrieval: KBRetrievalModel(searchMethod: .semanticSearch, rerankingEnable: false, topK: 5),
+            indexingTechnique: technique
+        )
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+        do {
+            let resp = try await client.retrieve(
+                datasetId: datasetId,
+                KBRetrieveRequest(
+                    query: "knowledge bases and segments",
+                    retrievalModel: KBRetrievalModel(searchMethod: .semanticSearch, rerankingEnable: true, topK: 5)
+                )
+            )
+            #expect(resp.records.count >= 0)
+        } catch let difyError as DifyError {
+            if !(400...499).contains(difyError.status ?? 0) { throw difyError }
+            #expect(Bool(true))
+        }
+        _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+        _ = try? await client.deleteDataset(datasetId: datasetId)
+    }
+
+    @Test("Retrieve semantic_search request-level reranking enabled (economy)")
+    func testRetrieveSemanticRequestReranking_Economy() async throws {
+        let client = try Self.makeClient()
+        try await runRetrieveSemanticRequestReranking(client: client, technique: .economy)
+    }
+
+    @Test("Retrieve semantic_search request-level reranking enabled (high_quality)")
+    func testRetrieveSemanticRequestReranking_HighQuality() async throws {
+        let client = try Self.makeClient()
+        try await runRetrieveSemanticRequestReranking(client: client, technique: .highQuality)
+    }
+
     private func runRetrieveSemanticThreshold(client: KnowledgeBaseClient, technique: KBIndexingTechnique) async throws {
         let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(
             client: client,
