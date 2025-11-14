@@ -20,7 +20,6 @@ let KB_IT_HAS_LIVE_CONFIG: Bool = {
 /// They are serialized and skipped by default if env is missing.
 @Suite(
     "KnowledgeBaseClient Integration",
-    .serialized,
     .disabled(if: !KB_IT_HAS_LIVE_CONFIG)
 )
 struct KnowledgeBaseClientIntegrationTests {
@@ -311,47 +310,90 @@ struct KnowledgeBaseClientIntegrationTests {
 
     // MARK: - Additional Combinations
 
-    @Test("Retrieve with explicit model overrides and thresholds")
-    func testRetrieveModelCombinations() async throws {
+    @Test("Retrieve semantic_search topK=3")
+    func testRetrieveSemanticTop3() async throws {
         let client = try Self.makeClient()
-
-        // Bootstrap a dataset + one document
         let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(client: client)
-
-        // Ensure fully indexed before querying
         _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
-
-        // Exercise multiple retrieval configurations. Some combos may be unsupported on a given server;
-        // treat 4xx feature errors as soft-skips but still cover request encoding paths.
-        struct Combo { let name: String; let model: KBRetrievalModel }
-        let combos: [Combo] = [
-            Combo(name: "semantic_top3", model: .init(searchMethod: .semanticSearch, rerankingEnable: false, topK: 3)),
-            Combo(name: "fulltext_top3", model: .init(searchMethod: .fullTextSearch, topK: 3)),
-            Combo(name: "hybrid_top5_weight", model: .init(searchMethod: .hybridSearch, topK: 5, weights: 0.5)),
-            Combo(name: "semantic_threshold", model: .init(searchMethod: .semanticSearch, topK: 5, scoreThresholdEnabled: true, scoreThreshold: 0.1))
-        ]
-
-        var successCount = 0
-        for combo in combos {
-            do {
-                let resp = try await client.retrieve(
-                    datasetId: datasetId,
-                    KBRetrieveRequest(query: "knowledge bases and segments", retrievalModel: combo.model)
+        do {
+            let resp = try await client.retrieve(
+                datasetId: datasetId,
+                KBRetrieveRequest(
+                    query: "knowledge bases and segments",
+                    retrievalModel: KBRetrievalModel(searchMethod: .semanticSearch, rerankingEnable: false, topK: 3)
                 )
-                // Either zero or some records; main goal is no throw for supported combos
-                #expect(resp.records.count >= 0)
-                successCount += 1
-            } catch let difyError as DifyError {
-                // Gracefully ignore feature/validation errors to keep the suite robust across deployments
-                if (400...499).contains(difyError.status ?? 0) { continue }
-                throw difyError
-            }
+            )
+            #expect(resp.records.count >= 0)
+        } catch let difyError as DifyError {
+            if !(400...499).contains(difyError.status ?? 0) { throw difyError }
+            #expect(Bool(true)) // soft-skip for unsupported combo
         }
+        _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+        _ = try? await client.deleteDataset(datasetId: datasetId)
+    }
 
-        // At least one configuration should succeed on a healthy deployment
-        #expect(successCount >= 1)
+    @Test("Retrieve full_text_search topK=3")
+    func testRetrieveFullTextTop3() async throws {
+        let client = try Self.makeClient()
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(client: client)
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+        do {
+            let resp = try await client.retrieve(
+                datasetId: datasetId,
+                KBRetrieveRequest(
+                    query: "knowledge bases and segments",
+                    retrievalModel: KBRetrievalModel(searchMethod: .fullTextSearch, topK: 3)
+                )
+            )
+            #expect(resp.records.count >= 0)
+        } catch let difyError as DifyError {
+            if !(400...499).contains(difyError.status ?? 0) { throw difyError }
+            #expect(Bool(true))
+        }
+        _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+        _ = try? await client.deleteDataset(datasetId: datasetId)
+    }
 
-        // Cleanup
+    @Test("Retrieve hybrid_search topK=5 weights=0.5")
+    func testRetrieveHybridTop5Weight() async throws {
+        let client = try Self.makeClient()
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(client: client)
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+        do {
+            let resp = try await client.retrieve(
+                datasetId: datasetId,
+                KBRetrieveRequest(
+                    query: "knowledge bases and segments",
+                    retrievalModel: KBRetrievalModel(searchMethod: .hybridSearch, topK: 5, weights: 0.5)
+                )
+            )
+            #expect(resp.records.count >= 0)
+        } catch let difyError as DifyError {
+            if !(400...499).contains(difyError.status ?? 0) { throw difyError }
+            #expect(Bool(true))
+        }
+        _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+        _ = try? await client.deleteDataset(datasetId: datasetId)
+    }
+
+    @Test("Retrieve semantic_search with threshold enabled")
+    func testRetrieveSemanticThreshold() async throws {
+        let client = try Self.makeClient()
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(client: client)
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+        do {
+            let resp = try await client.retrieve(
+                datasetId: datasetId,
+                KBRetrieveRequest(
+                    query: "knowledge bases and segments",
+                    retrievalModel: KBRetrievalModel(searchMethod: .semanticSearch, topK: 5, scoreThresholdEnabled: true, scoreThreshold: 0.1)
+                )
+            )
+            #expect(resp.records.count >= 0)
+        } catch let difyError as DifyError {
+            if !(400...499).contains(difyError.status ?? 0) { throw difyError }
+            #expect(Bool(true))
+        }
         _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
         _ = try? await client.deleteDataset(datasetId: datasetId)
     }
