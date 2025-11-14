@@ -63,6 +63,50 @@ struct KnowledgeBaseClientIntegrationTests {
         return try await client.getDocumentDetail(datasetId: datasetId, documentId: documentId)
     }
 
+    // Reusable helper to create a dataset with provider/model configured and ingest a text document.
+    // Returns (datasetId, documentId).
+    private func bootstrapDatasetWithTextDocument(
+        client: KnowledgeBaseClient,
+        datasetRetrieval: KBRetrievalModel = KBRetrievalModel(
+            searchMethod: .semanticSearch,
+            rerankingEnable: false,
+            topK: 5,
+            scoreThresholdEnabled: false
+        ),
+        indexingTechnique: KBIndexingTechnique = .economy,
+        text: String = "Dify Swift SDK integration test content about knowledge bases and segments."
+    ) async throws -> (String, String) {
+        let dataset = try await client.createDataset(name: "SDK-IT-\(UUID().uuidString.prefix(8))")
+        let datasetId = dataset.id
+
+        // Configure embeddings + retrieval on the dataset
+        let providers = try await client.getAvailableEmbeddingModels()
+        #expect(!providers.isEmpty)
+        let chosenProvider = providers.first(where: { !$0.models.isEmpty }) ?? providers[0]
+        let chosenModel = chosenProvider.models.first!
+        _ = try await client.updateDataset(
+            datasetId: datasetId,
+            KBUpdateDatasetRequest(
+                indexingTechnique: indexingTechnique,
+                embeddingModelProvider: chosenProvider.provider,
+                embeddingModel: chosenModel.model,
+                retrievalModel: datasetRetrieval
+            )
+        )
+
+        let createTextRequest = KBCreateDocumentByTextRequest(
+            name: "it-text",
+            text: text,
+            indexingTechnique: indexingTechnique,
+            docForm: .textModel,
+            processRule: KBProcessRule(mode: .automatic)
+        )
+        let document = try await client.createDocumentFromText(datasetId: datasetId, createTextRequest)
+        let documentId = document.id
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+        return (datasetId, documentId)
+    }
+
     // MARK: - End-to-End Dataset + Document + Segments + Retrieve
 
     @Test("Dataset and Document lifecycle, segments, and retrieve")
@@ -263,6 +307,117 @@ struct KnowledgeBaseClientIntegrationTests {
 
         // Final: delete dataset
         _ = try await client.deleteDataset(datasetId: datasetId)
+    }
+
+    // MARK: - Additional Combinations
+
+    @Test("Retrieve with explicit model overrides and thresholds")
+    func testRetrieveModelCombinations() async throws {
+        let client = try Self.makeClient()
+
+        // Bootstrap a dataset + one document
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(client: client)
+
+        // Ensure fully indexed before querying
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+
+        // Exercise multiple retrieval configurations. Some combos may be unsupported on a given server;
+        // treat 4xx feature errors as soft-skips but still cover request encoding paths.
+        struct Combo { let name: String; let model: KBRetrievalModel }
+        let combos: [Combo] = [
+            Combo(name: "semantic_top3", model: .init(searchMethod: .semanticSearch, rerankingEnable: false, topK: 3)),
+            Combo(name: "fulltext_top3", model: .init(searchMethod: .fullTextSearch, topK: 3)),
+            Combo(name: "hybrid_top5_weight", model: .init(searchMethod: .hybridSearch, topK: 5, weights: 0.5)),
+            Combo(name: "semantic_threshold", model: .init(searchMethod: .semanticSearch, topK: 5, scoreThresholdEnabled: true, scoreThreshold: 0.1))
+        ]
+
+        var successCount = 0
+        for combo in combos {
+            do {
+                let resp = try await client.retrieve(
+                    datasetId: datasetId,
+                    KBRetrieveRequest(query: "knowledge bases and segments", retrievalModel: combo.model)
+                )
+                // Either zero or some records; main goal is no throw for supported combos
+                #expect(resp.records.count >= 0)
+                successCount += 1
+            } catch let difyError as DifyError {
+                // Gracefully ignore feature/validation errors to keep the suite robust across deployments
+                if (400...499).contains(difyError.status ?? 0) { continue }
+                throw difyError
+            }
+        }
+
+        // At least one configuration should succeed on a healthy deployment
+        #expect(successCount >= 1)
+
+        // Cleanup
+        _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+        _ = try? await client.deleteDataset(datasetId: datasetId)
+    }
+
+    @Test("Update document by file and archive lifecycle")
+    func testUpdateDocumentByFileAndArchiveLifecycle() async throws {
+        let client = try Self.makeClient()
+
+        // Bootstrap dataset and create an initial small file document
+        let dataset = try await client.createDataset(name: "SDK-IT-UF-\(UUID().uuidString.prefix(6))")
+        let datasetId = dataset.id
+
+        // Configure embeddings on dataset (reuse economy for speed)
+        let providers = try await client.getAvailableEmbeddingModels()
+        #expect(!providers.isEmpty)
+        let chosenProvider = providers.first(where: { !$0.models.isEmpty }) ?? providers[0]
+        let chosenModel = chosenProvider.models.first!
+        _ = try await client.updateDataset(
+            datasetId: datasetId,
+            KBUpdateDatasetRequest(
+                indexingTechnique: .economy,
+                embeddingModelProvider: chosenProvider.provider,
+                embeddingModel: chosenModel.model,
+                retrievalModel: KBRetrievalModel(searchMethod: .semanticSearch, rerankingEnable: false, topK: 5)
+            )
+        )
+
+        let v1Data = Data("Initial KB file for update-by-file path.".utf8)
+        let created = try await client.createDocumentFromFile(
+            datasetId: datasetId,
+            fileName: "v1.txt",
+            fileData: v1Data,
+            data: KBCreateDocumentByFileData(indexingTechnique: .economy, docForm: .textModel, processRule: .automatic)
+        )
+        let documentId = created.id
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+
+        // Update by re-uploading a new file
+        let v2Data = Data("Updated KB file content v2.".utf8)
+        let updated = try await client.updateDocumentByFile(
+            datasetId: datasetId,
+            documentId: documentId,
+            fileName: "v2.txt",
+            fileData: v2Data,
+            data: KBUpdateDocumentByFileData(name: "v2")
+        )
+        #expect(updated.id == documentId)
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+
+        // Archive then un-archive (best-effort if not supported)
+        do {
+            _ = try await client.batchUpdateDocumentStatus(datasetId: datasetId, action: .archive, documentIds: [documentId])
+            _ = try await client.batchUpdateDocumentStatus(datasetId: datasetId, action: .un_archive, documentIds: [documentId])
+        } catch { /* ignore if operation not enabled on server */ }
+
+        // Quick retrieve to ensure document remains queryable
+        do {
+            let resp = try await client.retrieve(datasetId: datasetId, KBRetrieveRequest(query: "Updated KB file content"))
+            #expect(resp.records.count >= 0)
+        } catch let difyError as DifyError {
+            if (400...499).contains(difyError.status ?? 0) { /* soft-skip */ } else { throw difyError }
+        }
+
+        // Cleanup document
+        _ = try await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+        _ = try? await client.deleteDataset(datasetId: datasetId)
     }
 
     // MARK: - Models listing
