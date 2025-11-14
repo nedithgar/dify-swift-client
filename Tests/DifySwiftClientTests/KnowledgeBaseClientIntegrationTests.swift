@@ -798,7 +798,12 @@ struct KnowledgeBaseClientIntegrationTests {
         _ = try? await client.deleteDataset(datasetId: datasetId)
     }
 
-    @Test("Update document by file and archive lifecycle (economy)")
+    // NOTE (2025-11-14): This test passes against live backends but is too slow (~10 minutes)
+    // Disabling to keep CI fast; coverage remains via the high-quality variant and unit tests.
+    @Test(
+        "Update document by file and archive lifecycle (economy)",
+        .disabled("passes but too slow on live backends; see note above")
+    )
     func testUpdateDocumentByFileAndArchiveLifecycle_Economy() async throws {
         let client = try Self.makeClient()
         try await runUpdateDocumentByFileAndArchiveLifecycle(client: client, technique: .economy)
