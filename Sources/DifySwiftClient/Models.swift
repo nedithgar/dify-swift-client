@@ -1309,10 +1309,10 @@ public struct KBRetrievalModel: Codable, Sendable {
     public let metadataFilteringConditions: MetadataFilteringConditions?
 
     public init(searchMethod: KBSearchMethod? = nil,
-                rerankingEnable: Bool? = nil,
+                rerankingEnable: Bool? = false,
                 rerankingMode: RerankingMode? = nil,
                 topK: Int? = nil,
-                scoreThresholdEnabled: Bool? = nil,
+                scoreThresholdEnabled: Bool? = false,
                 scoreThreshold: Double? = nil,
                 weights: Double? = nil,
                 metadataFilteringConditions: MetadataFilteringConditions? = nil) {
@@ -1874,12 +1874,13 @@ public struct KBSegment: Codable, Sendable {
     public let position: Int
     public let documentId: String
     public let content: String
+    public let signContent: String?
     public let answer: String?
     public let wordCount: Int
     public let tokens: Int
-    public let keywords: [String]
-    public let indexNodeId: String
-    public let indexNodeHash: String
+    public let keywords: [String]?
+    public let indexNodeId: String?
+    public let indexNodeHash: String?
     public let hitCount: Int
     public let enabled: Bool
     public let disabledAt: Int?
@@ -1887,15 +1888,17 @@ public struct KBSegment: Codable, Sendable {
     public let status: String
     public let createdBy: String
     public let createdAt: Int
-    public let indexingAt: Int
-    public let completedAt: Int
+    public let indexingAt: Int?
+    public let completedAt: Int?
     public let error: String?
     public let stoppedAt: Int?
 
     private enum CodingKeys: String, CodingKey {
         case id, position
         case documentId = "document_id"
-        case content, answer
+        case content
+        case signContent = "sign_content"
+        case answer
         case wordCount = "word_count"
         case tokens, keywords
         case indexNodeId = "index_node_id"
@@ -2007,15 +2010,18 @@ public struct KBChildChunk: Codable, Sendable {
     public let id: String
     public let segmentId: String
     public let content: String
-    public let wordCount: Int
-    public let tokens: Int
-    public let indexNodeId: String
-    public let indexNodeHash: String
-    public let status: String
-    public let createdBy: String
-    public let createdAt: Int
-    public let indexingAt: Int
-    public let completedAt: Int
+    public let position: Int?
+    public let wordCount: Int?
+    public let tokens: Int?
+    public let indexNodeId: String?
+    public let indexNodeHash: String?
+    public let status: String?
+    public let type: String?
+    public let createdBy: String?
+    public let createdAt: Int?
+    public let updatedAt: Int?
+    public let indexingAt: Int?
+    public let completedAt: Int?
     public let error: String?
     public let stoppedAt: Int?
 
@@ -2023,13 +2029,16 @@ public struct KBChildChunk: Codable, Sendable {
         case id
         case segmentId = "segment_id"
         case content
+        case position
         case wordCount = "word_count"
         case tokens
         case indexNodeId = "index_node_id"
         case indexNodeHash = "index_node_hash"
         case status
+        case type
         case createdBy = "created_by"
         case createdAt = "created_at"
+        case updatedAt = "updated_at"
         case indexingAt = "indexing_at"
         case completedAt = "completed_at"
         case error

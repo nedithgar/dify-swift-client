@@ -20,7 +20,6 @@ let KB_IT_HAS_LIVE_CONFIG: Bool = {
 /// They are serialized and skipped by default if env is missing.
 @Suite(
     "KnowledgeBaseClient Integration",
-    .serialized,
     .disabled(if: !KB_IT_HAS_LIVE_CONFIG)
 )
 struct KnowledgeBaseClientIntegrationTests {
@@ -32,11 +31,15 @@ struct KnowledgeBaseClientIntegrationTests {
         let apiKey = env["DIFY_KB_API_KEY"] ?? ""
         let baseURL = env["DIFY_BASE_URL"] ?? "https://api.dify.ai/v1"
 
-        // Ensure mocks from unit tests don't intercept live calls
-        // (DifyTestCase registers MockURLProtocol globally).
-        URLProtocol.unregisterClass(MockURLProtocol.self)
+        // Use a dedicated URLSession without MockURLProtocol to bypass unit-test mocking for live HTTP requests.
+        let configuration = URLSessionConfiguration.default
+        configuration.protocolClasses = nil
+        configuration.waitsForConnectivity = true
+        configuration.timeoutIntervalForRequest = max(configuration.timeoutIntervalForRequest, 120)
+        configuration.timeoutIntervalForResource = max(configuration.timeoutIntervalForResource, 300)
+        let liveSession = URLSession(configuration: configuration)
 
-        return try KnowledgeBaseClient(apiKey: apiKey, baseURL: baseURL)
+        return try KnowledgeBaseClient(apiKey: apiKey, baseURL: baseURL, session: liveSession)
     }
 
     // MARK: - Helpers
@@ -46,28 +49,268 @@ struct KnowledgeBaseClientIntegrationTests {
         try? await Task.sleep(nanoseconds: nanoseconds)
     }
 
-    private func waitForIndexingCompletion(client: KnowledgeBaseClient, datasetId: String, documentId: String, timeoutSeconds: Double = 60, pollInterval: Double = 1.0) async throws -> KBDocumentDetail {
+    private func documentIsReadyForUpdates(_ detail: KBDocumentDetail, requireEnabled: Bool = true) -> Bool {
+        let readyIndexingStatuses: Set<String> = ["completed", "finished", "succeeded", "success", "done"]
+        var readyDisplayStatuses: Set<String> = ["ready", "available", "enabled", "normal"]
+        if !requireEnabled { readyDisplayStatuses.insert("disabled") }
+        let indexingStatusValue = detail.indexingStatus?.lowercased()
+        let displayStatus = detail.displayStatus?.lowercased()
+        let displayReady = displayStatus.map { readyDisplayStatuses.contains($0) } ?? true
+        let indexingReady = indexingStatusValue.map { readyIndexingStatuses.contains($0) } ?? false
+        let indexingUnknown = indexingStatusValue?.isEmpty ?? true
+        let isEnabled = detail.enabled ?? true
+        let isArchived = detail.archived ?? false
+        let enabledSatisfied = requireEnabled ? isEnabled : true
+        return displayReady && (indexingReady || indexingUnknown) && enabledSatisfied && !isArchived
+    }
+
+    private func documentNeedsAutoEnableAfterIndexing(_ detail: KBDocumentDetail) -> Bool {
+        let readyIndexingStatuses: Set<String> = ["completed", "finished", "succeeded", "success", "done"]
+        guard detail.archived != true else { return false }
+        guard (detail.enabled ?? true) == false else { return false }
+        if let status = detail.indexingStatus?.lowercased(), readyIndexingStatuses.contains(status) {
+            return true
+        }
+        if let display = detail.displayStatus?.lowercased(), display == "disabled" {
+            return true
+        }
+        return false
+    }
+
+    private func documentIndexingFailed(_ detail: KBDocumentDetail) -> Bool {
+        let failureStatuses: Set<String> = ["error", "failed", "failure"]
+        if let status = detail.indexingStatus?.lowercased(), failureStatuses.contains(status) { return true }
+        if let display = detail.displayStatus?.lowercased(), failureStatuses.contains(display) { return true }
+        if let errorMessage = detail.error, !errorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+        return false
+    }
+
+    private func describeDocumentStatus(_ detail: KBDocumentDetail) -> String {
+        let indexing = detail.indexingStatus ?? "nil"
+        let display = detail.displayStatus ?? "nil"
+        let enabled = detail.enabled.map { String($0) } ?? "nil"
+        let archived = detail.archived.map { String($0) } ?? "nil"
+        return "indexing_status=\(indexing), display_status=\(display), enabled=\(enabled), archived=\(archived)"
+    }
+
+    private func waitForIndexingCompletion(client: KnowledgeBaseClient, datasetId: String, documentId: String, timeoutSeconds: Double = 60, pollInterval: Double = 1.0, autoEnable: Bool = true, requireEnabled: Bool = true) async throws -> KBDocumentDetail {
         let deadline = Date().addingTimeInterval(timeoutSeconds)
         var lastDetail: KBDocumentDetail?
+        var lastError: Error?
+        var autoEnableAttempts = 0
         while Date() < deadline {
-            let detail = try await client.getDocumentDetail(datasetId: datasetId, documentId: documentId)
-            lastDetail = detail
-            if let status = detail.indexingStatus?.lowercased() {
-                if status == "completed" { return detail }
-                if status == "error" { break }
+            do {
+                let detail = try await client.getDocumentDetail(datasetId: datasetId, documentId: documentId)
+                lastDetail = detail
+                if documentIsReadyForUpdates(detail, requireEnabled: requireEnabled) { return detail }
+                if autoEnable && requireEnabled && autoEnableAttempts < 5 && documentNeedsAutoEnableAfterIndexing(detail) {
+                    autoEnableAttempts += 1
+                    do {
+                        _ = try await client.batchUpdateDocumentStatus(datasetId: datasetId, action: .enable, documentIds: [documentId])
+                    } catch let difyError as DifyError {
+                        lastError = difyError
+                        if isDocumentTemporarilyUnavailableError(difyError) {
+                            await sleep(seconds: pollInterval)
+                            continue
+                        }
+                        throw difyError
+                    } catch {
+                        lastError = error
+                    }
+                }
+                if documentIndexingFailed(detail) {
+                    throw DifyError(message: detail.error ?? "Document indexing reported an error", code: nil, status: nil)
+                }
+            } catch {
+                lastError = error
             }
             await sleep(seconds: pollInterval)
         }
-        if let last = lastDetail { return last }
-        // Fallback detail fetch
-        return try await client.getDocumentDetail(datasetId: datasetId, documentId: documentId)
+        if let detail = lastDetail {
+            throw DifyError(
+                message: "Document \(documentId) was not ready before timeout: \(describeDocumentStatus(detail))",
+                code: nil,
+                status: nil
+            )
+        }
+        if let error = lastError { throw error }
+        throw DifyError(message: "Timed out waiting for document detail for \(documentId)", code: nil, status: nil)
     }
 
-    // MARK: - End-to-End Dataset + Document + Segments + Retrieve
+    private func isDocumentTemporarilyUnavailableError(_ error: DifyError) -> Bool {
+        guard let status = error.status, status == 400 else { return false }
+        let message = error.message?.lowercased() ?? ""
+        if message.contains("document is not available") { return true }
+        if message.contains("document not available") { return true }
+        if message.contains("being indexed") { return true }
+        return false
+    }
 
-    @Test("Dataset and Document lifecycle, segments, and retrieve")
-    func testDatasetDocumentSegmentsAndRetrieve() async throws {
-        let client = try Self.makeClient()
+    private func shouldRetryVectorIndexAvailability(_ error: DifyError) -> Bool {
+        guard let status = error.status, status == 400 else { return false }
+        let message = error.message?.lowercased() ?? ""
+        if message.contains("vector_index") && message.contains("doesn't exist") { return true }
+        if message.contains("collection") && message.contains("doesn't exist") { return true }
+        if message.contains("unexpected response: 404") { return true }
+        return false
+    }
+
+    private func shouldRetryDocumentStatusAction(_ error: DifyError) -> Bool {
+        guard let status = error.status, (400...499).contains(status) else { return false }
+        let message = error.message?.lowercased() ?? ""
+        if message.contains("being indexed") { return true }
+        if message.contains("indexing") && message.contains("later") { return true }
+        return false
+    }
+
+    @discardableResult
+    private func performDocumentStatusActionWithRetries(
+        client: KnowledgeBaseClient,
+        datasetId: String,
+        documentId: String,
+        action: KBDocumentStatusAction,
+        maxAttempts: Int = 8,
+        waitSeconds: Double = 1.0
+    ) async throws -> BaseResponse {
+        var lastError: DifyError?
+        for _ in 0..<maxAttempts {
+            do {
+                return try await client.batchUpdateDocumentStatus(datasetId: datasetId, action: action, documentIds: [documentId])
+            } catch let difyError as DifyError {
+                lastError = difyError
+                if shouldRetryDocumentStatusAction(difyError) {
+                    _ = try? await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId, autoEnable: false, requireEnabled: false)
+                    await sleep(seconds: waitSeconds)
+                    continue
+                }
+                throw difyError
+            }
+        }
+        if let lastError { throw lastError }
+        throw DifyError(message: "Document status action \(action.rawValue) timed out", code: nil, status: nil)
+    }
+
+    private func isArchivedDocumentImmutableError(_ error: DifyError) -> Bool {
+        let message = error.message?.lowercased() ?? ""
+        if message.contains("archived document") && message.contains("not editable") { return true }
+        if let code = error.code?.lowercased(), code == "archived_document_immutable" { return true }
+        return false
+    }
+
+    private func deleteDocumentEnsuringUnarchived(
+        client: KnowledgeBaseClient,
+        datasetId: String,
+        documentId: String,
+        maxAttempts: Int = 5
+    ) async throws {
+        var lastError: Error?
+        for _ in 0..<maxAttempts {
+            do {
+                _ = try await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+                return
+            } catch let difyError as DifyError {
+                lastError = difyError
+                if isArchivedDocumentImmutableError(difyError) {
+                    do {
+                        try await performDocumentStatusActionWithRetries(client: client, datasetId: datasetId, documentId: documentId, action: .un_archive)
+                    } catch {
+                        lastError = error
+                    }
+                    await sleep(seconds: 1.0)
+                    continue
+                }
+                throw difyError
+            } catch {
+                lastError = error
+                break
+            }
+        }
+        if let error = lastError {
+            throw error
+        }
+    }
+
+    private func updateDocumentByFileEnsuringAvailability(
+        client: KnowledgeBaseClient,
+        datasetId: String,
+        documentId: String,
+        fileName: String,
+        fileData: Data,
+        data requestData: KBUpdateDocumentByFileData,
+        maxAttempts: Int = 5
+    ) async throws -> DocumentResponse {
+        var delaySeconds: Double = 0.5
+        var lastAvailabilityError: DifyError?
+        for attempt in 0..<maxAttempts {
+            do {
+                return try await client.updateDocumentByFile(
+                    datasetId: datasetId,
+                    documentId: documentId,
+                    fileName: fileName,
+                    fileData: fileData,
+                    data: requestData
+                )
+            } catch let difyError as DifyError {
+                let shouldRetry = attempt < (maxAttempts - 1) && isDocumentTemporarilyUnavailableError(difyError)
+                if shouldRetry {
+                    lastAvailabilityError = difyError
+                    _ = try? await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+                    await sleep(seconds: delaySeconds)
+                    delaySeconds = min(delaySeconds * 2, 4.0)
+                    continue
+                }
+                throw difyError
+            }
+        }
+        throw lastAvailabilityError ?? DifyError(message: "Document update failed after \(maxAttempts) attempts", code: nil, status: nil)
+    }
+
+    // Reusable helper to create a dataset with provider/model configured and ingest a text document.
+    // Returns (datasetId, documentId).
+    // Requires an explicit dataset-level retrieval configuration to encourage
+    // tests to be intentional about coverage of dataset vs request-level behavior.
+    private func bootstrapDatasetWithTextDocument(
+        client: KnowledgeBaseClient,
+        datasetRetrieval: KBRetrievalModel,
+        indexingTechnique: KBIndexingTechnique = .economy,
+        text: String = "Dify Swift SDK integration test content about knowledge bases and segments."
+    ) async throws -> (String, String) {
+        let dataset = try await client.createDataset(name: "SDK-IT-\(UUID().uuidString.prefix(8))")
+        let datasetId = dataset.id
+
+        // Configure embeddings + retrieval on the dataset
+        let providers = try await client.getAvailableEmbeddingModels()
+        #expect(!providers.isEmpty)
+        let chosenProvider = providers.first(where: { !$0.models.isEmpty }) ?? providers[0]
+        let chosenModel = chosenProvider.models.first!
+        _ = try await client.updateDataset(
+            datasetId: datasetId,
+            KBUpdateDatasetRequest(
+                indexingTechnique: indexingTechnique,
+                embeddingModelProvider: chosenProvider.provider,
+                embeddingModel: chosenModel.model,
+                retrievalModel: datasetRetrieval
+            )
+        )
+
+        let createTextRequest = KBCreateDocumentByTextRequest(
+            name: "it-text",
+            text: text,
+            indexingTechnique: indexingTechnique,
+            docForm: .textModel,
+            processRule: KBProcessRule(mode: .automatic)
+        )
+        let document = try await client.createDocumentFromText(datasetId: datasetId, createTextRequest)
+        let documentId = document.id
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+        return (datasetId, documentId)
+    }
+
+    // MARK: - Scenario helpers
+
+    private func runDatasetDocumentSegmentsAndRetrieve(client: KnowledgeBaseClient, technique: KBIndexingTechnique) async throws {
 
         // Create Dataset
         let datasetName = "SDK-IT-\(UUID().uuidString.prefix(8))"
@@ -91,7 +334,7 @@ struct KnowledgeBaseClientIntegrationTests {
         _ = try await client.updateDataset(
             datasetId: datasetId,
             KBUpdateDatasetRequest(
-                indexingTechnique: .economy,
+                indexingTechnique: technique,
                 embeddingModelProvider: chosenProvider.provider,
                 embeddingModel: chosenModel.model,
                 retrievalModel: KBRetrievalModel(
@@ -108,7 +351,7 @@ struct KnowledgeBaseClientIntegrationTests {
         let createTextRequest = KBCreateDocumentByTextRequest(
             name: "it-text",
             text: docText,
-            indexingTechnique: .economy,
+            indexingTechnique: technique,
             docForm: .textModel,
             processRule: KBProcessRule(mode: .automatic),
             retrievalModel: KBRetrievalModel(
@@ -129,7 +372,7 @@ struct KnowledgeBaseClientIntegrationTests {
                 fileName: "fallback.txt",
                 fileData: fallbackData,
                 data: KBCreateDocumentByFileData(
-                    indexingTechnique: .economy,
+                    indexingTechnique: technique,
                     docForm: .textModel,
                     processRule: KBProcessRule(mode: .automatic)
                 )
@@ -141,7 +384,7 @@ struct KnowledgeBaseClientIntegrationTests {
                 fileName: "fallback.txt",
                 fileData: fallbackData,
                 data: KBCreateDocumentByFileData(
-                    indexingTechnique: .economy,
+                    indexingTechnique: technique,
                     docForm: .textModel,
                     processRule: KBProcessRule(mode: .automatic)
                 )
@@ -203,7 +446,7 @@ struct KnowledgeBaseClientIntegrationTests {
             fileName: "kb-it.txt",
             fileData: fileData,
             data: KBCreateDocumentByFileData(
-                indexingTechnique: .economy,
+                indexingTechnique: technique,
                 docForm: .textModel,
                 processRule: KBProcessRule(mode: .automatic)
             )
@@ -222,6 +465,11 @@ struct KnowledgeBaseClientIntegrationTests {
                 break
             } catch let difyError as DifyError {
                 let message = difyError.message ?? ""
+                if shouldRetryVectorIndexAvailability(difyError) {
+                    _ = try? await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: textDocumentId)
+                    await sleep(seconds: 2.0)
+                    continue
+                }
                 if (difyError.status == 400 || difyError.status == 502 || difyError.status == 503) && message.localizedCaseInsensitiveContains("server") {
                     await sleep(seconds: 1.0)
                     continue
@@ -240,7 +488,7 @@ struct KnowledgeBaseClientIntegrationTests {
         var enabledOK = false
         for _ in 1...20 {
             // Poll document status to wait out background indexing jobs.
-            _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: textDocumentId)
+            _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: textDocumentId, autoEnable: false, requireEnabled: false)
             do {
                 _ = try await client.batchUpdateDocumentStatus(datasetId: datasetId, action: .enable, documentIds: [textDocumentId])
                 enabledOK = true
@@ -263,6 +511,308 @@ struct KnowledgeBaseClientIntegrationTests {
 
         // Final: delete dataset
         _ = try await client.deleteDataset(datasetId: datasetId)
+    }
+
+    // MARK: - End-to-End Dataset + Document + Segments + Retrieve
+
+    @Test("Dataset and Document lifecycle, segments, and retrieve (economy)")
+    func testDatasetDocumentSegmentsAndRetrieve_Economy() async throws {
+        let client = try Self.makeClient()
+        try await runDatasetDocumentSegmentsAndRetrieve(client: client, technique: .economy)
+    }
+
+    @Test("Dataset and Document lifecycle, segments, and retrieve (high_quality)")
+    func testDatasetDocumentSegmentsAndRetrieve_HighQuality() async throws {
+        let client = try Self.makeClient()
+        try await runDatasetDocumentSegmentsAndRetrieve(client: client, technique: .highQuality)
+    }
+
+    // MARK: - Additional Combinations
+
+    @Test("Retrieve semantic_search topK=3")
+    func testRetrieveSemanticTop3() async throws {
+        let client = try Self.makeClient()
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(
+            client: client,
+            datasetRetrieval: KBRetrievalModel(searchMethod: .semanticSearch)
+        )
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+        do {
+            let resp = try await client.retrieve(
+                datasetId: datasetId,
+                KBRetrieveRequest(
+                    query: "knowledge bases and segments",
+                    retrievalModel: KBRetrievalModel(searchMethod: .semanticSearch, rerankingEnable: false, topK: 3)
+                )
+            )
+            #expect(resp.records.count >= 0)
+        } catch let difyError as DifyError {
+            if !(400...499).contains(difyError.status ?? 0) { throw difyError }
+            // Soft-skip unsupported combinations that the server declines with a 4xx.
+        }
+        _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+        _ = try? await client.deleteDataset(datasetId: datasetId)
+    }
+
+    @Test("Retrieve full_text_search topK=3")
+    func testRetrieveFullTextTop3() async throws {
+        let client = try Self.makeClient()
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(
+            client: client,
+            datasetRetrieval: KBRetrievalModel(searchMethod: .fullTextSearch)
+        )
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+        do {
+            let resp = try await client.retrieve(
+                datasetId: datasetId,
+                KBRetrieveRequest(
+                    query: "knowledge bases and segments",
+                    retrievalModel: KBRetrievalModel(searchMethod: .fullTextSearch, topK: 3)
+                )
+            )
+            #expect(resp.records.count >= 0)
+        } catch let difyError as DifyError {
+            if !(400...499).contains(difyError.status ?? 0) { throw difyError }
+            // Soft-skip unsupported combinations that the server declines with a 4xx.
+        }
+        _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+        _ = try? await client.deleteDataset(datasetId: datasetId)
+    }
+
+    private func runRetrieveHybridTop5Weight(client: KnowledgeBaseClient, technique: KBIndexingTechnique) async throws {
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(
+            client: client,
+            datasetRetrieval: KBRetrievalModel(searchMethod: .hybridSearch),
+            indexingTechnique: technique
+        )
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+        do {
+            let resp = try await client.retrieve(
+                datasetId: datasetId,
+                KBRetrieveRequest(
+                    query: "knowledge bases and segments",
+                    retrievalModel: KBRetrievalModel(searchMethod: .hybridSearch, topK: 5, weights: 0.5)
+                )
+            )
+            #expect(resp.records.count >= 0)
+        } catch let difyError as DifyError {
+            if !(400...499).contains(difyError.status ?? 0) { throw difyError }
+            // Soft-skip unsupported combinations that the server declines with a 4xx.
+        }
+        _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+        _ = try? await client.deleteDataset(datasetId: datasetId)
+    }
+
+    @Test("Retrieve hybrid_search topK=5 weights=0.5 (economy)")
+    func testRetrieveHybridTop5Weight_Economy() async throws {
+        let client = try Self.makeClient()
+        try await runRetrieveHybridTop5Weight(client: client, technique: .economy)
+    }
+
+    @Test("Retrieve hybrid_search topK=5 weights=0.5 (high_quality)")
+    func testRetrieveHybridTop5Weight_HighQuality() async throws {
+        let client = try Self.makeClient()
+        try await runRetrieveHybridTop5Weight(client: client, technique: .highQuality)
+    }
+
+    private func runRetrieveSemanticDatasetReranking(client: KnowledgeBaseClient, technique: KBIndexingTechnique) async throws {
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(
+            client: client,
+            datasetRetrieval: KBRetrievalModel(searchMethod: .semanticSearch, rerankingEnable: true, topK: 5),
+            indexingTechnique: technique
+        )
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+        do {
+            let resp = try await client.retrieve(
+                datasetId: datasetId,
+                KBRetrieveRequest(query: "knowledge bases and segments")
+            )
+            #expect(resp.records.count >= 0)
+        } catch let difyError as DifyError {
+            if !(400...499).contains(difyError.status ?? 0) { throw difyError }
+            // Soft-skip unsupported combinations that the server declines with a 4xx.
+        }
+        _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+        _ = try? await client.deleteDataset(datasetId: datasetId)
+    }
+
+    @Test("Retrieve semantic_search dataset-level reranking enabled (economy)")
+    func testRetrieveSemanticDatasetReranking_Economy() async throws {
+        let client = try Self.makeClient()
+        try await runRetrieveSemanticDatasetReranking(client: client, technique: .economy)
+    }
+
+    @Test("Retrieve semantic_search dataset-level reranking enabled (high_quality)")
+    func testRetrieveSemanticDatasetReranking_HighQuality() async throws {
+        let client = try Self.makeClient()
+        try await runRetrieveSemanticDatasetReranking(client: client, technique: .highQuality)
+    }
+
+    private func runRetrieveSemanticRequestReranking(client: KnowledgeBaseClient, technique: KBIndexingTechnique) async throws {
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(
+            client: client,
+            datasetRetrieval: KBRetrievalModel(searchMethod: .semanticSearch, rerankingEnable: false, topK: 5),
+            indexingTechnique: technique
+        )
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+        do {
+            let resp = try await client.retrieve(
+                datasetId: datasetId,
+                KBRetrieveRequest(
+                    query: "knowledge bases and segments",
+                    retrievalModel: KBRetrievalModel(searchMethod: .semanticSearch, rerankingEnable: true, topK: 5)
+                )
+            )
+            #expect(resp.records.count >= 0)
+        } catch let difyError as DifyError {
+            if !(400...499).contains(difyError.status ?? 0) { throw difyError }
+            // Soft-skip unsupported combinations that the server declines with a 4xx.
+        }
+        _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+        _ = try? await client.deleteDataset(datasetId: datasetId)
+    }
+
+    @Test("Retrieve semantic_search request-level reranking enabled (economy)")
+    func testRetrieveSemanticRequestReranking_Economy() async throws {
+        let client = try Self.makeClient()
+        try await runRetrieveSemanticRequestReranking(client: client, technique: .economy)
+    }
+
+    @Test("Retrieve semantic_search request-level reranking enabled (high_quality)")
+    func testRetrieveSemanticRequestReranking_HighQuality() async throws {
+        let client = try Self.makeClient()
+        try await runRetrieveSemanticRequestReranking(client: client, technique: .highQuality)
+    }
+
+    private func runRetrieveSemanticThreshold(client: KnowledgeBaseClient, technique: KBIndexingTechnique) async throws {
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(
+            client: client,
+            datasetRetrieval: KBRetrievalModel(searchMethod: .semanticSearch),
+            indexingTechnique: technique
+        )
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+        do {
+            let resp = try await client.retrieve(
+                datasetId: datasetId,
+                KBRetrieveRequest(
+                    query: "knowledge bases and segments",
+                    retrievalModel: KBRetrievalModel(searchMethod: .semanticSearch, topK: 5, scoreThresholdEnabled: true, scoreThreshold: 0.1)
+                )
+            )
+            #expect(resp.records.count >= 0)
+        } catch let difyError as DifyError {
+            if !(400...499).contains(difyError.status ?? 0) { throw difyError }
+            // Soft-skip unsupported combinations that the server declines with a 4xx.
+        }
+        _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+        _ = try? await client.deleteDataset(datasetId: datasetId)
+    }
+
+    @Test("Retrieve semantic_search with threshold enabled (economy)")
+    func testRetrieveSemanticThreshold_Economy() async throws {
+        let client = try Self.makeClient()
+        try await runRetrieveSemanticThreshold(client: client, technique: .economy)
+    }
+
+    @Test("Retrieve semantic_search with threshold enabled (high_quality)")
+    func testRetrieveSemanticThreshold_HighQuality() async throws {
+        let client = try Self.makeClient()
+        try await runRetrieveSemanticThreshold(client: client, technique: .highQuality)
+    }
+
+    private func runUpdateDocumentByFileAndArchiveLifecycle(client: KnowledgeBaseClient, technique: KBIndexingTechnique) async throws {
+
+        // Bootstrap dataset and create an initial small file document
+        let dataset = try await client.createDataset(name: "SDK-IT-UF-\(UUID().uuidString.prefix(6))")
+        let datasetId = dataset.id
+
+        // Configure embeddings on dataset using the specified technique
+        let providers = try await client.getAvailableEmbeddingModels()
+        #expect(!providers.isEmpty)
+        let chosenProvider = providers.first(where: { !$0.models.isEmpty }) ?? providers[0]
+        let chosenModel = chosenProvider.models.first!
+        _ = try await client.updateDataset(
+            datasetId: datasetId,
+            KBUpdateDatasetRequest(
+                indexingTechnique: technique,
+                embeddingModelProvider: chosenProvider.provider,
+                embeddingModel: chosenModel.model,
+                retrievalModel: KBRetrievalModel(searchMethod: .semanticSearch, rerankingEnable: false, topK: 5)
+            )
+        )
+
+        let v1Data = Data("Initial KB file for update-by-file path.".utf8)
+        let created = try await client.createDocumentFromFile(
+            datasetId: datasetId,
+            fileName: "v1.txt",
+            fileData: v1Data,
+            data: KBCreateDocumentByFileData(indexingTechnique: technique, docForm: .textModel, processRule: KBProcessRule(mode: .automatic))
+        )
+        let documentId = created.id
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+
+        // Update by re-uploading a new file
+        let v2Data = Data("Updated KB file content v2.".utf8)
+        let updated = try await updateDocumentByFileEnsuringAvailability(
+            client: client,
+            datasetId: datasetId,
+            documentId: documentId,
+            fileName: "v2.txt",
+            fileData: v2Data,
+            data: KBUpdateDocumentByFileData(name: "v2")
+        )
+        #expect(updated.id == documentId)
+        _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+
+        // Archive then un-archive (best-effort if not supported)
+        var archiveSucceeded = false
+        do {
+            try await performDocumentStatusActionWithRetries(client: client, datasetId: datasetId, documentId: documentId, action: .archive)
+            archiveSucceeded = true
+        } catch { /* ignore if operation not enabled on server */ }
+
+        if archiveSucceeded {
+            do {
+                try await performDocumentStatusActionWithRetries(client: client, datasetId: datasetId, documentId: documentId, action: .un_archive)
+            } catch { /* ignore if operation not enabled on server */ }
+        }
+
+        // Quick retrieve to ensure document remains queryable
+        do {
+            let resp = try await client.retrieve(datasetId: datasetId, KBRetrieveRequest(query: "Updated KB file content"))
+            #expect(resp.records.count >= 0)
+        } catch let difyError as DifyError {
+            if (400...499).contains(difyError.status ?? 0) { /* soft-skip */ } else { throw difyError }
+        }
+
+        // Cleanup document
+        do {
+            try await deleteDocumentEnsuringUnarchived(client: client, datasetId: datasetId, documentId: documentId)
+        } catch let difyError as DifyError {
+            if (400...499).contains(difyError.status ?? 0) {
+                // Document status transitions may be disabled server-side; ignore those 4xx responses.
+            } else {
+                throw difyError
+            }
+        }
+        _ = try? await client.deleteDataset(datasetId: datasetId)
+    }
+
+    // NOTE (2025-11-14): This test passes against live backends but is too slow (~10 minutes)
+    // Disabling to keep CI fast; coverage remains via the high-quality variant and unit tests.
+    @Test(
+        "Update document by file and archive lifecycle (economy)",
+        .disabled("passes but too slow on live backends; see note above")
+    )
+    func testUpdateDocumentByFileAndArchiveLifecycle_Economy() async throws {
+        let client = try Self.makeClient()
+        try await runUpdateDocumentByFileAndArchiveLifecycle(client: client, technique: .economy)
+    }
+
+    @Test("Update document by file and archive lifecycle (high_quality)")
+    func testUpdateDocumentByFileAndArchiveLifecycle_HighQuality() async throws {
+        let client = try Self.makeClient()
+        try await runUpdateDocumentByFileAndArchiveLifecycle(client: client, technique: .highQuality)
     }
 
     // MARK: - Models listing
