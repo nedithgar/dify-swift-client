@@ -49,21 +49,72 @@ struct KnowledgeBaseClientIntegrationTests {
         try? await Task.sleep(nanoseconds: nanoseconds)
     }
 
+    private func documentIsReadyForUpdates(_ detail: KBDocumentDetail) -> Bool {
+        let readyIndexingStatuses: Set<String> = ["completed", "finished", "succeeded", "success", "done"]
+        let readyDisplayStatuses: Set<String> = ["ready", "available", "enabled", "normal"]
+        let indexingStatusValue = detail.indexingStatus?.lowercased()
+        let displayStatus = detail.displayStatus?.lowercased()
+        let displayReady = displayStatus.map { readyDisplayStatuses.contains($0) } ?? true
+        let indexingReady = indexingStatusValue.map { readyIndexingStatuses.contains($0) } ?? false
+        let indexingUnknown = indexingStatusValue?.isEmpty ?? true
+        let isEnabled = detail.enabled ?? true
+        let isArchived = detail.archived ?? false
+        return displayReady && (indexingReady || indexingUnknown) && isEnabled && !isArchived
+    }
+
+    private func documentIndexingFailed(_ detail: KBDocumentDetail) -> Bool {
+        let failureStatuses: Set<String> = ["error", "failed", "failure"]
+        if let status = detail.indexingStatus?.lowercased(), failureStatuses.contains(status) { return true }
+        if let display = detail.displayStatus?.lowercased(), failureStatuses.contains(display) { return true }
+        if let errorMessage = detail.error, !errorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+        return false
+    }
+
+    private func describeDocumentStatus(_ detail: KBDocumentDetail) -> String {
+        let indexing = detail.indexingStatus ?? "nil"
+        let display = detail.displayStatus ?? "nil"
+        let enabled = detail.enabled.map { String($0) } ?? "nil"
+        let archived = detail.archived.map { String($0) } ?? "nil"
+        return "indexing_status=\(indexing), display_status=\(display), enabled=\(enabled), archived=\(archived)"
+    }
+
     private func waitForIndexingCompletion(client: KnowledgeBaseClient, datasetId: String, documentId: String, timeoutSeconds: Double = 60, pollInterval: Double = 1.0) async throws -> KBDocumentDetail {
         let deadline = Date().addingTimeInterval(timeoutSeconds)
         var lastDetail: KBDocumentDetail?
+        var lastError: Error?
         while Date() < deadline {
-            let detail = try await client.getDocumentDetail(datasetId: datasetId, documentId: documentId)
-            lastDetail = detail
-            if let status = detail.indexingStatus?.lowercased() {
-                if status == "completed" { return detail }
-                if status == "error" { break }
+            do {
+                let detail = try await client.getDocumentDetail(datasetId: datasetId, documentId: documentId)
+                lastDetail = detail
+                if documentIsReadyForUpdates(detail) { return detail }
+                if documentIndexingFailed(detail) {
+                    throw DifyError(message: detail.error ?? "Document indexing reported an error", code: nil, status: nil)
+                }
+            } catch {
+                lastError = error
             }
             await sleep(seconds: pollInterval)
         }
-        if let last = lastDetail { return last }
-        // Fallback detail fetch
-        return try await client.getDocumentDetail(datasetId: datasetId, documentId: documentId)
+        if let detail = lastDetail {
+            throw DifyError(
+                message: "Document \(documentId) was not ready before timeout: \(describeDocumentStatus(detail))",
+                code: nil,
+                status: nil
+            )
+        }
+        if let error = lastError { throw error }
+        throw DifyError(message: "Timed out waiting for document detail for \(documentId)", code: nil, status: nil)
+    }
+
+    private func isDocumentTemporarilyUnavailableError(_ error: DifyError) -> Bool {
+        guard let status = error.status, status == 400 else { return false }
+        let message = error.message?.lowercased() ?? ""
+        if message.contains("document is not available") { return true }
+        if message.contains("document not available") { return true }
+        if message.contains("being indexed") { return true }
+        return false
     }
 
     private func shouldRetryDocumentStatusAction(_ error: DifyError) -> Bool {
@@ -141,6 +192,41 @@ struct KnowledgeBaseClientIntegrationTests {
         } else if let error = lastError {
             throw error
         }
+    }
+
+    private func updateDocumentByFileEnsuringAvailability(
+        client: KnowledgeBaseClient,
+        datasetId: String,
+        documentId: String,
+        fileName: String,
+        fileData: Data,
+        data requestData: KBUpdateDocumentByFileData,
+        maxAttempts: Int = 5
+    ) async throws -> DocumentResponse {
+        var delaySeconds: Double = 0.5
+        var lastAvailabilityError: DifyError?
+        for attempt in 0..<maxAttempts {
+            do {
+                return try await client.updateDocumentByFile(
+                    datasetId: datasetId,
+                    documentId: documentId,
+                    fileName: fileName,
+                    fileData: fileData,
+                    data: requestData
+                )
+            } catch let difyError as DifyError {
+                let shouldRetry = attempt < (maxAttempts - 1) && isDocumentTemporarilyUnavailableError(difyError)
+                if shouldRetry {
+                    lastAvailabilityError = difyError
+                    _ = try? await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+                    await sleep(seconds: delaySeconds)
+                    delaySeconds = min(delaySeconds * 2, 4.0)
+                    continue
+                }
+                throw difyError
+            }
+        }
+        throw lastAvailabilityError ?? DifyError(message: "Document update failed after \(maxAttempts) attempts", code: nil, status: nil)
     }
 
     // Reusable helper to create a dataset with provider/model configured and ingest a text document.
@@ -555,7 +641,8 @@ struct KnowledgeBaseClientIntegrationTests {
 
         // Update by re-uploading a new file
         let v2Data = Data("Updated KB file content v2.".utf8)
-        let updated = try await client.updateDocumentByFile(
+        let updated = try await updateDocumentByFileEnsuringAvailability(
+            client: client,
             datasetId: datasetId,
             documentId: documentId,
             fileName: "v2.txt",
