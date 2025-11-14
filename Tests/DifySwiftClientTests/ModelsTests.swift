@@ -109,6 +109,28 @@ struct SimpleModelTests {
     }
 }
 
+// MARK: - Knowledge Base Retrieval Model Tests
+
+struct KnowledgeBaseRetrievalModelTests {
+    @Test func testDefaultScoreThresholdFlagEncoding() throws {
+        let request = KBRetrieveRequest(
+            query: "kb",
+            retrievalModel: KBRetrievalModel(searchMethod: .semanticSearch)
+        )
+        let data = try JSONEncoder.difyEncoder.encode(request)
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let retrievalJSON = json?["retrieval_model"] as? [String: Any]
+        #expect(retrievalJSON?["score_threshold_enabled"] as? Bool == false)
+    }
+
+    @Test func testScoreThresholdFlagOmissionStillPossible() throws {
+        let model = KBRetrievalModel(scoreThresholdEnabled: nil)
+        let data = try JSONEncoder.difyEncoder.encode(model)
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(json?["score_threshold_enabled"] == nil)
+    }
+}
+
 // MARK: - Application Info Tests
 
 struct ApplicationInfoTests {

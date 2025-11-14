@@ -1312,7 +1312,7 @@ public struct KBRetrievalModel: Codable, Sendable {
                 rerankingEnable: Bool? = nil,
                 rerankingMode: RerankingMode? = nil,
                 topK: Int? = nil,
-                scoreThresholdEnabled: Bool? = nil,
+                scoreThresholdEnabled: Bool? = false,
                 scoreThreshold: Double? = nil,
                 weights: Double? = nil,
                 metadataFilteringConditions: MetadataFilteringConditions? = nil) {
