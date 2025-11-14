@@ -184,11 +184,9 @@ struct KnowledgeBaseClientIntegrationTests {
         return (datasetId, documentId)
     }
 
-    // MARK: - End-to-End Dataset + Document + Segments + Retrieve
+    // MARK: - Scenario helpers
 
-    @Test("Dataset and Document lifecycle, segments, and retrieve")
-    func testDatasetDocumentSegmentsAndRetrieve() async throws {
-        let client = try Self.makeClient()
+    private func runDatasetDocumentSegmentsAndRetrieve(client: KnowledgeBaseClient, technique: KBIndexingTechnique) async throws {
 
         // Create Dataset
         let datasetName = "SDK-IT-\(UUID().uuidString.prefix(8))"
@@ -212,7 +210,7 @@ struct KnowledgeBaseClientIntegrationTests {
         _ = try await client.updateDataset(
             datasetId: datasetId,
             KBUpdateDatasetRequest(
-                indexingTechnique: .economy,
+                indexingTechnique: technique,
                 embeddingModelProvider: chosenProvider.provider,
                 embeddingModel: chosenModel.model,
                 retrievalModel: KBRetrievalModel(
@@ -229,7 +227,7 @@ struct KnowledgeBaseClientIntegrationTests {
         let createTextRequest = KBCreateDocumentByTextRequest(
             name: "it-text",
             text: docText,
-            indexingTechnique: .economy,
+            indexingTechnique: technique,
             docForm: .textModel,
             processRule: KBProcessRule(mode: .automatic),
             retrievalModel: KBRetrievalModel(
@@ -250,7 +248,7 @@ struct KnowledgeBaseClientIntegrationTests {
                 fileName: "fallback.txt",
                 fileData: fallbackData,
                 data: KBCreateDocumentByFileData(
-                    indexingTechnique: .economy,
+                    indexingTechnique: technique,
                     docForm: .textModel,
                     processRule: KBProcessRule(mode: .automatic)
                 )
@@ -262,7 +260,7 @@ struct KnowledgeBaseClientIntegrationTests {
                 fileName: "fallback.txt",
                 fileData: fallbackData,
                 data: KBCreateDocumentByFileData(
-                    indexingTechnique: .economy,
+                    indexingTechnique: technique,
                     docForm: .textModel,
                     processRule: KBProcessRule(mode: .automatic)
                 )
@@ -324,7 +322,7 @@ struct KnowledgeBaseClientIntegrationTests {
             fileName: "kb-it.txt",
             fileData: fileData,
             data: KBCreateDocumentByFileData(
-                indexingTechnique: .economy,
+                indexingTechnique: technique,
                 docForm: .textModel,
                 processRule: KBProcessRule(mode: .automatic)
             )
@@ -386,6 +384,20 @@ struct KnowledgeBaseClientIntegrationTests {
         _ = try await client.deleteDataset(datasetId: datasetId)
     }
 
+    // MARK: - End-to-End Dataset + Document + Segments + Retrieve
+
+    @Test("Dataset and Document lifecycle, segments, and retrieve (economy)")
+    func testDatasetDocumentSegmentsAndRetrieve_Economy() async throws {
+        let client = try Self.makeClient()
+        try await runDatasetDocumentSegmentsAndRetrieve(client: client, technique: .economy)
+    }
+
+    @Test("Dataset and Document lifecycle, segments, and retrieve (high_quality)")
+    func testDatasetDocumentSegmentsAndRetrieve_HighQuality() async throws {
+        let client = try Self.makeClient()
+        try await runDatasetDocumentSegmentsAndRetrieve(client: client, technique: .highQuality)
+    }
+
     // MARK: - Additional Combinations
 
     @Test("Retrieve semantic_search topK=3")
@@ -438,12 +450,11 @@ struct KnowledgeBaseClientIntegrationTests {
         _ = try? await client.deleteDataset(datasetId: datasetId)
     }
 
-    @Test("Retrieve hybrid_search topK=5 weights=0.5")
-    func testRetrieveHybridTop5Weight() async throws {
-        let client = try Self.makeClient()
+    private func runRetrieveHybridTop5Weight(client: KnowledgeBaseClient, technique: KBIndexingTechnique) async throws {
         let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(
             client: client,
-            datasetRetrieval: KBRetrievalModel(searchMethod: .hybridSearch)
+            datasetRetrieval: KBRetrievalModel(searchMethod: .hybridSearch),
+            indexingTechnique: technique
         )
         _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
         do {
@@ -463,12 +474,23 @@ struct KnowledgeBaseClientIntegrationTests {
         _ = try? await client.deleteDataset(datasetId: datasetId)
     }
 
-    @Test("Retrieve semantic_search with threshold enabled")
-    func testRetrieveSemanticThreshold() async throws {
+    @Test("Retrieve hybrid_search topK=5 weights=0.5 (economy)")
+    func testRetrieveHybridTop5Weight_Economy() async throws {
         let client = try Self.makeClient()
+        try await runRetrieveHybridTop5Weight(client: client, technique: .economy)
+    }
+
+    @Test("Retrieve hybrid_search topK=5 weights=0.5 (high_quality)")
+    func testRetrieveHybridTop5Weight_HighQuality() async throws {
+        let client = try Self.makeClient()
+        try await runRetrieveHybridTop5Weight(client: client, technique: .highQuality)
+    }
+
+    private func runRetrieveSemanticThreshold(client: KnowledgeBaseClient, technique: KBIndexingTechnique) async throws {
         let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(
             client: client,
-            datasetRetrieval: KBRetrievalModel(searchMethod: .semanticSearch)
+            datasetRetrieval: KBRetrievalModel(searchMethod: .semanticSearch),
+            indexingTechnique: technique
         )
         _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
         do {
@@ -488,9 +510,19 @@ struct KnowledgeBaseClientIntegrationTests {
         _ = try? await client.deleteDataset(datasetId: datasetId)
     }
 
-    @Test("Update document by file and archive lifecycle")
-    func testUpdateDocumentByFileAndArchiveLifecycle() async throws {
+    @Test("Retrieve semantic_search with threshold enabled (economy)")
+    func testRetrieveSemanticThreshold_Economy() async throws {
         let client = try Self.makeClient()
+        try await runRetrieveSemanticThreshold(client: client, technique: .economy)
+    }
+
+    @Test("Retrieve semantic_search with threshold enabled (high_quality)")
+    func testRetrieveSemanticThreshold_HighQuality() async throws {
+        let client = try Self.makeClient()
+        try await runRetrieveSemanticThreshold(client: client, technique: .highQuality)
+    }
+
+    private func runUpdateDocumentByFileAndArchiveLifecycle(client: KnowledgeBaseClient, technique: KBIndexingTechnique) async throws {
 
         // Bootstrap dataset and create an initial small file document
         let dataset = try await client.createDataset(name: "SDK-IT-UF-\(UUID().uuidString.prefix(6))")
@@ -504,7 +536,7 @@ struct KnowledgeBaseClientIntegrationTests {
         _ = try await client.updateDataset(
             datasetId: datasetId,
             KBUpdateDatasetRequest(
-                indexingTechnique: .economy,
+                indexingTechnique: technique,
                 embeddingModelProvider: chosenProvider.provider,
                 embeddingModel: chosenModel.model,
                 retrievalModel: KBRetrievalModel(searchMethod: .semanticSearch, rerankingEnable: false, topK: 5)
@@ -516,7 +548,7 @@ struct KnowledgeBaseClientIntegrationTests {
             datasetId: datasetId,
             fileName: "v1.txt",
             fileData: v1Data,
-            data: KBCreateDocumentByFileData(indexingTechnique: .economy, docForm: .textModel, processRule: .automatic)
+            data: KBCreateDocumentByFileData(indexingTechnique: technique, docForm: .textModel, processRule: .automatic)
         )
         let documentId = created.id
         _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
@@ -565,6 +597,18 @@ struct KnowledgeBaseClientIntegrationTests {
             }
         }
         _ = try? await client.deleteDataset(datasetId: datasetId)
+    }
+
+    @Test("Update document by file and archive lifecycle (economy)")
+    func testUpdateDocumentByFileAndArchiveLifecycle_Economy() async throws {
+        let client = try Self.makeClient()
+        try await runUpdateDocumentByFileAndArchiveLifecycle(client: client, technique: .economy)
+    }
+
+    @Test("Update document by file and archive lifecycle (high_quality)")
+    func testUpdateDocumentByFileAndArchiveLifecycle_HighQuality() async throws {
+        let client = try Self.makeClient()
+        try await runUpdateDocumentByFileAndArchiveLifecycle(client: client, technique: .highQuality)
     }
 
     // MARK: - Models listing
