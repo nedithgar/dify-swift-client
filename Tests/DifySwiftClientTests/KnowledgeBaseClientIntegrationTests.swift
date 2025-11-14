@@ -51,7 +51,8 @@ struct KnowledgeBaseClientIntegrationTests {
 
     private func documentIsReadyForUpdates(_ detail: KBDocumentDetail, requireEnabled: Bool = true) -> Bool {
         let readyIndexingStatuses: Set<String> = ["completed", "finished", "succeeded", "success", "done"]
-        let readyDisplayStatuses: Set<String> = ["ready", "available", "enabled", "normal"]
+        var readyDisplayStatuses: Set<String> = ["ready", "available", "enabled", "normal"]
+        if !requireEnabled { readyDisplayStatuses.insert("disabled") }
         let indexingStatusValue = detail.indexingStatus?.lowercased()
         let displayStatus = detail.displayStatus?.lowercased()
         let displayReady = displayStatus.map { readyDisplayStatuses.contains($0) } ?? true
@@ -94,7 +95,7 @@ struct KnowledgeBaseClientIntegrationTests {
         return "indexing_status=\(indexing), display_status=\(display), enabled=\(enabled), archived=\(archived)"
     }
 
-    private func waitForIndexingCompletion(client: KnowledgeBaseClient, datasetId: String, documentId: String, timeoutSeconds: Double = 120, pollInterval: Double = 1.0, autoEnable: Bool = true, requireEnabled: Bool = true) async throws -> KBDocumentDetail {
+    private func waitForIndexingCompletion(client: KnowledgeBaseClient, datasetId: String, documentId: String, timeoutSeconds: Double = 60, pollInterval: Double = 1.0, autoEnable: Bool = true, requireEnabled: Bool = true) async throws -> KBDocumentDetail {
         let deadline = Date().addingTimeInterval(timeoutSeconds)
         var lastDetail: KBDocumentDetail?
         var lastError: Error?
