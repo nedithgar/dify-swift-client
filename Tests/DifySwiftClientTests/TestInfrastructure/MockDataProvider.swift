@@ -370,7 +370,7 @@ enum MockDataProvider {
                 "document_id": "doc-1",
                 "content": "Second chunk",
                 "sign_content": "Second chunk",
-        "answer": NSNull(),
+                "answer": NSNull(),
                 "word_count": 90,
                 "tokens": 110,
                 "keywords": ["body"],
@@ -378,15 +378,15 @@ enum MockDataProvider {
                 "index_node_hash": "hash-2",
                 "hit_count": 0,
                 "enabled": true,
-        "disabled_at": NSNull(),
-        "disabled_by": NSNull(),
+                "disabled_at": NSNull(),
+                "disabled_by": NSNull(),
                 "status": "completed",
                 "created_by": "user-1",
                 "created_at": 1700000200,
                 "indexing_at": 1700000200,
                 "completed_at": 1700000210,
-        "error": NSNull(),
-        "stopped_at": NSNull()
+                "error": NSNull(),
+                "stopped_at": NSNull()
             ]
         ],
         "doc_form": "text_model",
