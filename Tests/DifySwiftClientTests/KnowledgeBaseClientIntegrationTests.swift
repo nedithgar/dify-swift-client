@@ -746,7 +746,7 @@ struct KnowledgeBaseClientIntegrationTests {
             datasetId: datasetId,
             fileName: "v1.txt",
             fileData: v1Data,
-            data: KBCreateDocumentByFileData(indexingTechnique: technique, docForm: .textModel, processRule: .automatic)
+            data: KBCreateDocumentByFileData(indexingTechnique: technique, docForm: .textModel, processRule: KBProcessRule(mode: .automatic))
         )
         let documentId = created.id
         _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
