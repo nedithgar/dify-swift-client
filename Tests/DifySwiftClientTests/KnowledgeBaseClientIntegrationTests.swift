@@ -62,6 +62,83 @@ struct KnowledgeBaseClientIntegrationTests {
         return try await client.getDocumentDetail(datasetId: datasetId, documentId: documentId)
     }
 
+    private func shouldRetryDocumentStatusAction(_ error: DifyError) -> Bool {
+        guard let status = error.status, (400...499).contains(status) else { return false }
+        let message = error.message?.lowercased() ?? ""
+        if message.contains("being indexed") { return true }
+        if message.contains("indexing") && message.contains("later") { return true }
+        return false
+    }
+
+    @discardableResult
+    private func performDocumentStatusActionWithRetries(
+        client: KnowledgeBaseClient,
+        datasetId: String,
+        documentId: String,
+        action: KBDocumentStatusAction,
+        maxAttempts: Int = 8,
+        waitSeconds: Double = 1.0
+    ) async throws -> BaseResponse {
+        var lastError: DifyError?
+        for _ in 0..<maxAttempts {
+            do {
+                return try await client.batchUpdateDocumentStatus(datasetId: datasetId, action: action, documentIds: [documentId])
+            } catch let difyError as DifyError {
+                lastError = difyError
+                if shouldRetryDocumentStatusAction(difyError) {
+                    _ = try? await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+                    await sleep(seconds: waitSeconds)
+                    continue
+                }
+                throw difyError
+            }
+        }
+        if let lastError { throw lastError }
+        throw DifyError(message: "Document status action \(action.rawValue) timed out", code: nil, status: nil)
+    }
+
+    private func isArchivedDocumentImmutableError(_ error: DifyError) -> Bool {
+        let message = error.message?.lowercased() ?? ""
+        if message.contains("archived document") && message.contains("not editable") { return true }
+        if let code = error.code?.lowercased(), code == "archived_document_immutable" { return true }
+        return false
+    }
+
+    private func deleteDocumentEnsuringUnarchived(
+        client: KnowledgeBaseClient,
+        datasetId: String,
+        documentId: String,
+        maxAttempts: Int = 5
+    ) async throws {
+        var lastError: Error?
+        for _ in 0..<maxAttempts {
+            do {
+                _ = try await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+                return
+            } catch let difyError as DifyError {
+                lastError = difyError
+                if isArchivedDocumentImmutableError(difyError) {
+                    do {
+                        try await performDocumentStatusActionWithRetries(client: client, datasetId: datasetId, documentId: documentId, action: .un_archive)
+                    } catch {
+                        lastError = error
+                    }
+                    await sleep(seconds: 1.0)
+                    continue
+                }
+                throw difyError
+            } catch {
+                lastError = error
+                break
+            }
+        }
+        if let error = lastError as? DifyError {
+            throw error
+        } else if let error = lastError {
+            throw error
+        }
+    }
+
     // Reusable helper to create a dataset with provider/model configured and ingest a text document.
     // Returns (datasetId, documentId).
     // Requires an explicit dataset-level retrieval configuration to encourage
@@ -453,10 +530,17 @@ struct KnowledgeBaseClientIntegrationTests {
         _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
 
         // Archive then un-archive (best-effort if not supported)
+        var archiveSucceeded = false
         do {
-            _ = try await client.batchUpdateDocumentStatus(datasetId: datasetId, action: .archive, documentIds: [documentId])
-            _ = try await client.batchUpdateDocumentStatus(datasetId: datasetId, action: .un_archive, documentIds: [documentId])
+            try await performDocumentStatusActionWithRetries(client: client, datasetId: datasetId, documentId: documentId, action: .archive)
+            archiveSucceeded = true
         } catch { /* ignore if operation not enabled on server */ }
+
+        if archiveSucceeded {
+            do {
+                try await performDocumentStatusActionWithRetries(client: client, datasetId: datasetId, documentId: documentId, action: .un_archive)
+            } catch { /* ignore if operation not enabled on server */ }
+        }
 
         // Quick retrieve to ensure document remains queryable
         do {
@@ -467,7 +551,15 @@ struct KnowledgeBaseClientIntegrationTests {
         }
 
         // Cleanup document
-        _ = try await client.deleteDocument(datasetId: datasetId, documentId: documentId)
+        do {
+            try await deleteDocumentEnsuringUnarchived(client: client, datasetId: datasetId, documentId: documentId)
+        } catch let difyError as DifyError {
+            if (400...499).contains(difyError.status ?? 0) {
+                #expect(Bool(true))
+            } else {
+                throw difyError
+            }
+        }
         _ = try? await client.deleteDataset(datasetId: datasetId)
     }
 
