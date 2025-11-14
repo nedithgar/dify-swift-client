@@ -1309,7 +1309,7 @@ public struct KBRetrievalModel: Codable, Sendable {
     public let metadataFilteringConditions: MetadataFilteringConditions?
 
     public init(searchMethod: KBSearchMethod? = nil,
-                rerankingEnable: Bool? = nil,
+                rerankingEnable: Bool? = false,
                 rerankingMode: RerankingMode? = nil,
                 topK: Int? = nil,
                 scoreThresholdEnabled: Bool? = false,

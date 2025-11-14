@@ -129,6 +129,20 @@ struct KnowledgeBaseRetrievalModelTests {
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         #expect(json?["score_threshold_enabled"] == nil)
     }
+
+    @Test func testDefaultRerankingFlagEncoding() throws {
+        let model = KBRetrievalModel(searchMethod: .fullTextSearch)
+        let data = try JSONEncoder.difyEncoder.encode(model)
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(json?["reranking_enable"] as? Bool == false)
+    }
+
+    @Test func testRerankingFlagOmissionStillPossible() throws {
+        let model = KBRetrievalModel(rerankingEnable: nil)
+        let data = try JSONEncoder.difyEncoder.encode(model)
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(json?["reranking_enable"] == nil)
+    }
 }
 
 // MARK: - Application Info Tests
