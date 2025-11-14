@@ -64,14 +64,11 @@ struct KnowledgeBaseClientIntegrationTests {
 
     // Reusable helper to create a dataset with provider/model configured and ingest a text document.
     // Returns (datasetId, documentId).
+    // Requires an explicit dataset-level retrieval configuration to encourage
+    // tests to be intentional about coverage of dataset vs request-level behavior.
     private func bootstrapDatasetWithTextDocument(
         client: KnowledgeBaseClient,
-        datasetRetrieval: KBRetrievalModel = KBRetrievalModel(
-            searchMethod: .semanticSearch,
-            rerankingEnable: false,
-            topK: 5,
-            scoreThresholdEnabled: false
-        ),
+        datasetRetrieval: KBRetrievalModel,
         indexingTechnique: KBIndexingTechnique = .economy,
         text: String = "Dify Swift SDK integration test content about knowledge bases and segments."
     ) async throws -> (String, String) {
@@ -313,7 +310,10 @@ struct KnowledgeBaseClientIntegrationTests {
     @Test("Retrieve semantic_search topK=3")
     func testRetrieveSemanticTop3() async throws {
         let client = try Self.makeClient()
-        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(client: client)
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(
+            client: client,
+            datasetRetrieval: KBRetrievalModel(searchMethod: .semanticSearch)
+        )
         _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
         do {
             let resp = try await client.retrieve(
@@ -335,7 +335,10 @@ struct KnowledgeBaseClientIntegrationTests {
     @Test("Retrieve full_text_search topK=3")
     func testRetrieveFullTextTop3() async throws {
         let client = try Self.makeClient()
-        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(client: client)
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(
+            client: client,
+            datasetRetrieval: KBRetrievalModel(searchMethod: .fullTextSearch)
+        )
         _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
         do {
             let resp = try await client.retrieve(
@@ -357,7 +360,10 @@ struct KnowledgeBaseClientIntegrationTests {
     @Test("Retrieve hybrid_search topK=5 weights=0.5")
     func testRetrieveHybridTop5Weight() async throws {
         let client = try Self.makeClient()
-        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(client: client)
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(
+            client: client,
+            datasetRetrieval: KBRetrievalModel(searchMethod: .hybridSearch)
+        )
         _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
         do {
             let resp = try await client.retrieve(
@@ -379,7 +385,10 @@ struct KnowledgeBaseClientIntegrationTests {
     @Test("Retrieve semantic_search with threshold enabled")
     func testRetrieveSemanticThreshold() async throws {
         let client = try Self.makeClient()
-        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(client: client)
+        let (datasetId, documentId) = try await bootstrapDatasetWithTextDocument(
+            client: client,
+            datasetRetrieval: KBRetrievalModel(searchMethod: .semanticSearch)
+        )
         _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
         do {
             let resp = try await client.retrieve(
