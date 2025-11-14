@@ -550,7 +550,7 @@ struct KnowledgeBaseClientIntegrationTests {
             #expect(resp.records.count >= 0)
         } catch let difyError as DifyError {
             if !(400...499).contains(difyError.status ?? 0) { throw difyError }
-            #expect(Bool(true)) // soft-skip for unsupported combo
+            // Soft-skip unsupported combinations that the server declines with a 4xx.
         }
         _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
         _ = try? await client.deleteDataset(datasetId: datasetId)
@@ -575,7 +575,7 @@ struct KnowledgeBaseClientIntegrationTests {
             #expect(resp.records.count >= 0)
         } catch let difyError as DifyError {
             if !(400...499).contains(difyError.status ?? 0) { throw difyError }
-            #expect(Bool(true))
+            // Soft-skip unsupported combinations that the server declines with a 4xx.
         }
         _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
         _ = try? await client.deleteDataset(datasetId: datasetId)
@@ -599,7 +599,7 @@ struct KnowledgeBaseClientIntegrationTests {
             #expect(resp.records.count >= 0)
         } catch let difyError as DifyError {
             if !(400...499).contains(difyError.status ?? 0) { throw difyError }
-            #expect(Bool(true))
+            // Soft-skip unsupported combinations that the server declines with a 4xx.
         }
         _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
         _ = try? await client.deleteDataset(datasetId: datasetId)
@@ -632,7 +632,7 @@ struct KnowledgeBaseClientIntegrationTests {
             #expect(resp.records.count >= 0)
         } catch let difyError as DifyError {
             if !(400...499).contains(difyError.status ?? 0) { throw difyError }
-            #expect(Bool(true))
+            // Soft-skip unsupported combinations that the server declines with a 4xx.
         }
         _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
         _ = try? await client.deleteDataset(datasetId: datasetId)
@@ -668,7 +668,7 @@ struct KnowledgeBaseClientIntegrationTests {
             #expect(resp.records.count >= 0)
         } catch let difyError as DifyError {
             if !(400...499).contains(difyError.status ?? 0) { throw difyError }
-            #expect(Bool(true))
+            // Soft-skip unsupported combinations that the server declines with a 4xx.
         }
         _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
         _ = try? await client.deleteDataset(datasetId: datasetId)
@@ -704,7 +704,7 @@ struct KnowledgeBaseClientIntegrationTests {
             #expect(resp.records.count >= 0)
         } catch let difyError as DifyError {
             if !(400...499).contains(difyError.status ?? 0) { throw difyError }
-            #expect(Bool(true))
+            // Soft-skip unsupported combinations that the server declines with a 4xx.
         }
         _ = try? await client.deleteDocument(datasetId: datasetId, documentId: documentId)
         _ = try? await client.deleteDataset(datasetId: datasetId)
@@ -792,7 +792,7 @@ struct KnowledgeBaseClientIntegrationTests {
             try await deleteDocumentEnsuringUnarchived(client: client, datasetId: datasetId, documentId: documentId)
         } catch let difyError as DifyError {
             if (400...499).contains(difyError.status ?? 0) {
-                #expect(Bool(true))
+                // Document status transitions may be disabled server-side; ignore those 4xx responses.
             } else {
                 throw difyError
             }
