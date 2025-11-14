@@ -49,7 +49,7 @@ struct KnowledgeBaseClientIntegrationTests {
         try? await Task.sleep(nanoseconds: nanoseconds)
     }
 
-    private func documentIsReadyForUpdates(_ detail: KBDocumentDetail) -> Bool {
+    private func documentIsReadyForUpdates(_ detail: KBDocumentDetail, requireEnabled: Bool = true) -> Bool {
         let readyIndexingStatuses: Set<String> = ["completed", "finished", "succeeded", "success", "done"]
         let readyDisplayStatuses: Set<String> = ["ready", "available", "enabled", "normal"]
         let indexingStatusValue = detail.indexingStatus?.lowercased()
@@ -59,7 +59,21 @@ struct KnowledgeBaseClientIntegrationTests {
         let indexingUnknown = indexingStatusValue?.isEmpty ?? true
         let isEnabled = detail.enabled ?? true
         let isArchived = detail.archived ?? false
-        return displayReady && (indexingReady || indexingUnknown) && isEnabled && !isArchived
+        let enabledSatisfied = requireEnabled ? isEnabled : true
+        return displayReady && (indexingReady || indexingUnknown) && enabledSatisfied && !isArchived
+    }
+
+    private func documentNeedsAutoEnableAfterIndexing(_ detail: KBDocumentDetail) -> Bool {
+        let readyIndexingStatuses: Set<String> = ["completed", "finished", "succeeded", "success", "done"]
+        guard detail.archived != true else { return false }
+        guard (detail.enabled ?? true) == false else { return false }
+        if let status = detail.indexingStatus?.lowercased(), readyIndexingStatuses.contains(status) {
+            return true
+        }
+        if let display = detail.displayStatus?.lowercased(), display == "disabled" {
+            return true
+        }
+        return false
     }
 
     private func documentIndexingFailed(_ detail: KBDocumentDetail) -> Bool {
@@ -80,15 +94,31 @@ struct KnowledgeBaseClientIntegrationTests {
         return "indexing_status=\(indexing), display_status=\(display), enabled=\(enabled), archived=\(archived)"
     }
 
-    private func waitForIndexingCompletion(client: KnowledgeBaseClient, datasetId: String, documentId: String, timeoutSeconds: Double = 60, pollInterval: Double = 1.0) async throws -> KBDocumentDetail {
+    private func waitForIndexingCompletion(client: KnowledgeBaseClient, datasetId: String, documentId: String, timeoutSeconds: Double = 120, pollInterval: Double = 1.0, autoEnable: Bool = true, requireEnabled: Bool = true) async throws -> KBDocumentDetail {
         let deadline = Date().addingTimeInterval(timeoutSeconds)
         var lastDetail: KBDocumentDetail?
         var lastError: Error?
+        var autoEnableAttempts = 0
         while Date() < deadline {
             do {
                 let detail = try await client.getDocumentDetail(datasetId: datasetId, documentId: documentId)
                 lastDetail = detail
-                if documentIsReadyForUpdates(detail) { return detail }
+                if documentIsReadyForUpdates(detail, requireEnabled: requireEnabled) { return detail }
+                if autoEnable && requireEnabled && autoEnableAttempts < 5 && documentNeedsAutoEnableAfterIndexing(detail) {
+                    autoEnableAttempts += 1
+                    do {
+                        _ = try await client.batchUpdateDocumentStatus(datasetId: datasetId, action: .enable, documentIds: [documentId])
+                    } catch let difyError as DifyError {
+                        lastError = difyError
+                        if isDocumentTemporarilyUnavailableError(difyError) {
+                            await sleep(seconds: pollInterval)
+                            continue
+                        }
+                        throw difyError
+                    } catch {
+                        lastError = error
+                    }
+                }
                 if documentIndexingFailed(detail) {
                     throw DifyError(message: detail.error ?? "Document indexing reported an error", code: nil, status: nil)
                 }
@@ -117,6 +147,15 @@ struct KnowledgeBaseClientIntegrationTests {
         return false
     }
 
+    private func shouldRetryVectorIndexAvailability(_ error: DifyError) -> Bool {
+        guard let status = error.status, status == 400 else { return false }
+        let message = error.message?.lowercased() ?? ""
+        if message.contains("vector_index") && message.contains("doesn\"t exist") { return true }
+        if message.contains("collection") && message.contains("doesn\"t exist") { return true }
+        if message.contains("unexpected response: 404") { return true }
+        return false
+    }
+
     private func shouldRetryDocumentStatusAction(_ error: DifyError) -> Bool {
         guard let status = error.status, (400...499).contains(status) else { return false }
         let message = error.message?.lowercased() ?? ""
@@ -141,7 +180,7 @@ struct KnowledgeBaseClientIntegrationTests {
             } catch let difyError as DifyError {
                 lastError = difyError
                 if shouldRetryDocumentStatusAction(difyError) {
-                    _ = try? await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId)
+                    _ = try? await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: documentId, autoEnable: false, requireEnabled: false)
                     await sleep(seconds: waitSeconds)
                     continue
                 }
@@ -427,6 +466,11 @@ struct KnowledgeBaseClientIntegrationTests {
                 break
             } catch let difyError as DifyError {
                 let message = difyError.message ?? ""
+                if shouldRetryVectorIndexAvailability(difyError) {
+                    _ = try? await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: textDocumentId)
+                    await sleep(seconds: 2.0)
+                    continue
+                }
                 if (difyError.status == 400 || difyError.status == 502 || difyError.status == 503) && message.localizedCaseInsensitiveContains("server") {
                     await sleep(seconds: 1.0)
                     continue
@@ -445,7 +489,7 @@ struct KnowledgeBaseClientIntegrationTests {
         var enabledOK = false
         for _ in 1...20 {
             // Poll document status to wait out background indexing jobs.
-            _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: textDocumentId)
+            _ = try await waitForIndexingCompletion(client: client, datasetId: datasetId, documentId: textDocumentId, autoEnable: false, requireEnabled: false)
             do {
                 _ = try await client.batchUpdateDocumentStatus(datasetId: datasetId, action: .enable, documentIds: [textDocumentId])
                 enabledOK = true

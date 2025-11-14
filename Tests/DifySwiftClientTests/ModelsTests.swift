@@ -109,6 +109,81 @@ struct SimpleModelTests {
     }
 }
 
+// MARK: - Knowledge Base Segment Models
+
+struct KnowledgeBaseSegmentModelTests {
+    @Test func testSegmentDecodesWithNullableFields() throws {
+        let json = """
+        {
+            "data": [
+                {
+                    "id": "seg-123",
+                    "position": 1,
+                    "document_id": "doc-123",
+                    "content": "Segment content",
+                    "sign_content": "signed content",
+                    "answer": null,
+                    "word_count": 25,
+                    "tokens": 32,
+                    "keywords": null,
+                    "index_node_id": null,
+                    "index_node_hash": null,
+                    "hit_count": 0,
+                    "enabled": true,
+                    "disabled_at": null,
+                    "disabled_by": null,
+                    "status": "completed",
+                    "created_by": "user-123",
+                    "created_at": 1,
+                    "indexing_at": null,
+                    "completed_at": null,
+                    "error": null,
+                    "stopped_at": null
+                }
+            ],
+            "doc_form": "text_model"
+        }
+        """.data(using: .utf8)!
+
+        let response = try JSONDecoder.difyDecoder.decode(KBSegmentListResponse.self, from: json)
+        #expect(response.docForm == "text_model")
+        #expect(response.data.count == 1)
+        if let segment = response.data.first {
+            #expect(segment.signContent == "signed content")
+            #expect(segment.keywords == nil)
+            #expect(segment.indexNodeId == nil)
+            #expect(segment.indexNodeHash == nil)
+            #expect(segment.indexingAt == nil)
+            #expect(segment.completedAt == nil)
+        }
+    }
+}
+
+struct KnowledgeBaseChildChunkModelTests {
+    @Test func testChildChunkDecodesWithMinimalFields() throws {
+        let json = """
+        {
+            "data": {
+                "id": "child-123",
+                "segment_id": "seg-456",
+                "content": "Child chunk content",
+                "position": 1,
+                "word_count": 19,
+                "type": "customized",
+                "created_at": 1,
+                "updated_at": 2
+            }
+        }
+        """.data(using: .utf8)!
+
+        let response = try JSONDecoder.difyDecoder.decode(KBChildChunkResponse.self, from: json)
+        #expect(response.data.id == "child-123")
+        #expect(response.data.tokens == nil)
+        #expect(response.data.type == "customized")
+        #expect(response.data.updatedAt == 2)
+    }
+}
+
 // MARK: - Knowledge Base Retrieval Model Tests
 
 struct KnowledgeBaseRetrievalModelTests {
