@@ -31,11 +31,15 @@ struct KnowledgeBaseClientIntegrationTests {
         let apiKey = env["DIFY_KB_API_KEY"] ?? ""
         let baseURL = env["DIFY_BASE_URL"] ?? "https://api.dify.ai/v1"
 
-        // Ensure mocks from unit tests don't intercept live calls
-        // (DifyTestCase registers MockURLProtocol globally).
-        URLProtocol.unregisterClass(MockURLProtocol.self)
+        // Use a dedicated URLSession that excludes MockURLProtocol so live HTTP traffic bypasses the unit-test mocking layer.
+        let configuration = URLSessionConfiguration.default
+        configuration.protocolClasses = nil
+        configuration.waitsForConnectivity = true
+        configuration.timeoutIntervalForRequest = max(configuration.timeoutIntervalForRequest, 120)
+        configuration.timeoutIntervalForResource = max(configuration.timeoutIntervalForResource, 300)
+        let liveSession = URLSession(configuration: configuration)
 
-        return try KnowledgeBaseClient(apiKey: apiKey, baseURL: baseURL)
+        return try KnowledgeBaseClient(apiKey: apiKey, baseURL: baseURL, session: liveSession)
     }
 
     // MARK: - Helpers
