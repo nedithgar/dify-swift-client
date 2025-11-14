@@ -227,9 +227,7 @@ struct KnowledgeBaseClientIntegrationTests {
                 break
             }
         }
-        if let error = lastError as? DifyError {
-            throw error
-        } else if let error = lastError {
+        if let error = lastError {
             throw error
         }
     }
