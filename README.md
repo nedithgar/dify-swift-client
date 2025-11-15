@@ -17,7 +17,7 @@ A Swift SDK for Dify AI that provides a complete interface to the Dify Service A
 - **Type Safety**: Comprehensive Swift types for all API request/response models with proper snake_case to camelCase conversion
     - Knowledge Base uses typed options: `KBIndexingTechnique` (`.economy`, `.highQuality`), `KBRetrievalModel.KBSearchMethod` (`.semanticSearch`, `.fullTextSearch`, `.hybridSearch`), and `KBDocumentForm` (`.textModel`, `.hierarchicalModel`, `.qaModel`). Note: `docLanguage` is required only when `docForm == .qaModel` and is omitted otherwise.
 - **Error Handling**: Detailed error types with localized descriptions
-- **Testing**: Full test coverage using the latest Swift Testing framework (WWDC2024) with parallel test execution support
+- **Testing**: Comprehensive test suite using the Swift Testing framework (WWDC 2024) with parallel execution support
 - **Application Management**: Complete application info, parameters, metadata, and configuration support
 - **Feedback & Annotations**: Full support for message feedback with content and annotation management
 - **Conversation Variables**: Extract and manage structured data from conversations
@@ -28,7 +28,7 @@ A Swift SDK for Dify AI that provides a complete interface to the Dify Service A
 - `ChatClient` – Chat messages (blocking/streaming), conversations, variables, feedback, annotations, audio, app info
 - `CompletionClient` – Completion messages (blocking/streaming), feedback, files, app info/site/parameters, text-to-audio
 - `WorkflowClient` – Workflow run (blocking/streaming), run detail and logs
-- `KnowledgeBaseClient` – Datasets, documents, segments/child chunks, retrieve, tags, embedding models
+- `KnowledgeBaseClient` – Datasets, documents, segments/child chunks, retrieve, embedding models
 
 Key shared components:
 - `Models.swift` – All request/response models and enums (including Knowledge Base typed models)
@@ -92,18 +92,14 @@ let streamingResponse = try await chatClient.createStreamingChatMessage(
 )
 
 for try await event in streamingResponse {
-    switch event {
-    case .message(let m):
+    if let m = event.message {
         // incremental text chunks
         print(m.answer, terminator: "")
-    case .messageEnd(let end):
+    } else if let end = event.messageEnd {
         print("\n[done] total tokens: \(end.metadata.usage?.totalTokens ?? 0)")
-    case .error(let e):
+    } else if let e = event.error {
         print("\n[error] \(e.code): \(e.message)")
-    default:
-        // handle other events as needed (tts_message, ping, etc.)
-        break
-    }
+    } // handle other kinds (tts_message, ping, etc.) as needed
 }
 ```
 
@@ -132,14 +128,12 @@ let completionStream = try await completionClient.createStreamingCompletionMessa
 )
 
 for try await event in completionStream {
-    switch event {
-    case .message(let m):
+    if let m = event.message {
         print(m.answer, terminator: "")
-    case .messageEnd(let end):
+    } else if let end = event.messageEnd {
         print("\n[done] total tokens: \(end.metadata.usage?.totalTokens ?? 0)")
-    case .error(let e):
+    } else if let e = event.error {
         print("\n[error] \(e.code): \(e.message)")
-    default: break
     }
 }
 ```
@@ -308,14 +302,12 @@ let stream = try await workflowClient.runStreamingWorkflow(
 )
 
 for try await event in stream {
-    switch event {
-    case .workflowStarted(let e):
-        print("Started: \(e.workflowRunId)")
-    case .textChunk(let t):
-        print(t.data.text, terminator: "")
-    case .workflowFinished(let e):
-        print("\nDone: \(e.data.status)")
-    default: break
+    if let started = event.workflowStarted {
+        print("Started: \(started.workflowRunId)")
+    } else if let chunk = event.textChunk {
+        print("[node \(chunk.name)] \(chunk.status)")
+    } else if let finished = event.workflowFinished {
+        print("\nDone: \(finished.data.status)")
     }
 }
 
@@ -458,13 +450,8 @@ let retrieve = try await knowledgeBaseClient.retrieve(
 // Embedding models (grouped by provider)
 let providers = try await knowledgeBaseClient.getAvailableEmbeddingModels()
 
-// Tags
-let tag = try await knowledgeBaseClient.createKnowledgeTag(name: "docs")
-let tags = try await knowledgeBaseClient.getKnowledgeTags()
-_ = try await knowledgeBaseClient.updateKnowledgeTag(tagId: tag.id, name: "guides")
-_ = try await knowledgeBaseClient.bindTagsToDataset(datasetId: dataset.id, tagIds: [tag.id])
-_ = try await knowledgeBaseClient.unbindTagFromDataset(datasetId: dataset.id, tagId: tag.id)
-let bound = try await knowledgeBaseClient.queryDatasetTags(datasetId: dataset.id)
+// Note: Knowledge Base Tag endpoints are intentionally unavailable in this SDK for
+// reliable testing across environments.
 ```
 
 ### Conversation Management
@@ -563,9 +550,15 @@ print("Mode: \(appInfo.mode), Author: \(appInfo.authorName)")
 let meta = try await chatClient.getApplicationMeta()
 // Note: Check actual response structure for available properties
 
-// Get site/webapp settings (available in CompletionClient)
+// Get site/webapp settings (available in ChatClient, CompletionClient, and WorkflowClient)
+// ChatClient
+let siteFromChat = try await chatClient.getApplicationWebAppSettings()
+// CompletionClient
 let completionClient = try CompletionClient(apiKey: "your_api_key")
 let site = try await completionClient.getApplicationSiteSettings()
+// WorkflowClient
+let workflowClient = try WorkflowClient(apiKey: "your_api_key")
+let wfSite = try await workflowClient.getApplicationWebAppSettings()
 print("Title: \(site.title ?? "N/A")")
 // Note: Check actual response structure for available properties
 ```
@@ -787,14 +780,17 @@ The SDK includes comprehensive tests using Swift Testing framework with enhanced
 # Run all tests (parallel execution by default)
 swift test
 
-# Run specific test suites
-swift test --filter "DifyClientTests"
-swift test --filter "ChatClientTests"
-swift test --filter "CompletionClientTests"
-swift test --filter "WorkflowClientTests"
-swift test --filter "KnowledgeBaseClientTests"
-swift test --filter "ModelsTests"
-swift test --filter "UtilitiesTests"
+# Run specific test suites (Swift Testing display names)
+swift test --filter "DifyClient Tests"
+swift test --filter "ChatClient Tests"
+swift test --filter "CompletionClient Tests"
+swift test --filter "WorkflowClient Tests"
+swift test --filter "KnowledgeBaseClient Tests"
+swift test --filter "Utilities Tests"
+swift test --filter "Isolated Mock Session Tests"
+
+# Optional integration suite (disabled by default; requires env vars like DIFY_KB_API_KEY)
+swift test --filter "KnowledgeBaseClient Integration"
 
 # Run tests with verbose output
 swift test --verbose
@@ -805,13 +801,13 @@ swift test --no-parallel
 
 ### Test Features
 
-- **100% Mock-based Testing**: All tests use mock responses with no real API calls required
-- **Parallel Test Execution**: Tests use isolated mock sessions for thread-safe parallel execution
-- **No External Dependencies**: Tests run offline and are completely deterministic
-- **Comprehensive Coverage**: Includes unit tests for all API endpoints, streaming responses, error scenarios, and edge cases
-- **Swift Testing Framework**: Built with the modern Swift Testing framework introduced at WWDC 2024
+- **Mock-based Unit Tests**: Unit tests use mock responses; no real API calls required
+- **Parallel Test Execution**: Isolated mock sessions enable safe parallel runs
+- **No External Dependencies**: Unit tests are offline and deterministic
+- **Broad Coverage**: Tests include endpoints, streaming, error scenarios, and edge cases
+- **Swift Testing Framework**: Uses the modern Swift Testing framework (WWDC 2024)
 
-Tip: integration tests for Knowledge Base are opt-in via environment variables (e.g., `DIFY_KB_API_KEY`) and are disabled by default.
+Tip: A Knowledge Base integration suite is opt-in via env vars (e.g., `DIFY_KB_API_KEY`, optional `DIFY_BASE_URL`) and is disabled by default.
 
 ## Platform Support
 

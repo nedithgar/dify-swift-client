@@ -33,9 +33,9 @@ When creating tests or implementing new features, proactively seek assistance fr
 - **`KnowledgeBaseClient`** - Extends DifyClient for knowledge base and document management
 
 ### Key Components
-- **Models.swift** - Contains all request/response models, enums, and data structures (100% test coverage)
-- **Utilities.swift** - Extensions for URL, URLRequest, JSON handling, and streaming responses (comprehensive test coverage)
-- **Examples/main.swift** - Usage examples and SDK demonstration
+- **Models.swift** - Contains all request/response models, enums, and data structures (extensive test coverage)
+- **Utilities.swift** - JSON coders, multipart builder, helpers, and lightweight debug logging
+- **Examples** - See README.md for up-to-date usage examples
 
 ## Development Commands
 
@@ -48,14 +48,16 @@ swift build
 # Tests now support parallel execution with isolated mock sessions
 swift test
 
-# Run specific test suites
-swift test --filter "DifyClientTests"
-swift test --filter "ChatClientTests"
-swift test --filter "CompletionClientTests"
-swift test --filter "WorkflowClientTests"
-swift test --filter "KnowledgeBaseClientTests"
-swift test --filter "ModelsTests"
-swift test --filter "UtilitiesTests"
+# Run specific test suites (Swift Testing names)
+swift test --filter "DifyClient Tests"
+swift test --filter "ChatClient Tests"
+swift test --filter "CompletionClient Tests"
+swift test --filter "WorkflowClient Tests"
+swift test --filter "KnowledgeBaseClient Tests"
+swift test --filter "Utilities Tests"
+swift test --filter "Isolated Mock Session Tests"
+# Optional integration suite (disabled by default; requires env vars)
+swift test --filter "KnowledgeBaseClient Integration"
 
 # Run tests with verbose output
 swift test --verbose
@@ -65,16 +67,17 @@ swift test --no-parallel
 ```
 
 ### Test Environment
-- **All tests use mock responses** - No real API calls or environment variables required
-- **No external dependencies** - Tests run offline and are deterministic
+- **All unit tests use mock responses** - No real API calls or environment variables required
+- **No external dependencies** - Unit tests run offline and are deterministic
 - **Swift Testing framework** - Uses the modern Swift Testing framework (WWDC 2024)
-- **Parallel test execution** - Tests use isolated mock sessions for thread-safe parallel execution
+- **Parallel test execution** - Tests can use isolated mock sessions for thread-safe parallel execution
+- **Integration tests (opt‑in)** - A Knowledge Base integration suite is disabled by default and runs only when `DIFY_KB_API_KEY` (and optional `DIFY_BASE_URL`) are set
 
 ## Code Architecture Details
 
 ### Request/Response Flow
 1. All clients inherit from `DifyClient` which provides base HTTP functionality
-2. Requests are constructed using `sendRequest()` or `sendRequestWithFiles()` methods
+2. Requests are constructed using `sendRequest()` (JSON) or `sendMultipartRequest()` (file uploads)
 3. JSON encoding/decoding uses custom `JSONEncoder.difyEncoder` and `JSONDecoder.difyDecoder`
 4. Error handling through `DifyError` enum with specific error types
 
@@ -88,9 +91,9 @@ swift test --no-parallel
 The SDK supports comprehensive file handling across document, image, audio, video, and custom file types with both remote URL and local file upload capabilities.
 
 ### Streaming Support
-- `StreamingResponse` struct provides AsyncSequence for server-sent events
+- Streaming uses `AsyncThrowingStream` created by `DifyClient.createStreamingResponse(...)`
 - Supports chat streaming, workflow streaming, and various event types
-- Custom URLSession-based streaming implementation
+- Platform-aware: uses `URLSession.bytes` on Apple platforms; falls back to buffered `data(for:)` on Linux and in tests for SSE compatibility
 
 ## Test Structure
 
@@ -134,14 +137,14 @@ Each test gets its own isolated mock session, eliminating race conditions and en
 
 ### Running Individual Tests
 ```bash
-# Run a specific test class
-swift test --filter "ChatClientTests"
+# Run a specific suite
+swift test --filter "ChatClient Tests"
 
-# Run a specific test method
-swift test --filter "ChatClientTests/testStreamingChatMessage"
+# Run a specific test by its display name (@Test label)
+swift test --filter "Create Streaming Chat Message"
 
-# Run tests matching a pattern
-swift test --filter "test.*Streaming"
+# Run tests matching a pattern (substring match)
+swift test --filter "Streaming"
 ```
 
 ## Key Implementation Notes
@@ -158,8 +161,8 @@ swift test --filter "test.*Streaming"
 - Streaming responses implement `AsyncSequence` for iteration
 
 ### JSON Handling
-- Custom JSON coders handle snake_case to camelCase conversion
-- Proper date formatting for API compatibility
+- CodingKeys in models map snake_case fields to Swift names
+- Custom JSON coders set `.secondsSince1970` date strategies for API compatibility
 - Comprehensive model coverage for all Dify API endpoints
 
 ## Adding New Features
@@ -174,7 +177,7 @@ swift test --filter "test.*Streaming"
 1. Extend `DifyClient` for specialized functionality
 2. Follow existing patterns for initialization and error handling
 3. Add test factory methods in `TestUtilities.swift` for the new client
-4. Update examples in `Examples/main.swift`
+4. Update examples in README.md if significant
 
 ## Platform Support
 
@@ -210,14 +213,15 @@ swift test --filter "test.*Streaming"
 ### Adding a New API Method
 1. Define request/response models in `Models.swift`
 2. Add the method to the appropriate client class
-3. Use `sendRequest()` for standard requests or `sendRequestWithFiles()` for file uploads
+3. Use `sendRequest()` for standard requests or `sendMultipartRequest()` for file uploads
 4. Add comprehensive test coverage using isolated mock sessions
 5. Update `MockDataProvider.swift` with appropriate mock responses if using shared mocks
-6. Add usage example to `Examples/main.swift` if significant
+6. Add usage example to README.md if significant
 7. Document the new functionality appropriately
 
 ### Debugging Tips
 - Check `DifyError` cases for specific error handling
+- Enable SDK debug logs by setting env `DIFY_SDK_DEBUG=true`
 - Use `print(request.debugDescription)` to inspect outgoing requests
 - Verify JSON encoding/decoding with custom coders
 - Test streaming responses with mock SSE data
@@ -240,7 +244,7 @@ The SDK currently implements:
 - ✅ File upload support
 - ✅ Conversation management
 - ✅ Application information retrieval
-- ✅ Error handling and retry logic
+- ✅ Error handling
 
 ## Important Reminders
 
