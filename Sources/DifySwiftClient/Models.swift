@@ -810,11 +810,10 @@ public struct WorkflowData: Codable, Sendable {
     public let status: String
     public let outputs: [String: AnyCodable]?
     public let error: String?
-    // Some streaming events omit these statistics; keep optional for robustness.
-    public let elapsedTime: Double?
-    public let totalTokens: Int?
-    public let totalSteps: Int?
-    public let createdAt: Int?
+    public let elapsedTime: Double
+    public let totalTokens: Int
+    public let totalSteps: Int
+    public let createdAt: Int
     public let finishedAt: Int?
     
     private enum CodingKeys: String, CodingKey {
@@ -897,11 +896,39 @@ public struct StreamingWorkflowEvent: Decodable, Sendable {
 /// Backwards-compatible alias for old name.
 public typealias StreamingWorkflowResponse = StreamingWorkflowEvent
 
+/// Minimal workflow data shape used by `workflow_started` events, which often omit
+/// metrics present in final results. Fields are optional to maximize compatibility.
+public struct WorkflowStartedData: Codable, Sendable {
+    public let id: String?
+    public let workflowId: String?
+    public let status: String?
+    public let outputs: [String: AnyCodable]?
+    public let error: String?
+    public let elapsedTime: Double?
+    public let totalTokens: Int?
+    public let totalSteps: Int?
+    public let createdAt: Int?
+    public let finishedAt: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case workflowId = "workflow_id"
+        case status
+        case outputs
+        case error
+        case elapsedTime = "elapsed_time"
+        case totalTokens = "total_tokens"
+        case totalSteps = "total_steps"
+        case createdAt = "created_at"
+        case finishedAt = "finished_at"
+    }
+}
+
 public struct WorkflowStartedEvent: Codable, Sendable {
     public let event: String
-    public let taskId: String
-    public let workflowRunId: String
-    public let data: WorkflowData
+    public let taskId: String?
+    public let workflowRunId: String?
+    public let data: WorkflowStartedData
     
     private enum CodingKeys: String, CodingKey {
         case event
@@ -913,7 +940,7 @@ public struct WorkflowStartedEvent: Codable, Sendable {
 
 public struct NodeStartedEvent: Codable, Sendable {
     public let event: String
-    public let taskId: String
+    public let taskId: String?
     public let workflowRunId: String?
     public let data: NodeExecutionData
     
@@ -927,7 +954,7 @@ public struct NodeStartedEvent: Codable, Sendable {
 
 public struct NodeFinishedEvent: Codable, Sendable {
     public let event: String
-    public let taskId: String
+    public let taskId: String?
     public let workflowRunId: String?
     public let data: NodeExecutionData
     
@@ -941,8 +968,8 @@ public struct NodeFinishedEvent: Codable, Sendable {
 
 public struct WorkflowFinishedEvent: Codable, Sendable {
     public let event: String
-    public let taskId: String
-    public let workflowRunId: String
+    public let taskId: String?
+    public let workflowRunId: String?
     public let data: WorkflowData
     
     private enum CodingKeys: String, CodingKey {
@@ -955,8 +982,8 @@ public struct WorkflowFinishedEvent: Codable, Sendable {
 
 public struct TextChunkEvent: Codable, Sendable {
     public let event: String
-    public let taskId: String
-    public let workflowRunId: String
+    public let taskId: String?
+    public let workflowRunId: String?
     public let data: TextChunkData
     
     private enum CodingKeys: String, CodingKey {
@@ -987,11 +1014,11 @@ public struct NodeExecutionData: Codable, Sendable {
     public let inputs: [String: AnyCodable]?
     public let processData: [String: AnyCodable]?
     public let outputs: [String: AnyCodable]?
-    public let status: String
+    public let status: String?
     public let error: String?
     public let elapsedTime: Double?
     public let executionMetadata: ExecutionMetadata?
-    public let createdAt: Int
+    public let createdAt: Int?
     
     private enum CodingKeys: String, CodingKey {
         case id
