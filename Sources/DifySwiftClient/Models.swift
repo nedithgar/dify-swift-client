@@ -1033,6 +1033,44 @@ public struct NodeExecutionData: Codable, Sendable {
         case executionMetadata = "execution_metadata"
         case createdAt = "created_at"
     }
+    
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decode(String.self, forKey: .id)
+        self.nodeId = try c.decode(String.self, forKey: .nodeId)
+        self.nodeType = try c.decode(String.self, forKey: .nodeType)
+        self.index = try NodeExecutionData.decodeIntFlex(c, forKey: .index)
+        self.title = try c.decode(String.self, forKey: .title)
+        self.predecessorNodeId = try c.decodeIfPresent(String.self, forKey: .predecessorNodeId)
+        self.inputs = try c.decodeIfPresent([String: AnyCodable].self, forKey: .inputs)
+        self.processData = try c.decodeIfPresent([String: AnyCodable].self, forKey: .processData)
+        self.outputs = try c.decodeIfPresent([String: AnyCodable].self, forKey: .outputs)
+        // Status can sometimes be a non-string; coerce to String when possible
+        if let s = try? c.decode(String.self, forKey: .status) {
+            self.status = s
+        } else if let n = try? c.decode(Int.self, forKey: .status) {
+            self.status = String(n)
+        } else {
+            self.status = nil
+        }
+        self.error = try c.decodeIfPresent(String.self, forKey: .error)
+        self.elapsedTime = try NodeExecutionData.decodeDoubleFlex(c, forKey: .elapsedTime)
+        self.executionMetadata = try? c.decode(ExecutionMetadata.self, forKey: .executionMetadata)
+        self.createdAt = try? NodeExecutionData.decodeIntFlex(c, forKey: .createdAt)
+    }
+
+    private static func decodeIntFlex(_ c: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Int {
+        if let i = try? c.decode(Int.self, forKey: key) { return i }
+        if let s = try? c.decode(String.self, forKey: key), let i = Int(s) { return i }
+        throw DecodingError.typeMismatch(Int.self, DecodingError.Context(codingPath: [key], debugDescription: "Expected Int or numeric String for \(key.stringValue)"))
+    }
+
+    private static func decodeDoubleFlex(_ c: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Double? {
+        if let d = try? c.decode(Double.self, forKey: key) { return d }
+        if let i = try? c.decode(Int.self, forKey: key) { return Double(i) }
+        if let s = try? c.decode(String.self, forKey: key), let d = Double(s) { return d }
+        return nil
+    }
 }
 
 public struct ExecutionMetadata: Codable, Sendable {
@@ -1044,6 +1082,28 @@ public struct ExecutionMetadata: Codable, Sendable {
         case totalTokens = "total_tokens"
         case totalPrice = "total_price"
         case currency
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        // Accept numbers or numeric strings
+        if let v = try? c.decode(Int.self, forKey: .totalTokens) {
+            self.totalTokens = v
+        } else if let s = try? c.decode(String.self, forKey: .totalTokens), let v = Int(s) {
+            self.totalTokens = v
+        } else {
+            self.totalTokens = nil
+        }
+        if let v = try? c.decode(Double.self, forKey: .totalPrice) {
+            self.totalPrice = v
+        } else if let s = try? c.decode(String.self, forKey: .totalPrice), let v = Double(s) {
+            self.totalPrice = v
+        } else if let i = try? c.decode(Int.self, forKey: .totalPrice) {
+            self.totalPrice = Double(i)
+        } else {
+            self.totalPrice = nil
+        }
+        self.currency = try? c.decode(String.self, forKey: .currency)
     }
 }
 
