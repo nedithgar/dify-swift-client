@@ -81,12 +81,12 @@ struct WorkflowClientIntegrationTest {
         guard let items = params?.userInputForm, !items.isEmpty else { return inputs }
         for item in items {
             if let text = item.textInput {
-                let value = text.defaultValue?.isEmpty == false ? text.defaultValue! : "integration"
+                let value = text.defaultValue.map { !$0.isEmpty ? $0 : "integration" } ?? "integration"
                 if text.required || text.defaultValue != nil { inputs[text.variable] = value }
                 continue
             }
             if let paragraph = item.paragraph {
-                let value = paragraph.defaultValue?.isEmpty == false ? paragraph.defaultValue! : "integration paragraph"
+                let value = paragraph.defaultValue.map { $0.isEmpty ? "integration paragraph" : $0 } ?? "integration paragraph"
                 if paragraph.required || paragraph.defaultValue != nil { inputs[paragraph.variable] = value }
                 continue
             }
