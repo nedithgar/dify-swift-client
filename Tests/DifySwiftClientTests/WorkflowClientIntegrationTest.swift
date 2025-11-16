@@ -65,37 +65,38 @@ struct WorkflowClientIntegrationTest {
     private func makeUserId() -> String { "wf-it-" + UUID().uuidString.prefix(8) }
     private func makeTraceId() -> String { "trace-" + UUID().uuidString.lowercased() }
 
-    /// Build inputs for a run by inspecting the app's /parameters configuration.
-    /// Fills required fields with defaults when present; otherwise supplies sensible fallbacks.
-    /// Always ensures a reasonable value for common key "user_input" to satisfy typical workflows.
+    /// Resolve inputs for a run without requiring env overrides.
+    /// Priority:
+    /// 1) DIFY_WORKFLOW_INPUTS_JSON env (JSON object)
+    /// 2) Build from /parameters user_input_form using defaults and required fields
+    /// 3) Otherwise, empty dictionary (let app defaults handle)
     private func buildInputs(from params: ApplicationParametersResponse?) -> [String: Any] {
+        let env = ProcessInfo.processInfo.environment
+        if let json = env["DIFY_WORKFLOW_INPUTS_JSON"], !json.isEmpty,
+           let data = json.data(using: .utf8),
+           let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            return obj
+        }
         var inputs: [String: Any] = [:]
-
-        if let items = params?.userInputForm, !items.isEmpty {
-            for item in items {
-                if let t = item.textInput {
-                    let value = t.defaultValue.isEmpty ? "integration" : t.defaultValue
-                    inputs[t.variable] = value
-                    continue
-                }
-                if let p = item.paragraph {
-                    let value = p.defaultValue.isEmpty ? "integration paragraph" : p.defaultValue
-                    inputs[p.variable] = value
-                    continue
-                }
-                if let s = item.select {
-                    let candidate = s.defaultValue.isEmpty ? (s.options.first ?? "option") : s.defaultValue
-                    inputs[s.variable] = candidate
-                    continue
-                }
+        guard let items = params?.userInputForm, !items.isEmpty else { return inputs }
+        for item in items {
+            if let t = item.textInput {
+                let value = t.defaultValue?.isEmpty == false ? t.defaultValue! : "integration"
+                if t.required || t.defaultValue != nil { inputs[t.variable] = value }
+                continue
+            }
+            if let p = item.paragraph {
+                let value = p.defaultValue?.isEmpty == false ? p.defaultValue! : "integration paragraph"
+                if p.required || p.defaultValue != nil { inputs[p.variable] = value }
+                continue
+            }
+            if let s = item.select {
+                if let def = s.defaultValue, !def.isEmpty { inputs[s.variable] = def; continue }
+                if let first = s.options?.first { inputs[s.variable] = first; continue }
+                if s.required { inputs[s.variable] = "default" }
+                continue
             }
         }
-
-        // Heuristic fallback: most workflow apps expect `user_input`.
-        if inputs["user_input"] == nil {
-            inputs["user_input"] = "Hello from WorkflowClient integration test"
-        }
-
         return inputs
     }
 
@@ -123,24 +124,22 @@ struct WorkflowClientIntegrationTest {
 
     // MARK: - Tests
 
-    @Test("Application info and parameters endpoints")
-    func testApplicationInfoAndParameters() async throws {
-        let client = try Self.makeClient()
-        let info = try await client.getApplicationInfo()
-        #expect(!info.name.isEmpty)
-        // Parameters schema varies by deployment; treat decode failure as non-fatal for integration.
-        _ = try? await client.getApplicationParameters()
-        // WebApp settings vary widely and some servers return nulls; tolerate decode mismatch.
-        _ = try? await client.getApplicationWebAppSettings()
-    }
+@Test("Application info and parameters endpoints")
+func testApplicationInfoAndParameters() async throws {
+    let client = try Self.makeClient()
+    let info = try await client.getApplicationInfo()
+    #expect(!info.name.isEmpty)
+    _ = try await client.getApplicationParameters()
+    _ = try await client.getApplicationWebAppSettings()
+}
 
-    @Test("Run workflow (blocking) and fetch run detail")
-    func testRunWorkflowBlockingAndDetail() async throws {
-        let client = try Self.makeClient()
-        let params = try? await client.getApplicationParameters()
-        let inputs = buildInputs(from: params)
-        let user = makeUserId()
-        let traceId = makeTraceId()
+@Test("Run workflow (blocking) and fetch run detail")
+func testRunWorkflowBlockingAndDetail() async throws {
+    let client = try Self.makeClient()
+    let params = try? await client.getApplicationParameters()
+    let inputs = buildInputs(from: params)
+    let user = makeUserId()
+    let traceId = makeTraceId()
 
         let resp = try await client.runWorkflow(inputs: inputs, user: user, files: nil, traceId: traceId)
         #expect(!resp.workflowRunId.isEmpty)
@@ -148,19 +147,16 @@ struct WorkflowClientIntegrationTest {
         #expect(!resp.data.id.isEmpty)
         #expect(!resp.data.status.isEmpty)
 
-        // Fetch run detail (best-effort): some deployments return stringified inputs/outputs
-        // which our strict model may not decode. Tolerate nil detail in that case.
-        if let detail = try? await client.getWorkflowRunDetail(workflowRunId: resp.workflowRunId) {
-            #expect(detail.id == resp.data.id)
-            #expect(detail.workflowId == resp.data.workflowId)
-        }
-    }
+    let detail = try await client.getWorkflowRunDetail(workflowRunId: resp.workflowRunId)
+    #expect(detail.id == resp.data.id)
+    #expect(detail.workflowId == resp.data.workflowId)
+}
 
-    @Test("Run workflow by ID (blocking)")
-    func testRunWorkflowByIdBlocking() async throws {
-        let client = try Self.makeClient()
-        let params = try? await client.getApplicationParameters()
-        let inputs = buildInputs(from: params)
+@Test("Run workflow by ID (blocking)")
+func testRunWorkflowByIdBlocking() async throws {
+    let client = try Self.makeClient()
+    let params = try? await client.getApplicationParameters()
+    let inputs = buildInputs(from: params)
         let user = makeUserId()
 
         // Discover a workflowId by doing one run first
@@ -173,68 +169,58 @@ struct WorkflowClientIntegrationTest {
         #expect(run.data.workflowId == workflowId)
     }
 
-    @Test("Run workflow (streaming) yields start and finish events")
-    func testRunWorkflowStreamingBasic() async throws {
-        let client = try Self.makeClient()
-        let params = try? await client.getApplicationParameters()
-        let inputs = buildInputs(from: params)
-        let user = makeUserId()
+@Test("Run workflow (streaming) yields start and finish events")
+func testRunWorkflowStreamingBasic() async throws {
+    let client = try Self.makeClient()
+    let params = try? await client.getApplicationParameters()
+    let inputs = buildInputs(from: params)
+    let user = makeUserId()
+    let stream = try await client.runStreamingWorkflow(inputs: inputs, user: user)
 
-        do {
-            let stream = try await client.runStreamingWorkflow(inputs: inputs, user: user)
-
-            var sawStarted = false
-            var sawFinished = false
-            var startedTaskId: String?
-            for try await event in stream {
-                switch event.kind.rawValue {
-                case "workflow_started":
-                    sawStarted = true
-                    startedTaskId = event.workflowStarted?.taskId
-                case "workflow_finished":
-                    sawFinished = true
-                    break
-                default:
-                    break
-                }
-                if sawFinished { break }
-            }
-            #expect(sawStarted)
-            #expect(sawFinished)
-
-            // Best-effort stop (no-op if already finished)
-            if let taskId = startedTaskId {
-                _ = try? await client.stopWorkflowTask(taskId: taskId, user: user)
-            }
-        } catch {
-            // Some deployments emit partial streaming payloads our strict models don't decode yet.
-            // Soft-skip to keep the rest of integration coverage green.
+    var sawStarted = false
+    var sawFinished = false
+    var startedTaskId: String?
+    for try await event in stream {
+        switch event.kind.rawValue {
+        case "workflow_started":
+            sawStarted = true
+            startedTaskId = event.workflowStarted?.taskId
+        case "workflow_finished":
+            sawFinished = true
+            break
+        default:
+            break
         }
+        if sawFinished { break }
     }
+    #expect(sawStarted)
+    #expect(sawFinished)
 
-    @Test("Run workflow by ID (streaming)")
-    func testRunWorkflowByIdStreaming() async throws {
-        let client = try Self.makeClient()
-        let params = try? await client.getApplicationParameters()
-        let inputs = buildInputs(from: params)
-        let user = makeUserId()
+    // Best-effort stop (no-op if already finished)
+    if let taskId = startedTaskId {
+        _ = try? await client.stopWorkflowTask(taskId: taskId, user: user)
+    }
+}
+
+@Test("Run workflow by ID (streaming)")
+func testRunWorkflowByIdStreaming() async throws {
+    let client = try Self.makeClient()
+    let params = try? await client.getApplicationParameters()
+    let inputs = buildInputs(from: params)
+    let user = makeUserId()
 
         // Discover a workflowId
         let probe = try await client.runWorkflow(inputs: inputs, user: user)
         let workflowId = probe.data.workflowId
         #expect(!workflowId.isEmpty)
 
-        do {
-            let stream = try await client.runStreamingWorkflow(workflowId: workflowId, inputs: inputs, user: user)
-            var sawFinish = false
-            for try await event in stream {
-                if event.kind == .workflowFinished { sawFinish = true; break }
-            }
-            #expect(sawFinish)
-        } catch {
-            // Soft-skip on streaming decode variability.
-        }
+    let stream = try await client.runStreamingWorkflow(workflowId: workflowId, inputs: inputs, user: user)
+    var sawFinish = false
+    for try await event in stream {
+        if event.kind == .workflowFinished { sawFinish = true; break }
     }
+    #expect(sawFinish)
+}
 
     @Test("Workflow logs listing (first page)")
     func testGetWorkflowLogsListing() async throws {
@@ -250,13 +236,13 @@ struct WorkflowClientIntegrationTest {
         #expect(logs.data.count <= 5)
     }
 
-    @Test("Run workflow with file attachment when allowed")
-    func testRunWorkflowWithFileAttachmentIfEnabled() async throws {
-        let client = try Self.makeClient()
-        let params = try? await client.getApplicationParameters()
-        guard let allowance = allowedLocalUploadCategory(params) else {
-            // App does not accept local file uploads; silently pass this optional test
-            return
+@Test("Run workflow with file attachment when allowed")
+func testRunWorkflowWithFileAttachmentIfEnabled() async throws {
+    let client = try Self.makeClient()
+    let params = try? await client.getApplicationParameters()
+    guard let allowance = allowedLocalUploadCategory(params) else {
+        // App does not accept local file uploads; silently pass this optional test
+        return
         }
 
         // Upload a tiny file via CompletionClient (shared /files/upload endpoint)

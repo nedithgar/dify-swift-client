@@ -189,7 +189,7 @@ public struct FormInput: Codable, Sendable {
     /// Whether this field must be supplied.
     public let required: Bool
     /// Default value used when user omits input.
-    public let defaultValue: String
+    public let defaultValue: String?
 
     private enum CodingKeys: String, CodingKey {
         case label, variable, required
@@ -205,9 +205,9 @@ public struct Select: Codable, Sendable {
     /// Whether this field must be supplied.
     public let required: Bool
     /// Default selected option.
-    public let defaultValue: String
+    public let defaultValue: String?
     /// Available options for selection.
-    public let options: [String]
+    public let options: [String]?
 
     private enum CodingKeys: String, CodingKey {
         case label, variable, required, options
@@ -233,7 +233,7 @@ public struct UploadCategoryConfig: Codable, Sendable {
     /// Whether this file category is allowed.
     public let enabled: Bool
     /// Maximum number of files allowed per request.
-    public let numberLimits: Int
+    public let numberLimits: Int?
     /// Allowed transfer methods (e.g. ["remote_url", "local_file"]).
     public let transferMethods: [String]
 
@@ -810,10 +810,11 @@ public struct WorkflowData: Codable, Sendable {
     public let status: String
     public let outputs: [String: AnyCodable]?
     public let error: String?
-    public let elapsedTime: Double
-    public let totalTokens: Int
-    public let totalSteps: Int
-    public let createdAt: Int
+    // Some streaming events omit these statistics; keep optional for robustness.
+    public let elapsedTime: Double?
+    public let totalTokens: Int?
+    public let totalSteps: Int?
+    public let createdAt: Int?
     public let finishedAt: Int?
     
     private enum CodingKeys: String, CodingKey {
@@ -2334,12 +2335,12 @@ public struct WorkflowRunDetailResponse: Codable, Sendable {
     public let inputs: [String: AnyCodable]?
     public let outputs: [String: AnyCodable]?
     public let error: String?
-    public let totalSteps: Int
-    public let totalTokens: Int
-    public let createdAt: Int
+    public let totalSteps: Int?
+    public let totalTokens: Int?
+    public let createdAt: Int?
     public let finishedAt: Int?
-    public let elapsedTime: Double
-    
+    public let elapsedTime: Double?
+
     private enum CodingKeys: String, CodingKey {
         case id
         case workflowId = "workflow_id"
@@ -2352,6 +2353,65 @@ public struct WorkflowRunDetailResponse: Codable, Sendable {
         case createdAt = "created_at"
         case finishedAt = "finished_at"
         case elapsedTime = "elapsed_time"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(String.self, forKey: .id)
+        self.workflowId = try container.decode(String.self, forKey: .workflowId)
+        self.status = try container.decode(String.self, forKey: .status)
+
+        // inputs may arrive as object or stringified JSON
+        self.inputs = try Self.decodeFlexibleJSONDict(from: container, key: .inputs)
+        self.outputs = try Self.decodeFlexibleJSONDict(from: container, key: .outputs)
+
+        self.error = try container.decodeIfPresent(String.self, forKey: .error)
+        self.totalSteps = try container.decodeIfPresent(Int.self, forKey: .totalSteps)
+        self.totalTokens = try container.decodeIfPresent(Int.self, forKey: .totalTokens)
+        self.createdAt = try container.decodeIfPresent(Int.self, forKey: .createdAt)
+        self.finishedAt = try container.decodeIfPresent(Int.self, forKey: .finishedAt)
+        self.elapsedTime = try container.decodeIfPresent(Double.self, forKey: .elapsedTime)
+    }
+
+    public init(
+        id: String,
+        workflowId: String,
+        status: String,
+        inputs: [String: AnyCodable]?,
+        outputs: [String: AnyCodable]?,
+        error: String?,
+        totalSteps: Int?,
+        totalTokens: Int?,
+        createdAt: Int?,
+        finishedAt: Int?,
+        elapsedTime: Double?
+    ) {
+        self.id = id
+        self.workflowId = workflowId
+        self.status = status
+        self.inputs = inputs
+        self.outputs = outputs
+        self.error = error
+        self.totalSteps = totalSteps
+        self.totalTokens = totalTokens
+        self.createdAt = createdAt
+        self.finishedAt = finishedAt
+        self.elapsedTime = elapsedTime
+    }
+
+    private static func decodeFlexibleJSONDict(from container: KeyedDecodingContainer<CodingKeys>, key: CodingKeys) throws -> [String: AnyCodable]? {
+        // Try as object first
+        if let obj = try container.decodeIfPresent([String: AnyCodable].self, forKey: key) {
+            return obj
+        }
+        // Try as stringified JSON
+        if let jsonString = try container.decodeIfPresent(String.self, forKey: key), !jsonString.isEmpty {
+            if let data = jsonString.data(using: .utf8),
+               let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                return raw.mapValues { AnyCodable($0) }
+            }
+        }
+        return nil
     }
 }
 
@@ -2440,17 +2500,17 @@ public struct EndUserInfo: Codable, Sendable {
 /// Application WebApp settings response
 /// WebApp specific branding & legal settings (legacy variant of `ApplicationSiteResponse`).
 public struct ApplicationWebAppSettingsResponse: Codable, Sendable {
-    public let title: String
-    public let iconType: String
-    public let icon: String
-    public let iconBackground: String
+    public let title: String?
+    public let iconType: String?
+    public let icon: String?
+    public let iconBackground: String?
     public let iconUrl: String?
-    public let description: String
-    public let copyright: String
-    public let privacyPolicy: String
-    public let customDisclaimer: String
-    public let defaultLanguage: String
-    public let showWorkflowSteps: Bool
+    public let description: String?
+    public let copyright: String?
+    public let privacyPolicy: String?
+    public let customDisclaimer: String?
+    public let defaultLanguage: String?
+    public let showWorkflowSteps: Bool?
     
     private enum CodingKeys: String, CodingKey {
         case title
