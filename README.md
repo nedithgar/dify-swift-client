@@ -710,7 +710,7 @@ All API responses are strongly typed with Swift structs and include comprehensiv
 ### Utilities & JSON
 
 - `JSONDecoder.difyDecoder` / `JSONEncoder.difyEncoder` for consistent date handling and API compatibility
-- `DIFY_SDK_DEBUG=true` environment variable prints sanitized request/response debug output to help diagnose issues
+- `DIFY_SDK_DEBUG=true` prints sanitized request/response debug output and decoder hints for flexible fields (e.g., stringified JSON in workflow run detail)
 
 ### Error Types
 
@@ -808,6 +808,30 @@ swift test --no-parallel
 - **Swift Testing Framework**: Uses the modern Swift Testing framework (WWDC 2024)
 
 Tip: A Knowledge Base integration suite is opt-in via env vars (e.g., `DIFY_KB_API_KEY`, optional `DIFY_BASE_URL`) and is disabled by default.
+
+### Workflow Integration Suite
+
+The repository includes a live, networked integration suite for `WorkflowClient`. It is disabled unless a workflow app key is provided.
+
+Requirements:
+- `DIFY_WORKFLOW_API_KEY` — an App API key for a published Workflow application
+- Optional `DIFY_BASE_URL` — defaults to `https://api.dify.ai/v1` (must include `/v1`)
+
+Run the suite:
+
+```bash
+DIFY_WORKFLOW_API_KEY=your_key \
+swift test --filter "WorkflowClient Integration" --no-parallel
+```
+
+How inputs are provided:
+- Inputs are derived automatically from `/parameters` (user_input_form). The tests fill required fields using defaults or sensible placeholders and respect select options when present.
+- Optional override: set `DIFY_WORKFLOW_INPUTS_JSON` to a JSON object (e.g., `{"query":"Hello"}`) to provide explicit inputs for your workflow. This is not required but can be useful for apps with custom validation.
+
+Notes on workflow models and streaming:
+- Early streaming events (e.g., `workflow_started`, `node_started`) may omit some metrics on certain deployments. The SDK models are tolerant for these events while remaining strict for terminal results.
+- `getWorkflowRunDetail` accepts `inputs`/`outputs` returned either as JSON objects or as stringified JSON.
+- Enable debug logging with `DIFY_SDK_DEBUG=true` to see sanitized request/response snapshots and decode hints during integration runs.
 
 ## Platform Support
 

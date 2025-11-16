@@ -189,7 +189,7 @@ public struct FormInput: Codable, Sendable {
     /// Whether this field must be supplied.
     public let required: Bool
     /// Default value used when user omits input.
-    public let defaultValue: String
+    public let defaultValue: String?
 
     private enum CodingKeys: String, CodingKey {
         case label, variable, required
@@ -205,9 +205,9 @@ public struct Select: Codable, Sendable {
     /// Whether this field must be supplied.
     public let required: Bool
     /// Default selected option.
-    public let defaultValue: String
+    public let defaultValue: String?
     /// Available options for selection.
-    public let options: [String]
+    public let options: [String]?
 
     private enum CodingKeys: String, CodingKey {
         case label, variable, required, options
@@ -233,7 +233,7 @@ public struct UploadCategoryConfig: Codable, Sendable {
     /// Whether this file category is allowed.
     public let enabled: Bool
     /// Maximum number of files allowed per request.
-    public let numberLimits: Int
+    public let numberLimits: Int?
     /// Allowed transfer methods (e.g. ["remote_url", "local_file"]).
     public let transferMethods: [String]
 
@@ -896,11 +896,39 @@ public struct StreamingWorkflowEvent: Decodable, Sendable {
 /// Backwards-compatible alias for old name.
 public typealias StreamingWorkflowResponse = StreamingWorkflowEvent
 
+/// Minimal workflow data shape used by `workflow_started` events, which often omit
+/// metrics present in final results. Fields are optional to maximize compatibility.
+public struct WorkflowStartedData: Codable, Sendable {
+    public let id: String?
+    public let workflowId: String?
+    public let status: String?
+    public let outputs: [String: AnyCodable]?
+    public let error: String?
+    public let elapsedTime: Double?
+    public let totalTokens: Int?
+    public let totalSteps: Int?
+    public let createdAt: Int?
+    public let finishedAt: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case workflowId = "workflow_id"
+        case status
+        case outputs
+        case error
+        case elapsedTime = "elapsed_time"
+        case totalTokens = "total_tokens"
+        case totalSteps = "total_steps"
+        case createdAt = "created_at"
+        case finishedAt = "finished_at"
+    }
+}
+
 public struct WorkflowStartedEvent: Codable, Sendable {
     public let event: String
-    public let taskId: String
-    public let workflowRunId: String
-    public let data: WorkflowData
+    public let taskId: String?
+    public let workflowRunId: String?
+    public let data: WorkflowStartedData
     
     private enum CodingKeys: String, CodingKey {
         case event
@@ -912,7 +940,7 @@ public struct WorkflowStartedEvent: Codable, Sendable {
 
 public struct NodeStartedEvent: Codable, Sendable {
     public let event: String
-    public let taskId: String
+    public let taskId: String?
     public let workflowRunId: String?
     public let data: NodeExecutionData
     
@@ -926,7 +954,7 @@ public struct NodeStartedEvent: Codable, Sendable {
 
 public struct NodeFinishedEvent: Codable, Sendable {
     public let event: String
-    public let taskId: String
+    public let taskId: String?
     public let workflowRunId: String?
     public let data: NodeExecutionData
     
@@ -940,8 +968,8 @@ public struct NodeFinishedEvent: Codable, Sendable {
 
 public struct WorkflowFinishedEvent: Codable, Sendable {
     public let event: String
-    public let taskId: String
-    public let workflowRunId: String
+    public let taskId: String?
+    public let workflowRunId: String?
     public let data: WorkflowData
     
     private enum CodingKeys: String, CodingKey {
@@ -954,8 +982,8 @@ public struct WorkflowFinishedEvent: Codable, Sendable {
 
 public struct TextChunkEvent: Codable, Sendable {
     public let event: String
-    public let taskId: String
-    public let workflowRunId: String
+    public let taskId: String?
+    public let workflowRunId: String?
     public let data: TextChunkData
     
     private enum CodingKeys: String, CodingKey {
@@ -986,11 +1014,11 @@ public struct NodeExecutionData: Codable, Sendable {
     public let inputs: [String: AnyCodable]?
     public let processData: [String: AnyCodable]?
     public let outputs: [String: AnyCodable]?
-    public let status: String
+    public let status: String?
     public let error: String?
     public let elapsedTime: Double?
     public let executionMetadata: ExecutionMetadata?
-    public let createdAt: Int
+    public let createdAt: Int?
     
     private enum CodingKeys: String, CodingKey {
         case id
@@ -1005,6 +1033,44 @@ public struct NodeExecutionData: Codable, Sendable {
         case executionMetadata = "execution_metadata"
         case createdAt = "created_at"
     }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(String.self, forKey: .id)
+        self.nodeId = try container.decode(String.self, forKey: .nodeId)
+        self.nodeType = try container.decode(String.self, forKey: .nodeType)
+        self.index = try NodeExecutionData.decodeIntFlex(container, forKey: .index)
+        self.title = try container.decode(String.self, forKey: .title)
+        self.predecessorNodeId = try container.decodeIfPresent(String.self, forKey: .predecessorNodeId)
+        self.inputs = try container.decodeIfPresent([String: AnyCodable].self, forKey: .inputs)
+        self.processData = try container.decodeIfPresent([String: AnyCodable].self, forKey: .processData)
+        self.outputs = try container.decodeIfPresent([String: AnyCodable].self, forKey: .outputs)
+        // Status can sometimes be a non-string; coerce to String when possible
+        if let statusString = try? container.decode(String.self, forKey: .status) {
+            self.status = statusString
+        } else if let statusInt = try? container.decode(Int.self, forKey: .status) {
+            self.status = String(statusInt)
+        } else {
+            self.status = nil
+        }
+        self.error = try container.decodeIfPresent(String.self, forKey: .error)
+        self.elapsedTime = try NodeExecutionData.decodeDoubleFlex(container, forKey: .elapsedTime)
+        self.executionMetadata = try? container.decode(ExecutionMetadata.self, forKey: .executionMetadata)
+        self.createdAt = try? NodeExecutionData.decodeIntFlex(container, forKey: .createdAt)
+    }
+
+    private static func decodeIntFlex(_ container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Int {
+        if let intValue = try? container.decode(Int.self, forKey: key) { return intValue }
+        if let stringValue = try? container.decode(String.self, forKey: key), let intValue = Int(stringValue) { return intValue }
+        throw DecodingError.typeMismatch(Int.self, DecodingError.Context(codingPath: [key], debugDescription: "Expected Int or numeric String for \(key.stringValue)"))
+    }
+
+    private static func decodeDoubleFlex(_ container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Double? {
+        if let doubleValue = try? container.decode(Double.self, forKey: key) { return doubleValue }
+        if let intValue = try? container.decode(Int.self, forKey: key) { return Double(intValue) }
+        if let stringValue = try? container.decode(String.self, forKey: key), let doubleValue = Double(stringValue) { return doubleValue }
+        return nil
+    }
 }
 
 public struct ExecutionMetadata: Codable, Sendable {
@@ -1016,6 +1082,28 @@ public struct ExecutionMetadata: Codable, Sendable {
         case totalTokens = "total_tokens"
         case totalPrice = "total_price"
         case currency
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // Accept numbers or numeric strings for all numeric values
+        if let numericValue = try? container.decode(Int.self, forKey: .totalTokens) {
+            self.totalTokens = numericValue
+        } else if let stringValue = try? container.decode(String.self, forKey: .totalTokens), let numericValue = Int(stringValue) {
+            self.totalTokens = numericValue
+        } else {
+            self.totalTokens = nil
+        }
+        if let doubleValue = try? container.decode(Double.self, forKey: .totalPrice) {
+            self.totalPrice = doubleValue
+        } else if let stringValue = try? container.decode(String.self, forKey: .totalPrice), let doubleValue = Double(stringValue) {
+            self.totalPrice = doubleValue
+        } else if let intValue = try? container.decode(Int.self, forKey: .totalPrice) {
+            self.totalPrice = Double(intValue)
+        } else {
+            self.totalPrice = nil
+        }
+        self.currency = try? container.decode(String.self, forKey: .currency)
     }
 }
 
@@ -1092,8 +1180,8 @@ public struct DatasetResponse: Codable, Sendable {
         self.description = try container.decodeIfPresent(String.self, forKey: .description)
         self.permission = try container.decode(String.self, forKey: .permission)
         self.dataSourceType = try container.decodeIfPresent(String.self, forKey: .dataSourceType) ?? ""
-        let idx = try container.decodeIfPresent(String.self, forKey: .indexingTechnique) ?? ""
-        self.indexingTechnique = KBIndexingTechnique(rawValue: idx)
+        let indexingTechniqueString = try container.decodeIfPresent(String.self, forKey: .indexingTechnique) ?? ""
+        self.indexingTechnique = KBIndexingTechnique(rawValue: indexingTechniqueString)
         self.appCount = try container.decode(Int.self, forKey: .appCount)
         self.documentCount = try container.decode(Int.self, forKey: .documentCount)
         self.wordCount = try container.decode(Int.self, forKey: .wordCount)
@@ -2334,12 +2422,12 @@ public struct WorkflowRunDetailResponse: Codable, Sendable {
     public let inputs: [String: AnyCodable]?
     public let outputs: [String: AnyCodable]?
     public let error: String?
-    public let totalSteps: Int
-    public let totalTokens: Int
-    public let createdAt: Int
+    public let totalSteps: Int?
+    public let totalTokens: Int?
+    public let createdAt: Int?
     public let finishedAt: Int?
-    public let elapsedTime: Double
-    
+    public let elapsedTime: Double?
+
     private enum CodingKeys: String, CodingKey {
         case id
         case workflowId = "workflow_id"
@@ -2352,6 +2440,87 @@ public struct WorkflowRunDetailResponse: Codable, Sendable {
         case createdAt = "created_at"
         case finishedAt = "finished_at"
         case elapsedTime = "elapsed_time"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(String.self, forKey: .id)
+        self.workflowId = try container.decode(String.self, forKey: .workflowId)
+        self.status = try container.decode(String.self, forKey: .status)
+
+        // inputs may arrive as object or stringified JSON
+        self.inputs = try Self.decodeFlexibleJSONDict(from: container, key: .inputs)
+        self.outputs = try Self.decodeFlexibleJSONDict(from: container, key: .outputs)
+
+        self.error = try container.decodeIfPresent(String.self, forKey: .error)
+        self.totalSteps = try container.decodeIfPresent(Int.self, forKey: .totalSteps)
+        self.totalTokens = try container.decodeIfPresent(Int.self, forKey: .totalTokens)
+        self.createdAt = try container.decodeIfPresent(Int.self, forKey: .createdAt)
+        self.finishedAt = try container.decodeIfPresent(Int.self, forKey: .finishedAt)
+        self.elapsedTime = try container.decodeIfPresent(Double.self, forKey: .elapsedTime)
+    }
+
+    public init(
+        id: String,
+        workflowId: String,
+        status: String,
+        inputs: [String: AnyCodable]?,
+        outputs: [String: AnyCodable]?,
+        error: String?,
+        totalSteps: Int?,
+        totalTokens: Int?,
+        createdAt: Int?,
+        finishedAt: Int?,
+        elapsedTime: Double?
+    ) {
+        self.id = id
+        self.workflowId = workflowId
+        self.status = status
+        self.inputs = inputs
+        self.outputs = outputs
+        self.error = error
+        self.totalSteps = totalSteps
+        self.totalTokens = totalTokens
+        self.createdAt = createdAt
+        self.finishedAt = finishedAt
+        self.elapsedTime = elapsedTime
+    }
+
+    private static func decodeFlexibleJSONDict(from container: KeyedDecodingContainer<CodingKeys>, key: CodingKeys) throws -> [String: AnyCodable]? {
+        // If key is absent, return nil without logging.
+        guard container.contains(key) else { return nil }
+
+        // 1) Try object directly
+        do {
+            let objectMap = try container.decode([String: AnyCodable].self, forKey: key)
+            return objectMap
+        } catch {
+            if DifySDKDebug.enabled {
+                DifySDKDebug.log("Decode hint: key=\(key.stringValue) is not an object map: \(error.localizedDescription)")
+            }
+        }
+
+        // 2) Try stringified JSON
+        do {
+            let jsonString = try container.decode(String.self, forKey: key)
+            if !jsonString.isEmpty, let data = jsonString.data(using: .utf8) {
+                if let rawObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    return rawObject.mapValues { AnyCodable($0) }
+                } else if DifySDKDebug.enabled {
+                    DifySDKDebug.log("Decode hint: key=\(key.stringValue) present as string but not valid JSON object")
+                }
+            }
+        } catch {
+            if DifySDKDebug.enabled {
+                DifySDKDebug.log("Decode hint: key=\(key.stringValue) is not a string or empty: \(error.localizedDescription)")
+            }
+        }
+
+        // 3) Unsupported type present (e.g., number/array/null)
+        if DifySDKDebug.enabled {
+            DifySDKDebug.log("Decode hint: key=\(key.stringValue) present with unsupported type; treating as nil for forward-compatibility")
+        }
+        return nil
     }
 }
 
@@ -2440,17 +2609,17 @@ public struct EndUserInfo: Codable, Sendable {
 /// Application WebApp settings response
 /// WebApp specific branding & legal settings (legacy variant of `ApplicationSiteResponse`).
 public struct ApplicationWebAppSettingsResponse: Codable, Sendable {
-    public let title: String
-    public let iconType: String
-    public let icon: String
-    public let iconBackground: String
+    public let title: String?
+    public let iconType: String?
+    public let icon: String?
+    public let iconBackground: String?
     public let iconUrl: String?
-    public let description: String
-    public let copyright: String
-    public let privacyPolicy: String
-    public let customDisclaimer: String
-    public let defaultLanguage: String
-    public let showWorkflowSteps: Bool
+    public let description: String?
+    public let copyright: String?
+    public let privacyPolicy: String?
+    public let customDisclaimer: String?
+    public let defaultLanguage: String?
+    public let showWorkflowSteps: Bool?
     
     private enum CodingKeys: String, CodingKey {
         case title
