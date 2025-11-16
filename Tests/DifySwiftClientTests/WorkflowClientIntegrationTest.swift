@@ -124,39 +124,39 @@ struct WorkflowClientIntegrationTest {
 
     // MARK: - Tests
 
-@Test("Application info and parameters endpoints")
-func testApplicationInfoAndParameters() async throws {
-    let client = try Self.makeClient()
-    let info = try await client.getApplicationInfo()
-    #expect(!info.name.isEmpty)
-    _ = try await client.getApplicationParameters()
-    _ = try await client.getApplicationWebAppSettings()
-}
+    @Test("Application info and parameters endpoints")
+    func testApplicationInfoAndParameters() async throws {
+        let client = try Self.makeClient()
+        let info = try await client.getApplicationInfo()
+        #expect(!info.name.isEmpty)
+        _ = try await client.getApplicationParameters()
+        _ = try await client.getApplicationWebAppSettings()
+    }
 
-@Test("Run workflow (blocking) and fetch run detail")
-func testRunWorkflowBlockingAndDetail() async throws {
-    let client = try Self.makeClient()
-    let params = try? await client.getApplicationParameters()
-    let inputs = buildInputs(from: params)
-    let user = makeUserId()
-    let traceId = makeTraceId()
+    @Test("Run workflow (blocking) and fetch run detail")
+    func testRunWorkflowBlockingAndDetail() async throws {
+        let client = try Self.makeClient()
+        let params = try? await client.getApplicationParameters()
+        let inputs = buildInputs(from: params)
+        let user = makeUserId()
+        let traceId = makeTraceId()
 
-        let resp = try await client.runWorkflow(inputs: inputs, user: user, files: nil, traceId: traceId)
-        #expect(!resp.workflowRunId.isEmpty)
-        #expect(!resp.taskId.isEmpty)
-        #expect(!resp.data.id.isEmpty)
-        #expect(!resp.data.status.isEmpty)
+            let resp = try await client.runWorkflow(inputs: inputs, user: user, files: nil, traceId: traceId)
+            #expect(!resp.workflowRunId.isEmpty)
+            #expect(!resp.taskId.isEmpty)
+            #expect(!resp.data.id.isEmpty)
+            #expect(!resp.data.status.isEmpty)
 
-    let detail = try await client.getWorkflowRunDetail(workflowRunId: resp.workflowRunId)
-    #expect(detail.id == resp.data.id)
-    #expect(detail.workflowId == resp.data.workflowId)
-}
+        let detail = try await client.getWorkflowRunDetail(workflowRunId: resp.workflowRunId)
+        #expect(detail.id == resp.data.id)
+        #expect(detail.workflowId == resp.data.workflowId)
+    }
 
-@Test("Run workflow by ID (blocking)")
-func testRunWorkflowByIdBlocking() async throws {
-    let client = try Self.makeClient()
-    let params = try? await client.getApplicationParameters()
-    let inputs = buildInputs(from: params)
+    @Test("Run workflow by ID (blocking)")
+    func testRunWorkflowByIdBlocking() async throws {
+        let client = try Self.makeClient()
+        let params = try? await client.getApplicationParameters()
+        let inputs = buildInputs(from: params)
         let user = makeUserId()
 
         // Discover a workflowId by doing one run first
@@ -169,58 +169,58 @@ func testRunWorkflowByIdBlocking() async throws {
         #expect(run.data.workflowId == workflowId)
     }
 
-@Test("Run workflow (streaming) yields start and finish events")
-func testRunWorkflowStreamingBasic() async throws {
-    let client = try Self.makeClient()
-    let params = try? await client.getApplicationParameters()
-    let inputs = buildInputs(from: params)
-    let user = makeUserId()
-    let stream = try await client.runStreamingWorkflow(inputs: inputs, user: user)
+    @Test("Run workflow (streaming) yields start and finish events")
+    func testRunWorkflowStreamingBasic() async throws {
+        let client = try Self.makeClient()
+        let params = try? await client.getApplicationParameters()
+        let inputs = buildInputs(from: params)
+        let user = makeUserId()
+        let stream = try await client.runStreamingWorkflow(inputs: inputs, user: user)
 
-    var sawStarted = false
-    var sawFinished = false
-    var startedTaskId: String?
-    for try await event in stream {
-        switch event.kind.rawValue {
-        case "workflow_started":
-            sawStarted = true
-            startedTaskId = event.workflowStarted?.taskId
-        case "workflow_finished":
-            sawFinished = true
-            break
-        default:
-            break
+        var sawStarted = false
+        var sawFinished = false
+        var startedTaskId: String?
+        for try await event in stream {
+            switch event.kind.rawValue {
+            case "workflow_started":
+                sawStarted = true
+                startedTaskId = event.workflowStarted?.taskId
+            case "workflow_finished":
+                sawFinished = true
+                break
+            default:
+                break
+            }
+            if sawFinished { break }
         }
-        if sawFinished { break }
+        #expect(sawStarted)
+        #expect(sawFinished)
+
+        // Best-effort stop (no-op if already finished)
+        if let taskId = startedTaskId {
+            _ = try? await client.stopWorkflowTask(taskId: taskId, user: user)
+        }
     }
-    #expect(sawStarted)
-    #expect(sawFinished)
 
-    // Best-effort stop (no-op if already finished)
-    if let taskId = startedTaskId {
-        _ = try? await client.stopWorkflowTask(taskId: taskId, user: user)
+    @Test("Run workflow by ID (streaming)")
+    func testRunWorkflowByIdStreaming() async throws {
+        let client = try Self.makeClient()
+        let params = try? await client.getApplicationParameters()
+        let inputs = buildInputs(from: params)
+        let user = makeUserId()
+
+            // Discover a workflowId
+            let probe = try await client.runWorkflow(inputs: inputs, user: user)
+            let workflowId = probe.data.workflowId
+            #expect(!workflowId.isEmpty)
+
+        let stream = try await client.runStreamingWorkflow(workflowId: workflowId, inputs: inputs, user: user)
+        var sawFinish = false
+        for try await event in stream {
+            if event.kind == .workflowFinished { sawFinish = true; break }
+        }
+        #expect(sawFinish)
     }
-}
-
-@Test("Run workflow by ID (streaming)")
-func testRunWorkflowByIdStreaming() async throws {
-    let client = try Self.makeClient()
-    let params = try? await client.getApplicationParameters()
-    let inputs = buildInputs(from: params)
-    let user = makeUserId()
-
-        // Discover a workflowId
-        let probe = try await client.runWorkflow(inputs: inputs, user: user)
-        let workflowId = probe.data.workflowId
-        #expect(!workflowId.isEmpty)
-
-    let stream = try await client.runStreamingWorkflow(workflowId: workflowId, inputs: inputs, user: user)
-    var sawFinish = false
-    for try await event in stream {
-        if event.kind == .workflowFinished { sawFinish = true; break }
-    }
-    #expect(sawFinish)
-}
 
     @Test("Workflow logs listing (first page)")
     func testGetWorkflowLogsListing() async throws {
@@ -236,13 +236,13 @@ func testRunWorkflowByIdStreaming() async throws {
         #expect(logs.data.count <= 5)
     }
 
-@Test("Run workflow with file attachment when allowed")
-func testRunWorkflowWithFileAttachmentIfEnabled() async throws {
-    let client = try Self.makeClient()
-    let params = try? await client.getApplicationParameters()
-    guard let allowance = allowedLocalUploadCategory(params) else {
-        // App does not accept local file uploads; silently pass this optional test
-        return
+    @Test("Run workflow with file attachment when allowed")
+    func testRunWorkflowWithFileAttachmentIfEnabled() async throws {
+        let client = try Self.makeClient()
+        let params = try? await client.getApplicationParameters()
+        guard let allowance = allowedLocalUploadCategory(params) else {
+            // App does not accept local file uploads; silently pass this optional test
+            return
         }
 
         // Upload a tiny file via CompletionClient (shared /files/upload endpoint)
