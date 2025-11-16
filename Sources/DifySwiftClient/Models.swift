@@ -2400,16 +2400,38 @@ public struct WorkflowRunDetailResponse: Codable, Sendable {
     }
 
     private static func decodeFlexibleJSONDict(from container: KeyedDecodingContainer<CodingKeys>, key: CodingKeys) throws -> [String: AnyCodable]? {
-        // Try as object first
-        if let obj = try container.decodeIfPresent([String: AnyCodable].self, forKey: key) {
+        // If key is absent, return nil without logging.
+        guard container.contains(key) else { return nil }
+
+        // 1) Try object directly
+        do {
+            let obj = try container.decode([String: AnyCodable].self, forKey: key)
             return obj
-        }
-        // Try as stringified JSON
-        if let jsonString = try container.decodeIfPresent(String.self, forKey: key), !jsonString.isEmpty {
-            if let data = jsonString.data(using: .utf8),
-               let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                return raw.mapValues { AnyCodable($0) }
+        } catch {
+            if DifySDKDebug.enabled {
+                DifySDKDebug.log("Decode hint: key=\(key.stringValue) is not an object map: \(error.localizedDescription)")
             }
+        }
+
+        // 2) Try stringified JSON
+        do {
+            let jsonString = try container.decode(String.self, forKey: key)
+            if !jsonString.isEmpty, let data = jsonString.data(using: .utf8) {
+                if let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    return raw.mapValues { AnyCodable($0) }
+                } else if DifySDKDebug.enabled {
+                    DifySDKDebug.log("Decode hint: key=\(key.stringValue) present as string but not valid JSON object")
+                }
+            }
+        } catch {
+            if DifySDKDebug.enabled {
+                DifySDKDebug.log("Decode hint: key=\(key.stringValue) is not a string or empty: \(error.localizedDescription)")
+            }
+        }
+
+        // 3) Unsupported type present (e.g., number/array/null)
+        if DifySDKDebug.enabled {
+            DifySDKDebug.log("Decode hint: key=\(key.stringValue) present with unsupported type; treating as nil for forward-compatibility")
         }
         return nil
     }
