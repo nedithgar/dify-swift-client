@@ -1035,40 +1035,40 @@ public struct NodeExecutionData: Codable, Sendable {
     }
     
     public init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.id = try c.decode(String.self, forKey: .id)
-        self.nodeId = try c.decode(String.self, forKey: .nodeId)
-        self.nodeType = try c.decode(String.self, forKey: .nodeType)
-        self.index = try NodeExecutionData.decodeIntFlex(c, forKey: .index)
-        self.title = try c.decode(String.self, forKey: .title)
-        self.predecessorNodeId = try c.decodeIfPresent(String.self, forKey: .predecessorNodeId)
-        self.inputs = try c.decodeIfPresent([String: AnyCodable].self, forKey: .inputs)
-        self.processData = try c.decodeIfPresent([String: AnyCodable].self, forKey: .processData)
-        self.outputs = try c.decodeIfPresent([String: AnyCodable].self, forKey: .outputs)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(String.self, forKey: .id)
+        self.nodeId = try container.decode(String.self, forKey: .nodeId)
+        self.nodeType = try container.decode(String.self, forKey: .nodeType)
+        self.index = try NodeExecutionData.decodeIntFlex(container, forKey: .index)
+        self.title = try container.decode(String.self, forKey: .title)
+        self.predecessorNodeId = try container.decodeIfPresent(String.self, forKey: .predecessorNodeId)
+        self.inputs = try container.decodeIfPresent([String: AnyCodable].self, forKey: .inputs)
+        self.processData = try container.decodeIfPresent([String: AnyCodable].self, forKey: .processData)
+        self.outputs = try container.decodeIfPresent([String: AnyCodable].self, forKey: .outputs)
         // Status can sometimes be a non-string; coerce to String when possible
-        if let s = try? c.decode(String.self, forKey: .status) {
-            self.status = s
-        } else if let n = try? c.decode(Int.self, forKey: .status) {
-            self.status = String(n)
+        if let statusString = try? container.decode(String.self, forKey: .status) {
+            self.status = statusString
+        } else if let statusInt = try? container.decode(Int.self, forKey: .status) {
+            self.status = String(statusInt)
         } else {
             self.status = nil
         }
-        self.error = try c.decodeIfPresent(String.self, forKey: .error)
-        self.elapsedTime = try NodeExecutionData.decodeDoubleFlex(c, forKey: .elapsedTime)
-        self.executionMetadata = try? c.decode(ExecutionMetadata.self, forKey: .executionMetadata)
-        self.createdAt = try? NodeExecutionData.decodeIntFlex(c, forKey: .createdAt)
+        self.error = try container.decodeIfPresent(String.self, forKey: .error)
+        self.elapsedTime = try NodeExecutionData.decodeDoubleFlex(container, forKey: .elapsedTime)
+        self.executionMetadata = try? container.decode(ExecutionMetadata.self, forKey: .executionMetadata)
+        self.createdAt = try? NodeExecutionData.decodeIntFlex(container, forKey: .createdAt)
     }
 
-    private static func decodeIntFlex(_ c: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Int {
-        if let i = try? c.decode(Int.self, forKey: key) { return i }
-        if let s = try? c.decode(String.self, forKey: key), let i = Int(s) { return i }
+    private static func decodeIntFlex(_ container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Int {
+        if let intValue = try? container.decode(Int.self, forKey: key) { return intValue }
+        if let stringValue = try? container.decode(String.self, forKey: key), let intValue = Int(stringValue) { return intValue }
         throw DecodingError.typeMismatch(Int.self, DecodingError.Context(codingPath: [key], debugDescription: "Expected Int or numeric String for \(key.stringValue)"))
     }
 
-    private static func decodeDoubleFlex(_ c: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Double? {
-        if let d = try? c.decode(Double.self, forKey: key) { return d }
-        if let i = try? c.decode(Int.self, forKey: key) { return Double(i) }
-        if let s = try? c.decode(String.self, forKey: key), let d = Double(s) { return d }
+    private static func decodeDoubleFlex(_ container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Double? {
+        if let doubleValue = try? container.decode(Double.self, forKey: key) { return doubleValue }
+        if let intValue = try? container.decode(Int.self, forKey: key) { return Double(intValue) }
+        if let stringValue = try? container.decode(String.self, forKey: key), let doubleValue = Double(stringValue) { return doubleValue }
         return nil
     }
 }
@@ -1085,25 +1085,25 @@ public struct ExecutionMetadata: Codable, Sendable {
     }
     
     public init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        // Accept numbers or numeric strings
-        if let v = try? c.decode(Int.self, forKey: .totalTokens) {
-            self.totalTokens = v
-        } else if let s = try? c.decode(String.self, forKey: .totalTokens), let v = Int(s) {
-            self.totalTokens = v
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // Accept numbers or numeric strings for all numeric values
+        if let numericValue = try? container.decode(Int.self, forKey: .totalTokens) {
+            self.totalTokens = numericValue
+        } else if let stringValue = try? container.decode(String.self, forKey: .totalTokens), let numericValue = Int(stringValue) {
+            self.totalTokens = numericValue
         } else {
             self.totalTokens = nil
         }
-        if let v = try? c.decode(Double.self, forKey: .totalPrice) {
-            self.totalPrice = v
-        } else if let s = try? c.decode(String.self, forKey: .totalPrice), let v = Double(s) {
-            self.totalPrice = v
-        } else if let i = try? c.decode(Int.self, forKey: .totalPrice) {
-            self.totalPrice = Double(i)
+        if let doubleValue = try? container.decode(Double.self, forKey: .totalPrice) {
+            self.totalPrice = doubleValue
+        } else if let stringValue = try? container.decode(String.self, forKey: .totalPrice), let doubleValue = Double(stringValue) {
+            self.totalPrice = doubleValue
+        } else if let intValue = try? container.decode(Int.self, forKey: .totalPrice) {
+            self.totalPrice = Double(intValue)
         } else {
             self.totalPrice = nil
         }
-        self.currency = try? c.decode(String.self, forKey: .currency)
+        self.currency = try? container.decode(String.self, forKey: .currency)
     }
 }
 
@@ -1180,8 +1180,8 @@ public struct DatasetResponse: Codable, Sendable {
         self.description = try container.decodeIfPresent(String.self, forKey: .description)
         self.permission = try container.decode(String.self, forKey: .permission)
         self.dataSourceType = try container.decodeIfPresent(String.self, forKey: .dataSourceType) ?? ""
-        let idx = try container.decodeIfPresent(String.self, forKey: .indexingTechnique) ?? ""
-        self.indexingTechnique = KBIndexingTechnique(rawValue: idx)
+        let indexingTechniqueString = try container.decodeIfPresent(String.self, forKey: .indexingTechnique) ?? ""
+        self.indexingTechnique = KBIndexingTechnique(rawValue: indexingTechniqueString)
         self.appCount = try container.decode(Int.self, forKey: .appCount)
         self.documentCount = try container.decode(Int.self, forKey: .documentCount)
         self.wordCount = try container.decode(Int.self, forKey: .wordCount)
@@ -2492,8 +2492,8 @@ public struct WorkflowRunDetailResponse: Codable, Sendable {
 
         // 1) Try object directly
         do {
-            let obj = try container.decode([String: AnyCodable].self, forKey: key)
-            return obj
+            let objectMap = try container.decode([String: AnyCodable].self, forKey: key)
+            return objectMap
         } catch {
             if DifySDKDebug.enabled {
                 DifySDKDebug.log("Decode hint: key=\(key.stringValue) is not an object map: \(error.localizedDescription)")
@@ -2504,8 +2504,8 @@ public struct WorkflowRunDetailResponse: Codable, Sendable {
         do {
             let jsonString = try container.decode(String.self, forKey: key)
             if !jsonString.isEmpty, let data = jsonString.data(using: .utf8) {
-                if let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    return raw.mapValues { AnyCodable($0) }
+                if let rawObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    return rawObject.mapValues { AnyCodable($0) }
                 } else if DifySDKDebug.enabled {
                     DifySDKDebug.log("Decode hint: key=\(key.stringValue) present as string but not valid JSON object")
                 }
