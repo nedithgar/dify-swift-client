@@ -35,7 +35,6 @@ When creating tests or implementing new features, proactively seek assistance fr
 ### Key Components
 - **Models.swift** - Contains all request/response models, enums, and data structures (extensive test coverage)
 - **Utilities.swift** - JSON coders, multipart builder, helpers, and lightweight debug logging
-- **Examples** - See README.md for up-to-date usage examples
 
 ## Development Commands
 
@@ -252,5 +251,5 @@ The SDK currently implements:
 - **Follow existing patterns** - consistency is key
 - **Document breaking changes** in commit messages
 - **Test on multiple platforms** if making platform-specific changes
-- **Use isolated mock sessions** when writing tests to ensure thread safety
+- **Use isolated mock sessions** when writing unit tests to ensure thread safety
 - **Naming must be descriptive** across variables, types, files, tests, and APIs.
