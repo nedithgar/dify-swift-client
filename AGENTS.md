@@ -55,8 +55,9 @@ swift test --filter "WorkflowClient Tests"
 swift test --filter "KnowledgeBaseClient Tests"
 swift test --filter "Utilities Tests"
 swift test --filter "Isolated Mock Session Tests"
-# Optional integration suite (disabled by default; requires env vars)
+# Optional integration suites (disabled by default; require env vars)
 swift test --filter "KnowledgeBaseClient Integration"
+swift test --filter "WorkflowClient Integration"
 
 # Run tests with verbose output
 swift test --verbose
@@ -70,7 +71,9 @@ swift test --no-parallel
 - **No external dependencies** - Unit tests run offline and are deterministic
 - **Swift Testing framework** - Uses the modern Swift Testing framework (WWDC 2024)
 - **Parallel test execution** - Tests can use isolated mock sessions for thread-safe parallel execution
-- **Integration tests (opt‑in)** - A Knowledge Base integration suite is disabled by default and runs only when `DIFY_KB_API_KEY` (and optional `DIFY_BASE_URL`) are set
+- **Integration tests (opt‑in)**
+  - Knowledge Base suite requires `DIFY_KB_API_KEY` (optional `DIFY_BASE_URL`)
+  - Workflow suite requires `DIFY_WORKFLOW_API_KEY` (optional `DIFY_BASE_URL`, optional `DIFY_WORKFLOW_INPUTS_JSON`)
 
 ## Code Architecture Details
 
@@ -78,7 +81,7 @@ swift test --no-parallel
 1. All clients inherit from `DifyClient` which provides base HTTP functionality
 2. Requests are constructed using `sendRequest()` (JSON) or `sendMultipartRequest()` (file uploads)
 3. JSON encoding/decoding uses custom `JSONEncoder.difyEncoder` and `JSONDecoder.difyDecoder`
-4. Error handling through `DifyError` enum with specific error types
+4. Error handling through `DifyError` struct with common factory helpers (e.g. `invalidURL`, `httpError`, `decodingError`)
 
 ### Key Design Patterns
 - **Inheritance-based client architecture** - Specialized clients extend base functionality
@@ -92,7 +95,8 @@ The SDK supports comprehensive file handling across document, image, audio, vide
 ### Streaming Support
 - Streaming uses `AsyncThrowingStream` created by `DifyClient.createStreamingResponse(...)`
 - Supports chat streaming, workflow streaming, and various event types
-- Platform-aware: uses `URLSession.bytes` on Apple platforms; falls back to buffered `data(for:)` on Linux and in tests for SSE compatibility
+- Platform-aware: uses `URLSession.bytes` on Apple platforms; falls back to buffered `data(for:)` on Linux and when `MockURLProtocol` is active in tests for SSE compatibility
+- Streams finish with an error if a line decodes to `DifyError`
 
 ## Test Structure
 
@@ -149,10 +153,11 @@ swift test --filter "Streaming"
 ## Key Implementation Notes
 
 ### Error Handling
-- All API errors are wrapped in `DifyError` enum
+- All API errors use the `DifyError` struct (conforms to `Error`, `LocalizedError`, and `Decodable`)
 - HTTP errors include status codes and response messages
 - Network errors preserve underlying error information
 - Decoding errors provide detailed failure context
+- Factory helpers provide consistent messages: `invalidURL`, `noData`, `httpError`, `networkError`, `invalidResponse`, `fileNotFound`, `invalidAPIKey`, `missingDatasetId`
 
 ### Concurrency
 - All clients are marked as `@unchecked Sendable` for Swift 6 compatibility
@@ -219,7 +224,7 @@ swift test --filter "Streaming"
 7. Document the new functionality appropriately
 
 ### Debugging Tips
-- Check `DifyError` cases for specific error handling
+- Inspect `DifyError` fields (`message`, `code`, `status`) and use factory helpers for consistent error handling
 - Enable SDK debug logs by setting env `DIFY_SDK_DEBUG=true`
 - Use `print(request.debugDescription)` to inspect outgoing requests
 - Verify JSON encoding/decoding with custom coders
