@@ -10,7 +10,7 @@ A Swift SDK for Dify AI that provides a complete interface to the Dify Service A
 ## Features
 
 - **Complete API Coverage**: Supports all Dify API endpoints including chat, completion, workflows, knowledge base management, application info, feedbacks, and annotations
-- **Enhanced File Support**: Full support for documents, images, audio, video, and custom file types via remote URLs; local upload endpoint currently supports images only (png/jpg/jpeg/webp/gif)
+ - **Enhanced File Support**: Full support for documents, images, audio, video, and custom file types. Use remote URLs for any type; local uploads support images out of the box (auto MIME detection) and other formats when you provide an explicit `mimeType` (server acceptance may vary by deployment)
 - **Modern Swift**: Built with Swift 6.1+ using modern concurrency (async/await) and follows Swift best practices  
 - **Cross-Platform**: Works on macOS, iOS, tvOS, watchOS, and Linux
 - **Advanced Streaming**: Built-in streaming response handling for real-time interactions including workflow events
@@ -31,7 +31,7 @@ A Swift SDK for Dify AI that provides a complete interface to the Dify Service A
 - `KnowledgeBaseClient` – Datasets, documents, segments/child chunks, retrieve, embedding models
 
 Key shared components:
-- `Models.swift` – All request/response models and enums (including Knowledge Base typed models)
+- `Models.swift` – All request/response models and typed wrappers (including Knowledge Base typed models)
 - `Utilities.swift` – JSON coders, multipart builder, helpers, and lightweight debug logging
 
 ## Requirements
@@ -186,7 +186,7 @@ let response = try await chatClient.createChatMessage(
 )
 ```
 
-Upload and use a local image file (upload endpoint currently supports images only):
+Upload and use a local file. Images have automatic MIME detection; for other file types you can pass `mimeType` explicitly.
 
 ```swift
 let completionClient = try CompletionClient(apiKey: "your_api_key")
@@ -195,7 +195,7 @@ let uploadResponse = try await completionClient.uploadFile(
     fileData: fileData,
     fileName: "picture.png",
     user: "user_123",
-    mimeType: "image/png"
+    mimeType: "image/png" // for non-images, pass appropriate MIME (e.g., "text/plain")
 )
 
 let localFiles = [APIFile(
@@ -704,7 +704,7 @@ All API responses are strongly typed with Swift structs and include comprehensiv
 - `WorkflowLogsResponse` - Workflow execution logs and history
 
 #### Enhanced File Support
-- `FileType` enum supporting: `.document`, `.image`, `.audio`, `.video`, `.custom`
+- `FileType` (open string wrapper) supporting: `.document`, `.image`, `.audio`, `.video`, `.custom`
 - `APIFile` with comprehensive file handling for all supported formats
 
 ### Utilities & JSON
@@ -715,12 +715,14 @@ All API responses are strongly typed with Swift structs and include comprehensiv
 ### Error Types
 
  - `DifyError.invalidURL()`
-- `DifyError.invalidAPIKey`
-- `DifyError.httpError(_:_:)`
-- `DifyError.networkError(_:)`
-- `DifyError.decodingError(_:)`
-- `DifyError.missingDatasetId`
-- `DifyError.fileNotFound(_:)`
+ - `DifyError.invalidResponse()`
+ - `DifyError.noData()`
+ - `DifyError.invalidAPIKey`
+ - `DifyError.httpError(_:_:)`
+ - `DifyError.networkError(_:)`
+ - `DifyError.decodingError(_:)`
+ - `DifyError.missingDatasetId`
+ - `DifyError.fileNotFound(_:)`
 
 ## Advanced Usage
 
@@ -789,8 +791,9 @@ swift test --filter "KnowledgeBaseClient Tests"
 swift test --filter "Utilities Tests"
 swift test --filter "Isolated Mock Session Tests"
 
-# Optional integration suite (disabled by default; requires env vars like DIFY_KB_API_KEY)
+# Optional integration suites (disabled by default; require env vars)
 swift test --filter "KnowledgeBaseClient Integration"
+swift test --filter "WorkflowClient Integration"
 
 # Run tests with verbose output
 swift test --verbose
@@ -807,7 +810,7 @@ swift test --no-parallel
 - **Broad Coverage**: Tests include endpoints, streaming, error scenarios, and edge cases
 - **Swift Testing Framework**: Uses the modern Swift Testing framework (WWDC 2024)
 
-Tip: A Knowledge Base integration suite is opt-in via env vars (e.g., `DIFY_KB_API_KEY`, optional `DIFY_BASE_URL`) and is disabled by default.
+Tip: Integration suites are opt-in via env vars. Knowledge Base requires `DIFY_KB_API_KEY` (optional `DIFY_BASE_URL`); Workflow requires `DIFY_WORKFLOW_API_KEY` (optional `DIFY_BASE_URL`, optional `DIFY_WORKFLOW_INPUTS_JSON`).
 
 ### Workflow Integration Suite
 
@@ -848,6 +851,8 @@ The SDK compiles and runs on Linux with Swift 6.1+. However, please note:
 - Successful compilation on Linux
 - API compatibility analysis
 - Community feedback and issue reports
+
+Additional note on streaming: on Linux the SDK uses a buffered fallback (`URLSession.data(for:)`) for SSE parsing instead of `URLSession.bytes`; event semantics remain the same.
 
 Linux users are encouraged to report any compatibility issues they encounter. While we cannot guarantee the same level of testing coverage as Darwin platforms, we are committed to addressing Linux-specific issues as they arise.
 
