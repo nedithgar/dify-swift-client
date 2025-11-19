@@ -6,36 +6,39 @@ import FoundationNetworking
 
 /// Base client for interacting with the Dify API.
 ///
-/// Responsibilities:
-/// - Stores API credentials and base URL.
-/// - Constructs and signs HTTP requests (Bearer token auth).
-/// - Provides JSON + multipart request helpers.
-/// - Centralizes error normalization (status code handling, decoding errors).
-/// - Implements streaming response handling with automatic adaptation for test environments / Linux.
+/// The `DifyClient` class serves as the foundation for all API interactions in the Dify SDK. It handles the core networking logic, including authentication, request construction, and response parsing.
 ///
-/// Subclassing:
-/// Concrete domain clients (e.g. `ChatClient`, `CompletionClient`, `WorkflowClient`) inherit from
-/// `DifyClient` to gain shared networking behavior. They should remain thin, focusing on shaping
-/// request/response payload models.
+/// ## Overview
 ///
-/// Concurrency:
-/// The class is marked `@unchecked Sendable` because `URLSession` is not formally `Sendable` in all
-/// deployment targets. Public API usage is async and individual requests are independent; using a
-/// dedicated `URLSession` instance or the shared session concurrently across tasks is acceptable.
+/// This class is designed to be subclassed by domain-specific clients (e.g., `ChatClient`, `CompletionClient`). It provides a unified way to send requests and handle responses, ensuring consistency across the SDK.
 ///
-/// Error Model:
-/// Methods throw `DifyError` for known failure cases (invalid API key/URL, HTTP error responses,
-/// JSON decoding issues). Unexpected underlying `URLSession` errors are surfaced directly via
-/// `DifyError` factory helpers inside callers.
+/// ## Responsibilities
 ///
-/// Streaming Strategy:
-/// - On Apple platforms (non-Linux) and non-test environments, uses `URLSession.bytes` for truly
-///   incremental processing of SSE lines.
-/// - In unit tests (detected by presence of the custom `MockURLProtocol`) and on Linux, falls back
-///   to a single buffered `data(for:)` request which is then parsed line-by-line, enabling easier
-///   deterministic mocks.
+/// - **Authentication**: Automatically attaches the Bearer token to all requests.
+/// - **Request Construction**: Helper methods for creating JSON and multipart requests.
+/// - **Error Handling**: Centralizes error normalization, converting HTTP status codes and decoding errors into `DifyError`.
+/// - **Streaming**: Implements robust streaming support, adapting to the platform and environment (e.g., using `URLSession.bytes` on Apple platforms and buffered data on Linux/Tests).
 ///
-/// Extensibility Tips:
+/// ## Subclassing
+///
+/// Concrete domain clients (e.g. `ChatClient`, `CompletionClient`, `WorkflowClient`) inherit from `DifyClient` to gain shared networking behavior. They should remain thin, focusing on shaping request/response payload models.
+///
+/// ## Concurrency
+///
+/// The class is marked `@unchecked Sendable` because `URLSession` is not formally `Sendable` in all deployment targets. Public API usage is async and individual requests are independent; using a dedicated `URLSession` instance or the shared session concurrently across tasks is acceptable.
+///
+/// ## Error Handling
+///
+/// Methods throw `DifyError` for known failure cases (invalid API key/URL, HTTP error responses, JSON decoding issues). Unexpected underlying `URLSession` errors are surfaced directly via `DifyError` factory helpers inside callers.
+///
+/// ## Streaming Strategy
+///
+/// The client employs a dual-strategy for streaming:
+/// - **Production (Apple Platforms)**: Uses `URLSession.bytes` for truly incremental processing of SSE lines.
+/// - **Testing & Linux**: Falls back to a buffered approach (downloading the full response first) to ensure compatibility with `MockURLProtocol` and Linux networking limitations.
+///
+/// ## Extensibility Tips
+///
 /// - Prefer adding new high-level endpoint methods in subclasses.
 /// - Keep this type focused on cross-cutting infrastructure concerns (auth, transport, decoding).
 @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
