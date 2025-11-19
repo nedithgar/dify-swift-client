@@ -17,11 +17,18 @@ enum DifySDKDebug {
         return raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "true"
     }()
 
+    /// Logs a debug message if debug logging is enabled.
+    /// - Parameter message: The message to log.
     static func log(_ message: String) {
         guard enabled else { return }
         print("[DifySwiftClient][DEBUG] \(message)")
     }
 
+    /// Creates a debug string representation of data, truncated if necessary.
+    /// - Parameters:
+    ///   - data: The data to dump.
+    ///   - limit: The maximum number of bytes to include in the prefix.
+    /// - Returns: A string representation of the data.
     static func dump(_ data: Data, limit: Int = 256) -> String {
         if data.isEmpty { return "<empty>" }
         let prefix = String(data: data.prefix(limit), encoding: .utf8) ?? "<non-utf8>"
@@ -29,6 +36,9 @@ enum DifySDKDebug {
         return prefix + more
     }
 
+    /// Sanitizes headers for logging by redacting sensitive information.
+    /// - Parameter headers: The headers to sanitize.
+    /// - Returns: A dictionary of sanitized headers.
     static func sanitizeHeaders(_ headers: [AnyHashable: Any]) -> [String: String] {
         var sanitized: [String: String] = [:]
         for (kAny, vAny) in headers {
@@ -55,20 +65,31 @@ enum DifySDKDebug {
 /// Factory helpers (static closures) are provided for common client‑side
 /// construction scenarios so that error message text stays consistent.
 public struct DifyError: Error, LocalizedError, Decodable, Sendable {
+    /// A descriptive message about the error.
     public let message: String?
+    /// A machine-readable error code.
     public let code: String?
+    /// The HTTP status code associated with the error, if applicable.
     public let status: Int?
 
     enum CodingKeys: String, CodingKey {
         case message, code, status
     }
     
+    /// Creates a new DifyError.
+    /// - Parameters:
+    ///   - message: A descriptive message about the error.
+    ///   - code: A machine-readable error code.
+    ///   - status: The HTTP status code associated with the error.
     init(message: String, code: String? = nil, status: Int? = nil) {
         self.message = message
         self.code = code
         self.status = status
     }
     
+    /// Creates a new DifyError by decoding from the given decoder.
+    /// - Parameter decoder: The decoder to read data from.
+    /// - Throws: An error if reading from the decoder fails.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.message = try container.decodeIfPresent(String.self, forKey: .message)
@@ -76,6 +97,7 @@ public struct DifyError: Error, LocalizedError, Decodable, Sendable {
         self.status = try container.decodeIfPresent(Int.self, forKey: .status)
     }
 
+    /// A localized description of the error.
     public var errorDescription: String? {
         return "Dify API Error: \(message ?? "Unknown error") (Code: \(code ?? "N/A"), Status: \(status ?? 0))"
     }
@@ -186,7 +208,8 @@ public class MultipartFormData {
     ///   - data: Raw binary file contents.
     ///   - mimeType: MIME type (e.g. "image/png").
     public func addFileField(named name: String, fileName: String, data: Data, mimeType: String) {
-        files.append((name, fileName, data, mimeType))}
+        files.append((name, fileName, data, mimeType))
+    }
     
     /// Builds the final multipart body and headers.
     /// - Returns: A `(headers, body)` tuple. Include `headers` in your `URLRequest`.
@@ -220,7 +243,9 @@ public class MultipartFormData {
 
 extension Data {
     /// Appends a UTF‑8 representation of the provided string to the data buffer.
+    ///
     /// If the string cannot be represented in UTF‑8 nothing is appended.
+    /// - Parameter string: The string to append.
     mutating func append(_ string: String) {
         if let data = string.data(using: .utf8) {
             append(data)
